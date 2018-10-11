@@ -143,10 +143,10 @@ public class TestRequestGenerator extends AbstractCVM {
 		Map<Integer, Integer> processingPower = new HashMap<Integer, Integer>();
 		processingPower.put(1500, 1500000); // 1,5 GHz executes 1,5 Mips
 		processingPower.put(3000, 3000000); // 3 GHz executes 3 Mips
-		Computer c = new Computer(computerURI, admissibleFrequencies, processingPower, 1500, // Test scenario 1,
-																								// frequency = 1,5 GHz
-				// 3000, // Test scenario 2, frequency = 3 GHz
-				1500, // max frequency gap within a processor
+		Computer c = new Computer(computerURI, admissibleFrequencies, processingPower, 
+				1500,		// Test scenario 1, frequency = 1,5 GHz
+//				3000,		// Test scenario 2, frequency = 3 GHz
+				1500,		// max frequency gap within a processor
 				numberOfProcessors, numberOfCores, ComputerServicesInboundPortURI,
 				ComputerStaticStateDataInboundPortURI, ComputerDynamicStateDataInboundPortURI);
 		this.addDeployedComponent(c);

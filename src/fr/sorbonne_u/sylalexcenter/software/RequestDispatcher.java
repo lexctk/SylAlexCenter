@@ -1,11 +1,10 @@
-/**
- * 
- */
 package fr.sorbonne_u.sylalexcenter.software;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
+import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector;
+import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
@@ -42,33 +41,41 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	
 	// RequestGenerator Ports
 	// -------------------------------------------------------------------------
+	protected RequestSubmissionInboundPort rsip;
 	protected RequestSubmissionOutboundPort rsop;
 	protected RequestNotificationInboundPort rnip;
-	
-	protected RequestSubmissionInboundPort rsip;
 	protected RequestNotificationOutboundPort rnop;	
+	
+	protected String requestSubmissionInboundPortURI;	
+	protected String requestSubmissionOutboundPortURI;
+	protected String requestNotificationInboundPortURI;
+	protected String requestNotificationOutboundPortURI;
 	
 	
 	// Constructor
 	// -------------------------------------------------------------------------
 	public RequestDispatcher (
 			String rdURI, 
+			String requestSubmissionInboundPortURI, 
 			String requestSubmissionOutboundPortURI, 
 			String requestNotificationInboundPortURI, 
-			String requestSubmissionInboundPortURI, 
 			String requestNotificationOutboundPortURI ) throws Exception {
 		
 		super(1, 1);
 		
 		// preconditions check
+		assert requestSubmissionInboundPortURI != null;
 		assert requestSubmissionOutboundPortURI != null;
 		assert requestNotificationInboundPortURI != null;
-		
-		assert requestSubmissionInboundPortURI != null;
 		assert requestNotificationOutboundPortURI != null;
 		
 		// initialization
 		this.rdURI = rdURI;
+
+		this.addOfferedInterface(RequestSubmissionI.class);
+		this.rsip = new RequestSubmissionInboundPort(requestSubmissionInboundPortURI, this);
+		this.addPort(this.rsip);
+		this.rsip.publishPort();
 		
 		this.addRequiredInterface(RequestSubmissionI.class);
 		this.rsop = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
@@ -79,11 +86,6 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundPortURI, this);
 		this.addPort(this.rnip);
 		this.rnip.publishPort();
-
-		this.addOfferedInterface(RequestSubmissionI.class);
-		this.rsip = new RequestSubmissionInboundPort(requestSubmissionInboundPortURI, this);
-		this.addPort(this.rsip);
-		this.rsip.publishPort();
 		
 		this.addRequiredInterface(RequestNotificationI.class);
 		this.rnop = new RequestNotificationOutboundPort(requestNotificationOutboundPortURI, this);
@@ -91,9 +93,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 		this.rnop.publishPort();
 
 		// post-conditions check
+		assert this.rsip != null && this.rsip instanceof RequestSubmissionI;
 		assert this.rsop != null && this.rsop instanceof RequestSubmissionI;
 		assert this.rnip != null && this.rnip instanceof RequestNotificationI;
-		assert this.rsip != null && this.rsip instanceof RequestSubmissionI;
 		assert this.rnop != null && this.rnop instanceof RequestNotificationI;
 		
 	}
@@ -103,9 +105,11 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	@Override
 	public void start() throws ComponentStartException {
 		super.start();
-
 		try {
-			//TODO
+			this.doPortConnection(this.rsop.getPortURI(), requestSubmissionInboundPortURI,
+					RequestSubmissionConnector.class.getCanonicalName());
+			this.doPortConnection(this.rnop.getPortURI(), requestNotificationInboundPortURI,
+					RequestNotificationConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
 		}
@@ -113,7 +117,12 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 
 	@Override
 	public void finalise() throws Exception {
-		//TODO
+		
+		if (this.rsip.connected()) this.doPortDisconnection(this.rsip.getPortURI());
+		if (this.rsop.connected()) this.doPortDisconnection(this.rsop.getPortURI());
+		if (this.rnip.connected()) this.doPortDisconnection(this.rnip.getPortURI());
+		if (this.rnop.connected()) this.doPortDisconnection(this.rnop.getPortURI());
+
 		super.finalise();
 	}
 	
@@ -121,10 +130,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	public void shutdown() throws ComponentShutdownException {
 
 		try {
-			this.rsop.unpublishPort();
-			this.rnip.unpublishPort();
-			this.rsip.unpublishPort();
-			this.rnop.unpublishPort();
+			if (rsip.isPublished()) this.rsip.unpublishPort();
+			if (rsop.isPublished()) this.rsop.unpublishPort();
+			if (rnip.isPublished()) this.rnip.unpublishPort();
+			if (rnop.isPublished()) this.rnop.unpublishPort();
 			
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
@@ -147,7 +156,6 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	public void acceptRequestSubmission(RequestI r) throws Exception {
 		assert r != null;
 		
-		//TODO
 		this.rsop.submitRequest(r);
 		
 		if (RequestDispatcher.DEBUG_LEVEL == 2) {
@@ -166,7 +174,6 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
 		
-		//TODO
 		this.rsop.submitRequestAndNotify(r);
 		
 		if (RequestDispatcher.DEBUG_LEVEL == 2) {
