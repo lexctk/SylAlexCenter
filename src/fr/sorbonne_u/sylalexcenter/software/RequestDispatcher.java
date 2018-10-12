@@ -46,18 +46,12 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	protected RequestNotificationInboundPort rnip;
 	protected RequestNotificationOutboundPort rnop;	
 	
-	protected String requestSubmissionInboundPortURI;	
-	protected String requestSubmissionOutboundPortURI;
-	protected String requestNotificationInboundPortURI;
-	protected String requestNotificationOutboundPortURI;
-	
-	
 	// Constructor
 	// -------------------------------------------------------------------------
 	public RequestDispatcher (
 			String rdURI, 
-			String requestSubmissionInboundPortURI, 
-			String requestSubmissionOutboundPortURI, 
+			String requestSubmissionInboundPortURI,
+			String requestSubmissionOutboundPortURI,
 			String requestNotificationInboundPortURI, 
 			String requestNotificationOutboundPortURI ) throws Exception {
 		
@@ -68,10 +62,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 		assert requestSubmissionOutboundPortURI != null;
 		assert requestNotificationInboundPortURI != null;
 		assert requestNotificationOutboundPortURI != null;
-		
+
 		// initialization
 		this.rdURI = rdURI;
-
+		
 		this.addOfferedInterface(RequestSubmissionI.class);
 		this.rsip = new RequestSubmissionInboundPort(requestSubmissionInboundPortURI, this);
 		this.addPort(this.rsip);
@@ -106,9 +100,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	public void start() throws ComponentStartException {
 		super.start();
 		try {
-			this.doPortConnection(this.rsop.getPortURI(), requestSubmissionInboundPortURI,
+			this.doPortConnection(this.rsop.getPortURI(), this.rsip.getPortURI(),
 					RequestSubmissionConnector.class.getCanonicalName());
-			this.doPortConnection(this.rnop.getPortURI(), requestNotificationInboundPortURI,
+			this.doPortConnection(this.rnop.getPortURI(), this.rnip.getPortURI(),
 					RequestNotificationConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
@@ -118,9 +112,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	@Override
 	public void finalise() throws Exception {
 		
-		if (this.rsip.connected()) this.doPortDisconnection(this.rsip.getPortURI());
 		if (this.rsop.connected()) this.doPortDisconnection(this.rsop.getPortURI());
-		if (this.rnip.connected()) this.doPortDisconnection(this.rnip.getPortURI());
 		if (this.rnop.connected()) this.doPortDisconnection(this.rnop.getPortURI());
 
 		super.finalise();
@@ -173,7 +165,6 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	@Override
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
-		
 		this.rsop.submitRequestAndNotify(r);
 		
 		if (RequestDispatcher.DEBUG_LEVEL == 2) {

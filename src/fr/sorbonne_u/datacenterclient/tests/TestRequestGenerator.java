@@ -224,7 +224,7 @@ public class TestRequestGenerator extends AbstractCVM {
 			// the exeuction of the program.
 			Thread.sleep(10000L);
 			// Exit from Java (closes all trace windows...).
-			System.exit(0);
+			// System.exit(0);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

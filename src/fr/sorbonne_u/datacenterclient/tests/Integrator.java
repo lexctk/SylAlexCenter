@@ -74,14 +74,18 @@ public class Integrator extends AbstractComponent {
 	protected String rmipURI;
 	protected String csipURI;
 	protected String avmipURI;
+	
 	/**
 	 * Port connected to the request generator component to manage its execution
 	 * (starting and stopping the request generation).
 	 */
 	protected RequestGeneratorManagementOutboundPort rmop;
+	
 	/** Port connected to the computer component to access its services. */
+	
 	protected ComputerServicesOutboundPort csop;
 	/** Port connected to the AVM component to allocate it cores. */
+	
 	protected ApplicationVMManagementOutboundPort avmop;
 
 	public Integrator(String csipURI, String avmipURI, String rmipURI) throws Exception {

@@ -104,22 +104,30 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 
 	/** the URI of the component. */
 	protected final String rgURI;
+	
 	/** a random number generator used to generate processing times. */
 	protected RandomDataGenerator rng;
+	
 	/** a counter used to generate request URI. */
 	protected int counter;
+	
 	/** the mean inter-arrival time of requests in ms. */
 	protected double meanInterArrivalTime;
+	
 	/** the mean processing time of requests in ms. */
 	protected long meanNumberOfInstructions;
 
 	/** the inbound port provided to manage the component. */
 	protected RequestGeneratorManagementInboundPort rgmip;
+	
 	/** the output port used to send requests to the service provider. */
 	protected RequestSubmissionOutboundPort rsop;
+	
 	protected String requestSubmissionInboundPortURI;
+	
 	/** the inbound port receiving end of execution notifications. */
 	protected RequestNotificationInboundPort rnip;
+	
 	/** a future pointing to the next request generation task. */
 	protected Future<?> nextRequestTaskFuture;
 
