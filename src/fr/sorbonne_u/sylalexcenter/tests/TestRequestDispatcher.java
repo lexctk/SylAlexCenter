@@ -9,8 +9,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
-import fr.sorbonne_u.datacenterclient.tests.Integrator;
-import fr.sorbonne_u.sylalexcenter.software.RequestDispatcher;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 
 /**
  * The class <code>TestRequestDispatcher</code> deploys a single AVM, with a 
@@ -33,10 +32,11 @@ public class TestRequestDispatcher extends AbstractCVM {
 	public static final String applicationVMRequestSubmissionInboundPortURI = "avmrsip";
 	public static final String applicationVMRequestNotificationInboundPortURI = "avmrnip";
 	
+	public static final String requestGeneratorManagementInboundPortURI = "rgmip";
 	public static final String requestGeneratorSubmissionInboundPortURI = "rgsip";
 	public static final String requestGeneratorNotificationInboundPortURI = "rgnip";
-	public static final String requestGeneratorManagementInboundPortURI = "rgmip";
 	
+	public static final String requestDispatcherManagementInboundPortURI = "rdmip";
 	public static final String requestDispatcherSubmissionInboundPortURI = "rdsip";
 	public static final String requestDispatcherSubmissionOutboundPortURI = "rdsop";
 	public static final String requestDispatcherNotificationInboundPortURI = "rdnip";
@@ -48,7 +48,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 	private ApplicationVM applicationVM;
 	private RequestGenerator requestGenerator;
 	private ComputerMonitor computerMonitor;
-	private Integrator integrator;
+	private RequestDispatcherIntegrator requestDispatcherIntegrator;
 	private RequestDispatcher requestDispatcher;
 	
 
@@ -116,28 +116,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 		);
 		
 		this.addDeployedComponent(this.computerMonitor);
-		
-		
-		// Deploy an AVM
-		// --------------------------------------------------------------------
- 		String vmURI = "avm0";
- 		
-		try {
-			this.applicationVM = new ApplicationVM (
-					vmURI, 
-					applicationVMManagementInboundPortURI, 
-					requestDispatcherSubmissionOutboundPortURI, 
-					requestDispatcherNotificationInboundPortURI
-			);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		this.addDeployedComponent(this.applicationVM);
 
-		this.applicationVM.toggleTracing();
-		this.applicationVM.toggleLogging();
-		
 
 		// Deploy a Request Generator
 		// --------------------------------------------------------------------
@@ -150,8 +129,8 @@ public class TestRequestDispatcher extends AbstractCVM {
 				meanInterArrivalTime, 
 				meanNumberOfInstructions, 
 				requestGeneratorManagementInboundPortURI, 
-				requestDispatcherSubmissionInboundPortURI, 
-				requestDispatcherNotificationOutboundPortURI
+				requestGeneratorSubmissionInboundPortURI, 
+				requestGeneratorNotificationInboundPortURI
 		);
 		
 		this.addDeployedComponent(requestGenerator);
@@ -165,21 +144,48 @@ public class TestRequestDispatcher extends AbstractCVM {
 		
 		this.requestDispatcher = new RequestDispatcher (
 				rdURI, 
-				requestDispatcherSubmissionInboundPortURI,
-				requestDispatcherSubmissionOutboundPortURI,
-				requestDispatcherNotificationInboundPortURI,
-				requestDispatcherNotificationOutboundPortURI );
+				requestDispatcherManagementInboundPortURI,
+				requestGeneratorSubmissionInboundPortURI,
+				requestGeneratorNotificationInboundPortURI,
+				applicationVMRequestSubmissionInboundPortURI,
+				applicationVMRequestNotificationInboundPortURI
+		);
 		
 		this.addDeployedComponent(this.requestDispatcher);
 		this.requestDispatcher.toggleTracing();
 		this.requestDispatcher.toggleLogging();
+
 		
+		// Deploy an AVM
+		// --------------------------------------------------------------------
+ 		String vmURI = "avm0";
+ 		
+		try {
+			this.applicationVM = new ApplicationVM (
+					vmURI, 
+					applicationVMManagementInboundPortURI, 
+					applicationVMRequestSubmissionInboundPortURI, 
+					applicationVMRequestNotificationInboundPortURI
+			);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		this.addDeployedComponent(this.applicationVM);
+
+		this.applicationVM.toggleTracing();
+		this.applicationVM.toggleLogging();
+				
 
 		// Deploy an integrator.
 		// --------------------------------------------------------------------
-		this.integrator = new Integrator(computerServicesInboundPortURI, applicationVMManagementInboundPortURI,
-				requestGeneratorManagementInboundPortURI);
-		this.addDeployedComponent(this.integrator);
+		this.requestDispatcherIntegrator = new RequestDispatcherIntegrator (
+				computerServicesInboundPortURI, 
+				applicationVMManagementInboundPortURI,
+				requestGeneratorManagementInboundPortURI,
+				requestDispatcherManagementInboundPortURI
+		);
+		this.addDeployedComponent(this.requestDispatcherIntegrator);
 
 		
 		super.deploy();

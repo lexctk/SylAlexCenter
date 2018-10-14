@@ -1,4 +1,4 @@
-package fr.sorbonne_u.sylalexcenter.software;
+package fr.sorbonne_u.sylalexcenter.requestdispatcher;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
@@ -14,6 +14,8 @@ import fr.sorbonne_u.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionOutboundPort;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
 
 /**
  * The class <code>RequestDispatcher</code> implements a request dispatcher.
@@ -33,7 +35,7 @@ import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionOutboundPort;
  * @author lexa
  *
  */
-public class RequestDispatcher extends AbstractComponent implements RequestSubmissionHandlerI, RequestNotificationHandlerI {
+public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI, RequestSubmissionHandlerI, RequestNotificationHandlerI {
 
 	public static int DEBUG_LEVEL = 2;
 	
@@ -41,6 +43,11 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	
 	// RequestGenerator Ports
 	// -------------------------------------------------------------------------
+	protected RequestDispatcherManagementInboundPort rdmip;
+
+	protected String requestSubmissionInboundAVMPortURI;
+	protected String requestNotificationInboundGeneratorPortURI;
+	
 	protected RequestSubmissionInboundPort rsip;
 	protected RequestSubmissionOutboundPort rsop;
 	protected RequestNotificationInboundPort rnip;
@@ -50,41 +57,50 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	// -------------------------------------------------------------------------
 	public RequestDispatcher (
 			String rdURI, 
-			String requestSubmissionInboundPortURI,
-			String requestSubmissionOutboundPortURI,
-			String requestNotificationInboundPortURI, 
-			String requestNotificationOutboundPortURI ) throws Exception {
+			String requestDispatcherManagementInboundPortURI,
+			String requestSubmissionInboundGeneratorPortURI, // connected to Request Generator
+			String requestNotificationInboundGeneratorPortURI, // connected to Request Generator
+			String requestSubmissionInboundAVMPortURI, // connected to AVM
+			String requestNotificationInboundAVMPortURI // connected to AVM
+		) throws Exception {
 		
 		super(1, 1);
 		
 		// preconditions check
-		assert requestSubmissionInboundPortURI != null;
-		assert requestSubmissionOutboundPortURI != null;
-		assert requestNotificationInboundPortURI != null;
-		assert requestNotificationOutboundPortURI != null;
+		assert requestDispatcherManagementInboundPortURI != null;
+		assert requestSubmissionInboundGeneratorPortURI != null;
+		assert requestNotificationInboundGeneratorPortURI != null;
+		assert requestSubmissionInboundAVMPortURI != null;
+		assert requestNotificationInboundAVMPortURI != null;
 
 		// initialization
-		this.rdURI = rdURI;
+		this.rdURI = rdURI;	
+		this.requestNotificationInboundGeneratorPortURI = requestNotificationInboundGeneratorPortURI;
+		this.requestSubmissionInboundAVMPortURI = requestSubmissionInboundAVMPortURI;
+		
+		this.rdmip = new RequestDispatcherManagementInboundPort(requestDispatcherManagementInboundPortURI, this);
+		this.addPort(rdmip);
+		this.rdmip.publishPort();
 		
 		this.addOfferedInterface(RequestSubmissionI.class);
-		this.rsip = new RequestSubmissionInboundPort(requestSubmissionInboundPortURI, this);
+		this.rsip = new RequestSubmissionInboundPort(requestSubmissionInboundGeneratorPortURI, this);
 		this.addPort(this.rsip);
 		this.rsip.publishPort();
 		
-		this.addRequiredInterface(RequestSubmissionI.class);
-		this.rsop = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
-		this.addPort(this.rsop);
-		this.rsop.publishPort();
-
-		this.addOfferedInterface(RequestNotificationI.class);
-		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundPortURI, this);
-		this.addPort(this.rnip);
-		this.rnip.publishPort();
-		
 		this.addRequiredInterface(RequestNotificationI.class);
-		this.rnop = new RequestNotificationOutboundPort(requestNotificationOutboundPortURI, this);
+		this.rnop = new RequestNotificationOutboundPort(this);
 		this.addPort(this.rnop);
 		this.rnop.publishPort();
+
+		this.addOfferedInterface(RequestNotificationI.class);
+		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundAVMPortURI, this);
+		this.addPort(this.rnip);
+		this.rnip.publishPort();		
+		
+		this.addRequiredInterface(RequestSubmissionI.class);
+		this.rsop = new RequestSubmissionOutboundPort(this);
+		this.addPort(this.rsop);
+		this.rsop.publishPort();
 
 		// post-conditions check
 		assert this.rsip != null && this.rsip instanceof RequestSubmissionI;
@@ -100,9 +116,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	public void start() throws ComponentStartException {
 		super.start();
 		try {
-			this.doPortConnection(this.rsop.getPortURI(), this.rsip.getPortURI(),
+			this.doPortConnection(this.rsop.getPortURI(), requestSubmissionInboundAVMPortURI,
 					RequestSubmissionConnector.class.getCanonicalName());
-			this.doPortConnection(this.rnop.getPortURI(), this.rnip.getPortURI(),
+			this.doPortConnection(this.rnop.getPortURI(), requestNotificationInboundGeneratorPortURI,
 					RequestNotificationConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
@@ -122,6 +138,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestSubmi
 	public void shutdown() throws ComponentShutdownException {
 
 		try {
+			if (rdmip.isPublished()) this.rdmip.unpublishPort();
 			if (rsip.isPublished()) this.rsip.unpublishPort();
 			if (rsop.isPublished()) this.rsop.unpublishPort();
 			if (rnip.isPublished()) this.rnip.unpublishPort();
