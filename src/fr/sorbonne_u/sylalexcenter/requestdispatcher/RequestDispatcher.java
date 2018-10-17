@@ -1,5 +1,7 @@
 package fr.sorbonne_u.sylalexcenter.requestdispatcher;
 
+import java.util.ArrayList;
+
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
@@ -41,17 +43,22 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	
 	protected String rdURI;
 	
-	// RequestGenerator Ports
+	// RequestDispatcher Ports
 	// -------------------------------------------------------------------------
 	protected RequestDispatcherManagementInboundPort rdmip;
 
-	protected String requestSubmissionInboundAVMPortURI;
+	protected ArrayList<String> requestSubmissionInboundAVMPortURIList;
 	protected String requestNotificationInboundGeneratorPortURI;
 	
 	protected RequestSubmissionInboundPort rsip;
-	protected RequestSubmissionOutboundPort rsop;
-	protected RequestNotificationInboundPort rnip;
-	protected RequestNotificationOutboundPort rnop;	
+	protected ArrayList<RequestSubmissionOutboundPort> rsopList;
+	protected ArrayList<RequestNotificationInboundPort> rnipList;
+	protected RequestNotificationOutboundPort rnop;
+	
+	// List of available avm
+	protected ArrayList<String> vmURIList;
+	protected ArrayList<Long> vmPriority;
+	
 	
 	// Constructor
 	// -------------------------------------------------------------------------
@@ -60,23 +67,36 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			String requestDispatcherManagementInboundPortURI,
 			String requestSubmissionInboundGeneratorPortURI, // connected to Request Generator
 			String requestNotificationInboundGeneratorPortURI, // connected to Request Generator
-			String requestSubmissionInboundAVMPortURI, // connected to AVM
-			String requestNotificationInboundAVMPortURI // connected to AVM
+			ArrayList<String> vmURIList,
+			ArrayList<String> requestSubmissionInboundAVMPortURIList, // connected to AVM
+			ArrayList<String> requestNotificationInboundAVMPortURIList // connected to AVM
 		) throws Exception {
 		
 		super(1, 1);
 		
 		// preconditions check
+		assert rdURI != null;
 		assert requestDispatcherManagementInboundPortURI != null;
 		assert requestSubmissionInboundGeneratorPortURI != null;
 		assert requestNotificationInboundGeneratorPortURI != null;
-		assert requestSubmissionInboundAVMPortURI != null;
-		assert requestNotificationInboundAVMPortURI != null;
+		assert vmURIList != null && vmURIList.size() > 0;
+		assert requestSubmissionInboundAVMPortURIList != null && requestSubmissionInboundAVMPortURIList.size() > 0;
+		assert requestNotificationInboundAVMPortURIList != null && requestNotificationInboundAVMPortURIList.size() > 0;
 
 		// initialization
 		this.rdURI = rdURI;	
 		this.requestNotificationInboundGeneratorPortURI = requestNotificationInboundGeneratorPortURI;
-		this.requestSubmissionInboundAVMPortURI = requestSubmissionInboundAVMPortURI;
+		this.requestSubmissionInboundAVMPortURIList = new ArrayList<String>(requestSubmissionInboundAVMPortURIList);
+		this.vmURIList = new ArrayList<String>(vmURIList);
+		
+		this.vmPriority = new ArrayList<Long>();
+		for (int i = 0; i < this.vmURIList.size(); i++ ) {
+			this.vmPriority.add(System.nanoTime());
+		}
+		
+		for (int i = 0; i < this.vmURIList.size(); i++ ) { 
+			System.out.println(this.vmPriority.get(i));
+		}		
 		
 		this.rdmip = new RequestDispatcherManagementInboundPort(requestDispatcherManagementInboundPortURI, this);
 		this.addPort(rdmip);
@@ -91,21 +111,30 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.rnop = new RequestNotificationOutboundPort(this);
 		this.addPort(this.rnop);
 		this.rnop.publishPort();
-
-		this.addOfferedInterface(RequestNotificationI.class);
-		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundAVMPortURI, this);
-		this.addPort(this.rnip);
-		this.rnip.publishPort();		
 		
-		this.addRequiredInterface(RequestSubmissionI.class);
-		this.rsop = new RequestSubmissionOutboundPort(this);
-		this.addPort(this.rsop);
-		this.rsop.publishPort();
+		this.rnipList = new ArrayList<RequestNotificationInboundPort>();
+		this.rsopList = new ArrayList<RequestSubmissionOutboundPort>();
+		
+		for (int i = 0; i < vmURIList.size(); i++ ) {
+			
+			this.addOfferedInterface(RequestNotificationI.class);
+			RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(requestNotificationInboundAVMPortURIList.get(i), this);
+			this.rnipList.add(rnip);
+			this.addPort(rnip);
+			this.rnipList.get(i).publishPort();	
+			
+			this.addRequiredInterface(RequestSubmissionI.class);
+			RequestSubmissionOutboundPort rsop = new RequestSubmissionOutboundPort(this);
+			this.rsopList.add(rsop);
+			this.addPort(rsop);
+			this.rsopList.get(i).publishPort();
+			
+		}
 
 		// post-conditions check
 		assert this.rsip != null && this.rsip instanceof RequestSubmissionI;
-		assert this.rsop != null && this.rsop instanceof RequestSubmissionI;
-		assert this.rnip != null && this.rnip instanceof RequestNotificationI;
+		assert this.rsopList != null && this.rsopList.size() > 0 && this.rsopList.get(0) instanceof RequestSubmissionI;
+		assert this.rnipList != null && this.rnipList.size() > 0 && this.rnipList.get(0) instanceof RequestNotificationI;
 		assert this.rnop != null && this.rnop instanceof RequestNotificationI;
 		
 	}
@@ -116,10 +145,14 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	public void start() throws ComponentStartException {
 		super.start();
 		try {
-			this.doPortConnection(this.rsop.getPortURI(), requestSubmissionInboundAVMPortURI,
-					RequestSubmissionConnector.class.getCanonicalName());
+			for (int i = 0; i < this.vmURIList.size(); i++ ) {
+				this.doPortConnection(this.rsopList.get(i).getPortURI(), requestSubmissionInboundAVMPortURIList.get(i),
+						RequestSubmissionConnector.class.getCanonicalName());
+			}
+			
 			this.doPortConnection(this.rnop.getPortURI(), requestNotificationInboundGeneratorPortURI,
 					RequestNotificationConnector.class.getCanonicalName());
+			
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
 		}
@@ -127,8 +160,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 	@Override
 	public void finalise() throws Exception {
-		
-		if (this.rsop.connected()) this.doPortDisconnection(this.rsop.getPortURI());
+		for (int i = 0; i < this.vmURIList.size(); i++ ) {
+			if (this.rsopList.get(i).connected()) this.doPortDisconnection(this.rsopList.get(i).getPortURI());
+		}
 		if (this.rnop.connected()) this.doPortDisconnection(this.rnop.getPortURI());
 
 		super.finalise();
@@ -140,8 +174,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		try {
 			if (rdmip.isPublished()) this.rdmip.unpublishPort();
 			if (rsip.isPublished()) this.rsip.unpublishPort();
-			if (rsop.isPublished()) this.rsop.unpublishPort();
-			if (rnip.isPublished()) this.rnip.unpublishPort();
+			for (int i = 0; i < this.vmURIList.size(); i++ ) { 
+				if (rsopList.get(i).isPublished()) this.rsopList.get(i).unpublishPort();
+				if (rnipList.get(i).isPublished()) this.rnipList.get(i).unpublishPort();				
+			}
 			if (rnop.isPublished()) this.rnop.unpublishPort();
 			
 		} catch (Exception e) {
@@ -150,6 +186,20 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 		super.shutdown();
 	}	
+	
+	private int leastUsedVM() {
+		int index = -1;
+		long time = System.nanoTime();
+
+		for (int i = 0; i < this.vmURIList.size(); i++ ) { 
+			if (this.vmPriority.get(i) < time) {
+				index = i;
+				time = this.vmPriority.get(i);
+			}
+		}
+		System.out.println(index);
+		return index;
+	}
 	
 	// Component internal services
 	// -------------------------------------------------------------------------	
@@ -165,10 +215,18 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	public void acceptRequestSubmission(RequestI r) throws Exception {
 		assert r != null;
 		
-		this.rsop.submitRequest(r);
-		
-		if (RequestDispatcher.DEBUG_LEVEL == 2) {
-			this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI());
+		int vmIndex = leastUsedVM();
+		if (vmIndex >= 0) {
+			this.vmPriority.set(vmIndex, System.nanoTime());
+			
+			if (RequestDispatcher.DEBUG_LEVEL == 2) {
+				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI());
+			}			
+			this.rsopList.get(vmIndex).submitRequest(r);
+		} else {
+			if (RequestDispatcher.DEBUG_LEVEL == 2) {
+				this.logMessage ("ERROR: Request dispatcher " + this.rdURI + " refused submission request " + r.getRequestURI());
+			}			
 		}
 	}
 
@@ -182,12 +240,21 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	@Override
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
-		this.rsop.submitRequestAndNotify(r);
 		
-		if (RequestDispatcher.DEBUG_LEVEL == 2) {
-			this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
-					"and required notification of request execution progress");
-		}		
+		int vmIndex = leastUsedVM();
+		if (vmIndex >= 0) {
+			this.vmPriority.set(vmIndex, System.nanoTime());
+			
+			if (RequestDispatcher.DEBUG_LEVEL == 2) {
+				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission and notify request " + r.getRequestURI() +
+						"and required notification of request execution progress");
+			}	
+			this.rsopList.get(vmIndex).submitRequestAndNotify(r);
+		} else {
+			if (RequestDispatcher.DEBUG_LEVEL == 2) {
+				this.logMessage ("ERROR: Request dispatcher " + this.rdURI + " refused submission and notify request " + r.getRequestURI());
+			}			
+		}
 	}
 
 	/**

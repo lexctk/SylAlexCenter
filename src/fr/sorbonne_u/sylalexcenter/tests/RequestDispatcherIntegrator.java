@@ -1,5 +1,7 @@
 package fr.sorbonne_u.sylalexcenter.tests;
 
+import java.util.ArrayList;
+
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
@@ -16,19 +18,19 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherMana
 public class RequestDispatcherIntegrator extends AbstractComponent {
 
 	protected ComputerServicesOutboundPort csop;
-	protected ApplicationVMManagementOutboundPort avmop;
+	protected ArrayList<ApplicationVMManagementOutboundPort> avmopList;
 	protected RequestGeneratorManagementOutboundPort rgmop;
 	protected RequestDispatcherManagementOutboundPort rdmop;
 	
 	
 	protected String computerServicesInboundPortURI;
-	protected String applicationVMManagementInboundPortURI;
+	protected ArrayList<String> applicationVMManagementInboundPortURIList;
 	protected String requestGeneratorManagementInboundPortURI; 
 	protected String requestDispatcherManagementInboundPortURI;
 	
 	public RequestDispatcherIntegrator (
 			String computerServicesInboundPortURI,
-			String applicationVMManagementInboundPortURI,
+			ArrayList<String> applicationVMManagementInboundPortURIList,
 			String requestGeneratorManagementInboundPortURI, 
 			String requestDispatcherManagementInboundPortURI
 		) throws Exception {
@@ -36,22 +38,26 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 		super(1, 0);
 		
 		assert computerServicesInboundPortURI != null;
-		assert applicationVMManagementInboundPortURI != null;
+		assert applicationVMManagementInboundPortURIList != null && applicationVMManagementInboundPortURIList.size() > 0 ;
 		assert requestGeneratorManagementInboundPortURI != null;
 		assert requestDispatcherManagementInboundPortURI != null;
 		
 		this.computerServicesInboundPortURI = computerServicesInboundPortURI;
-		this.applicationVMManagementInboundPortURI = applicationVMManagementInboundPortURI;
+		this.applicationVMManagementInboundPortURIList = new ArrayList<String>(applicationVMManagementInboundPortURIList);
 		this.requestGeneratorManagementInboundPortURI = requestGeneratorManagementInboundPortURI;
 		this.requestDispatcherManagementInboundPortURI = requestDispatcherManagementInboundPortURI;
 		
 		this.csop = new ComputerServicesOutboundPort(this);
 		this.addPort(this.csop);
 		this.csop.publishPort();
-
-		this.avmop = new ApplicationVMManagementOutboundPort(this);
-		this.addPort(this.avmop);
-		this.avmop.publishPort();		
+		
+		this.avmopList = new ArrayList<ApplicationVMManagementOutboundPort>();
+		for (int i = 0; i< applicationVMManagementInboundPortURIList.size(); i++) {
+			ApplicationVMManagementOutboundPort avmop = new ApplicationVMManagementOutboundPort(this);
+			this.avmopList.add(avmop);
+			this.addPort(avmop);
+			this.avmopList.get(i).publishPort();			
+		}
 
 		this.rgmop = new RequestGeneratorManagementOutboundPort(this);
 		this.addPort(rgmop);
@@ -74,8 +80,12 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 		try {
 			this.doPortConnection(this.csop.getPortURI(), this.computerServicesInboundPortURI,
 					ComputerServicesConnector.class.getCanonicalName());
-			this.doPortConnection(this.avmop.getPortURI(), this.applicationVMManagementInboundPortURI,
-					ApplicationVMManagementConnector.class.getCanonicalName());
+			
+			for (int i = 0; i< this.applicationVMManagementInboundPortURIList.size(); i++) {
+				this.doPortConnection(this.avmopList.get(i).getPortURI(), this.applicationVMManagementInboundPortURIList.get(i),
+						ApplicationVMManagementConnector.class.getCanonicalName());
+			}
+			
 			this.doPortConnection(this.rgmop.getPortURI(), this.requestGeneratorManagementInboundPortURI,
 					RequestGeneratorManagementConnector.class.getCanonicalName());
 			this.doPortConnection(this.rdmop.getPortURI(), this.requestDispatcherManagementInboundPortURI,
@@ -92,8 +102,11 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void execute() throws Exception {
 		super.execute();
 		
-		AllocatedCore[] ac = this.csop.allocateCores(4);
-		this.avmop.allocateCores(ac);
+		for (int i = 0; i< this.avmopList.size(); i++) {
+			AllocatedCore[] ac = this.csop.allocateCores(2);
+			this.avmopList.get(i).allocateCores(ac);
+		}
+		
 		this.rgmop.startGeneration();
 		
 		// wait 20 seconds
@@ -110,7 +123,9 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void finalise() throws Exception {
 		
 		this.doPortDisconnection(this.csop.getPortURI());
-		this.doPortDisconnection(this.avmop.getPortURI());
+		for (int i = 0; i< this.avmopList.size(); i++) { 
+			this.doPortDisconnection(this.avmopList.get(i).getPortURI());
+		}
 		this.doPortDisconnection(this.rgmop.getPortURI());
 		this.doPortDisconnection(this.rdmop.getPortURI());
 		
@@ -124,7 +139,9 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void shutdown() throws ComponentShutdownException {
 		try {
 			this.csop.unpublishPort();
-			this.avmop.unpublishPort();
+			for (int i = 0; i< this.avmopList.size(); i++) { 
+				this.avmopList.get(i).unpublishPort();
+			}
 			this.rgmop.unpublishPort();
 			this.rdmop.unpublishPort();
 		} catch (Exception e) {
@@ -140,7 +157,9 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void shutdownNow() throws ComponentShutdownException {
 		try {
 			this.csop.unpublishPort();
-			this.avmop.unpublishPort();
+			for (int i = 0; i< this.avmopList.size(); i++) { 
+				this.avmopList.get(i).unpublishPort();
+			}
 			this.rgmop.unpublishPort();
 			this.rdmop.unpublishPort();
 		} catch (Exception e) {
