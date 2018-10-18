@@ -92,11 +92,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.vmPriority = new ArrayList<Long>();
 		for (int i = 0; i < this.vmURIList.size(); i++ ) {
 			this.vmPriority.add(System.nanoTime());
-		}
-		
-		for (int i = 0; i < this.vmURIList.size(); i++ ) { 
-			System.out.println(this.vmPriority.get(i));
-		}		
+		}	
 		
 		this.rdmip = new RequestDispatcherManagementInboundPort(requestDispatcherManagementInboundPortURI, this);
 		this.addPort(rdmip);
@@ -197,7 +193,6 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 				time = this.vmPriority.get(i);
 			}
 		}
-		System.out.println(index);
 		return index;
 	}
 	
