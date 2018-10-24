@@ -8,9 +8,16 @@ import java.util.Set;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
-import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.AdmissionController;
+import fr.sorbonne_u.sylalexcenter.application.Application;
 
+/**
+ * The class <code>TestAdmissionController</code> deploys all the components
+ * and runs a test.
+ * 
+ * <p><strong>Description</strong></p>
+ *
+ */
 public class TestAdmissionController extends AbstractCVM {
 
 	// Port URIs
@@ -21,12 +28,15 @@ public class TestAdmissionController extends AbstractCVM {
 	
 	public static final String requestGeneratorManagementInboundPortURI = "appmip";
 	public static final String requestGeneratorSubmissionInboundPortURI = "appsip";
-	public static final String requestGeneratorNotificationInboundPortURI = "appnip";	
+	public static final String requestGeneratorNotificationInboundPortURI = "appnip";
+	
+	public static final String applicationSubmissionInboundPortURI = "asip";
+	public static final String applicationNotificationInboundPortURI = "anip";
 	
 
 	// Components
 	// -----------------------------------------------------------------
-	private RequestGenerator requestGenerator;
+	private Application application;
 	private ComputerMonitor computerMonitor;
 	private AdmissionController admissionController;
 	
@@ -93,25 +103,30 @@ public class TestAdmissionController extends AbstractCVM {
 		
 		this.addDeployedComponent(this.computerMonitor);
 		
+		System.out.println("computer deployed...");
+		
 
-		// Deploy a Request Generator - playing the role of application
+		// Deploy an Application
 		// --------------------------------------------------------------------
-		String rgURI = "app0";
+		String appURI = "app0";
+		int numCores = 2;
 		double meanInterArrivalTime = 500.0;
 		long meanNumberOfInstructions = 6000000000L;
 		
-		this.requestGenerator = new RequestGenerator (
-				rgURI, 
+		this.application = new Application (
+				appURI, 
+				numCores, 
 				meanInterArrivalTime, 
-				meanNumberOfInstructions, 
-				requestGeneratorManagementInboundPortURI, 
-				requestGeneratorSubmissionInboundPortURI, 
-				requestGeneratorNotificationInboundPortURI
+				meanNumberOfInstructions,
+				applicationSubmissionInboundPortURI,
+				applicationNotificationInboundPortURI
 		);
 		
-		this.addDeployedComponent(requestGenerator);
-		this.requestGenerator.toggleTracing();
-		this.requestGenerator.toggleLogging();
+		this.addDeployedComponent(this.application);
+		this.application.toggleLogging();
+		this.application.toggleTracing();
+		
+		System.out.println("application deployed...");
 		
 		
 		// Deploy an Admission Controller
@@ -121,7 +136,7 @@ public class TestAdmissionController extends AbstractCVM {
 				computerURI, //single computer for now
 				computerServicesInboundPortURI,
 				computerStaticStateDataInboundPortURI,
-				computerDynamicStateDataInboundPortURI,
+				computerDynamicStateDataInboundPortURI, //TODO: replace with application ports
 				requestGeneratorManagementInboundPortURI,
 				requestGeneratorSubmissionInboundPortURI,
 				requestGeneratorNotificationInboundPortURI
@@ -130,8 +145,17 @@ public class TestAdmissionController extends AbstractCVM {
 		this.addDeployedComponent(admissionController);
 		this.admissionController.toggleTracing();
 		this.admissionController.toggleLogging();
+		
+		System.out.println("admission controller deployed...");
 	}
-
+	
+	@Override
+	public void execute() throws Exception {
+		//TODO: applications should sendAdmissionRequest here.
+		
+		
+	}
+	
 	public static void main(String[] args) {
 		
 		TestAdmissionController testAdmissionController;
@@ -145,7 +169,6 @@ public class TestAdmissionController extends AbstractCVM {
 			//System.exit(0);
 			
 		} catch (Exception e2) {
-			// TODO Auto-generated catch block
 			e2.printStackTrace();
 		}
 	}

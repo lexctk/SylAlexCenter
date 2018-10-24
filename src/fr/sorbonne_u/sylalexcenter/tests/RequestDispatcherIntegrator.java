@@ -107,6 +107,7 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 			this.avmopList.get(i).allocateCores(ac);
 		}
 		
+		// start generation
 		this.rgmop.startGeneration();
 		
 		// wait 20 seconds

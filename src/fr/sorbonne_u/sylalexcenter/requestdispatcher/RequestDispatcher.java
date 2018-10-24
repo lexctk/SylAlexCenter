@@ -29,12 +29,9 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherMana
  * The request dispatcher component will receive requests from the request
  * generator and forward them to an application's dedicated virtual machines.
  * 
- * TODO:
  * When the request dispatcher receives a request, it goes through the list of
  * available application virtual machines (AVMs) and submits the request to the 
  * least recently used AVM.
- *
- * @author lexa
  *
  */
 public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI, RequestSubmissionHandlerI, RequestNotificationHandlerI {
@@ -243,7 +240,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			if (RequestDispatcher.DEBUG_LEVEL == 2) {
 				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
 						"and required notification of request execution progress");
-			}	
+			}
 			this.rsopList.get(vmIndex).submitRequestAndNotify(r);
 		} else {
 			if (RequestDispatcher.DEBUG_LEVEL == 2) {

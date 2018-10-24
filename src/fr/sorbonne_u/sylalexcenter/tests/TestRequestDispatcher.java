@@ -18,7 +18,6 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
  * 
  * <p><strong>Description</strong></p>
  * 
- * @author lexa
  *
  */
 public class TestRequestDispatcher extends AbstractCVM {
@@ -69,7 +68,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 		// Deploy a Computer with 2 Processors and 2 Cores each
 		// -----------------------------------------------------------------
 		String computerURI = "computer0";
-		int numberOfProcessors = 2;
+		int numberOfProcessors = 4;
 		int numberOfCores = 4;
 		
 		Set<Integer> possibleFrequencies = new HashSet<Integer>();
@@ -138,7 +137,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 		// Deploy numAvm AVM
 		// --------------------------------------------------------------------
 		ArrayList<String> vmURIList = new ArrayList<String>();
-		int numAvm = 4;
+		int numAvm = 2;
 		
 		for (int i = 0; i < numAvm; i++) {
 			vmURIList.add("avm" + i);
@@ -156,7 +155,6 @@ public class TestRequestDispatcher extends AbstractCVM {
 						applicationVMRequestNotificationInboundPortURIList.get(i)
 				);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			this.addDeployedComponent(this.applicationVM);
@@ -209,10 +207,9 @@ public class TestRequestDispatcher extends AbstractCVM {
 			testRequestDispatcher.startStandardLifeCycle(10000L);
 			
 			Thread.sleep(10000L);
-			//System.exit(0);
+			System.exit(0);
 			
 		} catch (Exception e2) {
-			// TODO Auto-generated catch block
 			e2.printStackTrace();
 		}
 	}

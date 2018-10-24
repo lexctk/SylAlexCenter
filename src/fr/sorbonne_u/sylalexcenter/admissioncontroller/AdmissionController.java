@@ -37,10 +37,10 @@ import fr.sorbonne_u.sylalexcenter.tests.RequestDispatcherIntegrator;
  * </p>
  * 
  * The admission controller component will receive requests from an application, check
- * available resources, and if possible, deploy application vm, request generator and 
- * request dispatcher.
+ * available resources, and if possible, deploy application vm and request dispatcher.
  *
  */
+
 public class AdmissionController extends AbstractComponent implements ComputerStateDataConsumerI, RequestSubmissionHandlerI, RequestNotificationHandlerI {
 	
 	public static int DEBUG_LEVEL = 2;
@@ -108,8 +108,7 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		this.addOfferedInterface(RequestNotificationI.class);
 		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundPortURI, this);
 		this.addPort(this.rnip);
-		this.rnip.publishPort();	
-	
+		this.rnip.publishPort();
 	}
 
 	// Component life-cycle
@@ -160,6 +159,8 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 	
 	public void deploy() throws Exception {
 		
+		this.logMessage("AdmissionController starting deployment");
+		
 		// Deploy numAvm AVM
 		// --------------------------------------------------------------------
 		
@@ -188,7 +189,6 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 						applicationVMRequestNotificationInboundPortURIList.get(i)
 				);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			applicationVM.toggleTracing();
@@ -234,7 +234,8 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 				requestDispatcherManagementInboundPortURI
 		);
 		AbstractCVM.getCVM().addDeployedComponent(requestDispatcherIntegrator);
-				
+		
+		this.logMessage("AdmissionController deployment done");
 	}
 
 	@Override
