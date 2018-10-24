@@ -9,6 +9,7 @@ import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.AdmissionController;
 
 public class TestAdmissionController extends AbstractCVM {
 
@@ -18,15 +19,16 @@ public class TestAdmissionController extends AbstractCVM {
 	public static final String computerStaticStateDataInboundPortURI = "cssdip";
 	public static final String computerDynamicStateDataInboundPortURI = "cdsdip";
 	
-	public static final String requestGeneratorManagementInboundPortURI = "rgmip";
-	public static final String requestGeneratorSubmissionInboundPortURI = "rgsip";
-	public static final String requestGeneratorNotificationInboundPortURI = "rgnip";	
+	public static final String requestGeneratorManagementInboundPortURI = "appmip";
+	public static final String requestGeneratorSubmissionInboundPortURI = "appsip";
+	public static final String requestGeneratorNotificationInboundPortURI = "appnip";	
 	
 
 	// Components
 	// -----------------------------------------------------------------
 	private RequestGenerator requestGenerator;
 	private ComputerMonitor computerMonitor;
+	private AdmissionController admissionController;
 	
 	
 	public TestAdmissionController() throws Exception {
@@ -92,9 +94,9 @@ public class TestAdmissionController extends AbstractCVM {
 		this.addDeployedComponent(this.computerMonitor);
 		
 
-		// Deploy a Request Generator
+		// Deploy a Request Generator - playing the role of application
 		// --------------------------------------------------------------------
-		String rgURI = "rg0";
+		String rgURI = "app0";
 		double meanInterArrivalTime = 500.0;
 		long meanNumberOfInstructions = 6000000000L;
 		
@@ -111,9 +113,23 @@ public class TestAdmissionController extends AbstractCVM {
 		this.requestGenerator.toggleTracing();
 		this.requestGenerator.toggleLogging();
 		
+		
 		// Deploy an Admission Controller
 		// --------------------------------------------------------------------		
-		//TODO
+		this.admissionController = new AdmissionController (
+				"acURI", 
+				computerURI, //single computer for now
+				computerServicesInboundPortURI,
+				computerStaticStateDataInboundPortURI,
+				computerDynamicStateDataInboundPortURI,
+				requestGeneratorManagementInboundPortURI,
+				requestGeneratorSubmissionInboundPortURI,
+				requestGeneratorNotificationInboundPortURI
+		);
+		
+		this.addDeployedComponent(admissionController);
+		this.admissionController.toggleTracing();
+		this.admissionController.toggleLogging();
 	}
 
 	public static void main(String[] args) {

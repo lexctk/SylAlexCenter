@@ -168,13 +168,13 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	public void shutdown() throws ComponentShutdownException {
 
 		try {
-			if (rdmip.isPublished()) this.rdmip.unpublishPort();
-			if (rsip.isPublished()) this.rsip.unpublishPort();
+			if (this.rdmip.isPublished()) this.rdmip.unpublishPort();
+			if (this.rsip.isPublished()) this.rsip.unpublishPort();
 			for (int i = 0; i < this.vmURIList.size(); i++ ) { 
-				if (rsopList.get(i).isPublished()) this.rsopList.get(i).unpublishPort();
-				if (rnipList.get(i).isPublished()) this.rnipList.get(i).unpublishPort();				
+				if (this.rsopList.get(i).isPublished()) this.rsopList.get(i).unpublishPort();
+				if (this.rnipList.get(i).isPublished()) this.rnipList.get(i).unpublishPort();				
 			}
-			if (rnop.isPublished()) this.rnop.unpublishPort();
+			if (this.rnop.isPublished()) this.rnop.unpublishPort();
 			
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
@@ -241,7 +241,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			this.vmPriority.set(vmIndex, System.nanoTime());
 			
 			if (RequestDispatcher.DEBUG_LEVEL == 2) {
-				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission and notify request " + r.getRequestURI() +
+				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
 						"and required notification of request execution progress");
 			}	
 			this.rsopList.get(vmIndex).submitRequestAndNotify(r);
