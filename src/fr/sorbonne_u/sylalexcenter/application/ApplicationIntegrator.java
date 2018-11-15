@@ -3,7 +3,7 @@ package fr.sorbonne_u.sylalexcenter.application;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.datacenterclient.requestgenerator.connectors.RequestGeneratorManagementConnector;
+import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationManagementConnector;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementOutboundPort;
 
 public class ApplicationIntegrator extends AbstractComponent {
@@ -12,6 +12,7 @@ public class ApplicationIntegrator extends AbstractComponent {
 
 	private String applicationManagementInboundPort;
 
+	
 	public ApplicationIntegrator (String applicationManagementInboundPort) throws Exception {
 		super(1, 0);
 
@@ -31,7 +32,7 @@ public class ApplicationIntegrator extends AbstractComponent {
 
 		try {
 			doPortConnection(amop.getPortURI(), applicationManagementInboundPort,
-					RequestGeneratorManagementConnector.class.getCanonicalName());
+					ApplicationManagementConnector.class.getCanonicalName());
 
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
@@ -42,7 +43,6 @@ public class ApplicationIntegrator extends AbstractComponent {
 	@Override
 	public void execute() throws Exception {
 		super.execute();
-
 		amop.sendAdmissionRequest();
 	}
 

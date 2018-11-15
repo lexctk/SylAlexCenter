@@ -151,8 +151,9 @@ public class TestAdmissionController extends AbstractCVM {
 		// Deploy Application Integrator
 		// --------------------------------------------------------------------	
 		applicationIntegrator = new ApplicationIntegrator(applicationManagementInboundPortURI);
-		
 		this.addDeployedComponent(applicationIntegrator);
+		
+		System.out.println("application integrator deployed.");
 	}
 	
 	

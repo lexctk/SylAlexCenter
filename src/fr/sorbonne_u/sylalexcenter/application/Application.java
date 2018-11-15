@@ -172,6 +172,7 @@ public class Application extends AbstractComponent {
 	}	
 	
 	public void sendAdmissionRequest() throws Exception {
+		System.out.println("Message");
 		this.logMessage("Application " + this.appURI + " asking for admission with " + this.numCores + " cores.");
 		
 		// deploy generator - this is done here to have the ports available if Controller accepts
