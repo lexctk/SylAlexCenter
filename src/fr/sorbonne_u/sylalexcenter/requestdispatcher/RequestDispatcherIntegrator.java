@@ -1,4 +1,4 @@
-package fr.sorbonne_u.sylalexcenter.tests;
+package fr.sorbonne_u.sylalexcenter.requestdispatcher;
 
 import java.util.ArrayList;
 

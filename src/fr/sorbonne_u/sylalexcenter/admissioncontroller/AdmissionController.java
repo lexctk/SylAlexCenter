@@ -21,13 +21,13 @@ import fr.sorbonne_u.datacenter.interfaces.ControlledDataOfferedI;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
-import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestSubmissionHandlerI;
-import fr.sorbonne_u.datacenter.software.interfaces.RequestSubmissionI;
-import fr.sorbonne_u.datacenter.software.ports.RequestNotificationInboundPort;
-import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionInboundPort;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
+import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementInboundPort;
+import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInboundPort;
+import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
-import fr.sorbonne_u.sylalexcenter.tests.RequestDispatcherIntegrator;
 
 /**
  * The class <code>AdmissionController</code> implements an admission controller.
@@ -51,13 +51,13 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 	protected ComputerStaticStateDataOutboundPort cssdop;
 	protected ComputerDynamicStateDataOutboundPort cdsdop;
 	
-	protected RequestSubmissionInboundPort rsip;
-	protected RequestNotificationInboundPort rnip;
+	protected ApplicationManagementInboundPort amip;
+	protected ApplicationSubmissionInboundPort asip;
+	protected ApplicationNotificationInboundPort anip;
 	
 	protected String computerServicesInboundPortURI;
 	protected String computerStaticStateDataInboundPortURI;
 	protected String computerDynamicStateDataInboundPortURI;
-	protected String requestManagementInboundPortURI;
 
 	public AdmissionController (
 			String acURI, 
@@ -65,9 +65,9 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 			String computerServicesInboundPortURI,
 			String computerStaticStateDataInboundPortURI,
 			String computerDynamicStateDataInboundPortURI,
-			String requestManagementInboundPortURI, // request generator 
-			String requestSubmissionInboundPortURI, // request generator 
-			String requestNotificationInboundPortURI // request generator 
+			String applicationManagementInboundPortURI,
+			String applicationSubmissionInboundPortURI, // request generator 
+			String applicationNotificationInboundPortURI // request generator 
 		) throws Exception {
 		
 		super(1, 1);
@@ -76,14 +76,13 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		assert computerServicesInboundPortURI != null;
 		assert computerStaticStateDataInboundPortURI != null;
 		assert computerDynamicStateDataInboundPortURI != null;
-		assert requestSubmissionInboundPortURI != null;
-		assert requestNotificationInboundPortURI != null;
+		assert applicationSubmissionInboundPortURI != null;
+		assert applicationNotificationInboundPortURI != null;
 		
 		this.acURI = acURI;
 		this.computerServicesInboundPortURI = computerServicesInboundPortURI;
 		this.computerStaticStateDataInboundPortURI = computerStaticStateDataInboundPortURI;
 		this.computerDynamicStateDataInboundPortURI = computerDynamicStateDataInboundPortURI;
-		this.requestManagementInboundPortURI = requestManagementInboundPortURI;
 		
 		this.addRequiredInterface(ComputerServicesI.class);
 		this.csop = new ComputerServicesOutboundPort (this);
@@ -100,15 +99,15 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		this.addPort(cdsdop);
 		this.cdsdop.publishPort();
 		
-		this.addOfferedInterface(RequestSubmissionI.class);
-		this.rsip = new RequestSubmissionInboundPort(requestSubmissionInboundPortURI, this);
-		this.addPort(this.rsip);
-		this.rsip.publishPort();
+		this.addOfferedInterface(ApplicationSubmissionI.class);
+		this.asip = new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURI, this);
+		this.addPort(this.asip);
+		this.asip.publishPort();
 
-		this.addOfferedInterface(RequestNotificationI.class);
-		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundPortURI, this);
-		this.addPort(this.rnip);
-		this.rnip.publishPort();
+		this.addOfferedInterface(ApplicationNotificationI.class);
+		this.anip = new ApplicationNotificationInboundPort(applicationNotificationInboundPortURI, this);
+		this.addPort(this.anip);
+		this.anip.publishPort();
 	}
 
 	// Component life-cycle
@@ -131,6 +130,11 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 	}
 	
 	@Override
+	public void execute() throws Exception {
+		super.execute();
+	}
+	
+	@Override
 	public void finalise() throws Exception {
 
 		if (this.csop.connected()) this.doPortDisconnection(this.csop.getPortURI());
@@ -147,8 +151,8 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 			if (this.csop.isPublished()) this.csop.unpublishPort();
 			if (this.cssdop.isPublished()) this.cssdop.unpublishPort();
 			if (this.cdsdop.isPublished()) this.cdsdop.unpublishPort();
-			if (this.rsip.isPublished()) this.rsip.unpublishPort();
-			if (this.rnip.isPublished()) this.rnip.unpublishPort();
+			if (this.asip.isPublished()) this.asip.unpublishPort();
+			if (this.anip.isPublished()) this.anip.unpublishPort();
 			
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
@@ -196,7 +200,7 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 			
 			AbstractCVM.getCVM().addDeployedComponent(applicationVM);
 		}
-		
+
 		
 		// Deploy the request dispatcher
 		// --------------------------------------------------------------------
@@ -210,8 +214,8 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		requestDispatcher = new RequestDispatcher (
 				rdURI, 
 				requestDispatcherManagementInboundPortURI,
-				this.rsip.getPortURI(),
-				this.rnip.getPortURI(),
+				this.asip.getPortURI(),
+				this.anip.getPortURI(),
 				vmURIList,
 				applicationVMRequestSubmissionInboundPortURIList,
 				applicationVMRequestNotificationInboundPortURIList
@@ -221,19 +225,6 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		requestDispatcher.toggleLogging();
 		
 		AbstractCVM.getCVM().addDeployedComponent(requestDispatcher);
-	
-
-		// Deploy an integrator.
-		// --------------------------------------------------------------------
-		RequestDispatcherIntegrator requestDispatcherIntegrator;
-		
-		requestDispatcherIntegrator = new RequestDispatcherIntegrator (
-				computerServicesInboundPortURI, 
-				applicationVMManagementInboundPortURIList,
-				requestManagementInboundPortURI,
-				requestDispatcherManagementInboundPortURI
-		);
-		AbstractCVM.getCVM().addDeployedComponent(requestDispatcherIntegrator);
 		
 		this.logMessage("AdmissionController deployment done");
 	}
@@ -261,6 +252,12 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 	
 	@Override
 	public void acceptRequestSubmission(RequestI r) throws Exception {
+		acceptRequestSubmissionAndNotify(r);
+	}
+
+
+	@Override
+	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
 		
 		if (resourcesAvailable ()) {
@@ -276,14 +273,6 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 						"because there aren't enough resources");
 			}
 		}
-	}
-
-
-	@Override
-	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
-		// TODO Auto-generated method stub
-		
-		acceptRequestSubmission(r);
 	}
 
 

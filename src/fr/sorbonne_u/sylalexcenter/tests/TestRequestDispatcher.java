@@ -11,6 +11,7 @@ import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcherIntegrator;
 
 /**
  * The class <code>TestRequestDispatcher</code> deploys a single AVM, with a 
@@ -68,8 +69,8 @@ public class TestRequestDispatcher extends AbstractCVM {
 		// Deploy a Computer with 2 Processors and 2 Cores each
 		// -----------------------------------------------------------------
 		String computerURI = "computer0";
-		int numberOfProcessors = 4;
-		int numberOfCores = 4;
+		int numberOfProcessors = 2;
+		int numberOfCores = 2;
 		
 		Set<Integer> possibleFrequencies = new HashSet<Integer>();
 		possibleFrequencies.add(1500); 

@@ -10,6 +10,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.AdmissionController;
 import fr.sorbonne_u.sylalexcenter.application.Application;
+import fr.sorbonne_u.sylalexcenter.application.ApplicationIntegrator;
 
 /**
  * The class <code>TestAdmissionController</code> deploys all the components
@@ -19,6 +20,10 @@ import fr.sorbonne_u.sylalexcenter.application.Application;
  *
  */
 public class TestAdmissionController extends AbstractCVM {
+	
+	/** Number of processors per computer and number of cores per processor **/ 
+	public static final int	numberOfProcessors = 2 ;
+	public static final int	numberOfCores = 2 ;
 
 	// Port URIs
 	// -----------------------------------------------------------------
@@ -26,10 +31,8 @@ public class TestAdmissionController extends AbstractCVM {
 	public static final String computerStaticStateDataInboundPortURI = "cssdip";
 	public static final String computerDynamicStateDataInboundPortURI = "cdsdip";
 	
-	public static final String requestGeneratorManagementInboundPortURI = "appmip";
-	public static final String requestGeneratorSubmissionInboundPortURI = "appsip";
-	public static final String requestGeneratorNotificationInboundPortURI = "appnip";
-	
+	public static final String applicationServicesInboundPortURI = "assip";
+	public static final String applicationManagementInboundPortURI = "amip";
 	public static final String applicationSubmissionInboundPortURI = "asip";
 	public static final String applicationNotificationInboundPortURI = "anip";
 	
@@ -39,27 +42,22 @@ public class TestAdmissionController extends AbstractCVM {
 	private Application application;
 	private ComputerMonitor computerMonitor;
 	private AdmissionController admissionController;
+	private ApplicationIntegrator applicationIntegrator;
 	
 	
 	public TestAdmissionController() throws Exception {
 		super();
 	}
 
-	public TestAdmissionController(boolean isDistributed) throws Exception {
-		super(isDistributed);
-	}
-
 	// Deploy
 	// -----------------------------------------------------------------	
 	@Override
- 	public void deploy() throws Exception { 
+ 	public void deploy() throws Exception { 		
+
 		
-		
-		// Deploy a Computer with 2 Processors and 2 Cores each
+		// Deploy a Computer 
 		// -----------------------------------------------------------------
 		String computerURI = "computer0";
-		int numberOfProcessors = 2;
-		int numberOfCores = 2;
 		
 		Set<Integer> possibleFrequencies = new HashSet<Integer>();
 		possibleFrequencies.add(1500); 
@@ -103,31 +101,8 @@ public class TestAdmissionController extends AbstractCVM {
 		
 		this.addDeployedComponent(this.computerMonitor);
 		
-		System.out.println("computer deployed...");
-		
+		System.out.println("computer deployed.");
 
-		// Deploy an Application
-		// --------------------------------------------------------------------
-		String appURI = "app0";
-		int numCores = 2;
-		double meanInterArrivalTime = 500.0;
-		long meanNumberOfInstructions = 6000000000L;
-		
-		this.application = new Application (
-				appURI, 
-				numCores, 
-				meanInterArrivalTime, 
-				meanNumberOfInstructions,
-				applicationSubmissionInboundPortURI,
-				applicationNotificationInboundPortURI
-		);
-		
-		this.addDeployedComponent(this.application);
-		this.application.toggleLogging();
-		this.application.toggleTracing();
-		
-		System.out.println("application deployed...");
-		
 		
 		// Deploy an Admission Controller
 		// --------------------------------------------------------------------		
@@ -136,25 +111,50 @@ public class TestAdmissionController extends AbstractCVM {
 				computerURI, //single computer for now
 				computerServicesInboundPortURI,
 				computerStaticStateDataInboundPortURI,
-				computerDynamicStateDataInboundPortURI, //TODO: replace with application ports
-				requestGeneratorManagementInboundPortURI,
-				requestGeneratorSubmissionInboundPortURI,
-				requestGeneratorNotificationInboundPortURI
+				computerDynamicStateDataInboundPortURI,
+				applicationManagementInboundPortURI,
+				applicationSubmissionInboundPortURI,
+				applicationNotificationInboundPortURI
 		);
 		
-		this.addDeployedComponent(admissionController);
+		this.addDeployedComponent(this.admissionController);
 		this.admissionController.toggleTracing();
 		this.admissionController.toggleLogging();
 		
-		System.out.println("admission controller deployed...");
+		System.out.println("admission controller deployed.");
+		
+		
+		// Deploy an Application
+		// --------------------------------------------------------------------
+		String appURI = "app0";
+		Integer numCores = 2;
+		Double meanInterArrivalTime = 500.0;
+		Long meanNumberOfInstructions = 6000000000L;
+		
+		this.application = new Application (
+				appURI, 
+				numCores, 
+				meanInterArrivalTime, 
+				meanNumberOfInstructions,
+				applicationManagementInboundPortURI,
+				applicationSubmissionInboundPortURI,
+				applicationNotificationInboundPortURI
+		);
+		
+		this.addDeployedComponent(this.application);
+		this.application.toggleLogging();
+		this.application.toggleTracing();
+		
+		System.out.println("application deployed.");
+		
+		
+		// Deploy Application Integrator
+		// --------------------------------------------------------------------	
+		applicationIntegrator = new ApplicationIntegrator(applicationManagementInboundPortURI);
+		
+		this.addDeployedComponent(applicationIntegrator);
 	}
 	
-	@Override
-	public void execute() throws Exception {
-		//TODO: applications should sendAdmissionRequest here.
-		
-		
-	}
 	
 	public static void main(String[] args) {
 		
