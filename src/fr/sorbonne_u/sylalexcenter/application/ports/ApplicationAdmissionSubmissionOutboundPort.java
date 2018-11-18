@@ -22,7 +22,6 @@ public class ApplicationAdmissionSubmissionOutboundPort extends AbstractOutbound
 
 	@Override
 	public void setSubmissionInboundPortURI(ApplicationAdmissionI applicationAdmission) throws Exception {
-		
 		((ApplicationAdmissionSubmissionI)this.connector).setSubmissionInboundPortURI(applicationAdmission);
 	}
 }

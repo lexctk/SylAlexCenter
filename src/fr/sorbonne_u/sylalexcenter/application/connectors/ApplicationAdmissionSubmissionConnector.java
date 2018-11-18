@@ -1,7 +1,8 @@
 package fr.sorbonne_u.sylalexcenter.application.connectors;
 
 import fr.sorbonne_u.components.connectors.AbstractConnector;
-import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionSubmissionI;
 
 /**
  *
@@ -10,11 +11,10 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI
  * @author Sylia Righi
  *
  */
-public class ApplicationAdmissionSubmissionConnector extends AbstractConnector implements ApplicationSubmissionI {
+public class ApplicationAdmissionSubmissionConnector extends AbstractConnector implements ApplicationAdmissionSubmissionI {
 
-@Override
-public void submitApplicationAndNotify(String appUri, int mustHaveCores) throws Exception {
-	
-	((ApplicationSubmissionI)this.offering).submitApplicationAndNotify(appUri, mustHaveCores);		
-}
+	@Override
+	public void setSubmissionInboundPortURI(ApplicationAdmissionI applicationAdmission) throws Exception {
+		((ApplicationAdmissionSubmissionI)this.offering).setSubmissionInboundPortURI(applicationAdmission);
+	}
 }

@@ -8,15 +8,16 @@ import org.apache.commons.math3.random.RandomDataGenerator;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.components.pre.dcc.ports.DynamicComponentCreationOutboundPort;
-import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
 import fr.sorbonne_u.datacenter.TimeManagement;
 import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
+import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
+import fr.sorbonne_u.datacenter.software.interfaces.RequestSubmissionI;
+import fr.sorbonne_u.datacenter.software.ports.RequestNotificationInboundPort;
+import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionOutboundPort;
 import fr.sorbonne_u.datacenterclient.requestgenerator.Request;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
-import fr.sorbonne_u.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
 import fr.sorbonne_u.datacenterclient.utils.TimeProcessing;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.ApplicationAdmission;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationAdmissionNotificationConnector;
@@ -25,13 +26,9 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionNotificationI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionSubmissionI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
-import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
-import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationAdmissionNotificationOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationAdmissionSubmissionOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementInboundPort;
-import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInboundPort;
-import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutboundPort;
 
 /**
  * The class <code>Application</code> implements a an application
@@ -51,7 +48,7 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutbou
  * @author Sylia Righi
  *
  */
-public class Application extends AbstractComponent implements RequestNotificationHandlerI{
+public class Application extends AbstractComponent implements RequestNotificationHandlerI {
 	
 	protected int counter;
 	
@@ -66,16 +63,11 @@ public class Application extends AbstractComponent implements RequestNotificatio
 	protected String applicationAdmissionNotificationInboundPortURI;
 		
 	protected ApplicationManagementInboundPort amip;
-	protected ApplicationSubmissionOutboundPort asop;
-	protected ApplicationNotificationInboundPort anip;
+	protected RequestSubmissionOutboundPort asop;
+	protected RequestNotificationInboundPort anip;
 	
 	protected ApplicationAdmissionSubmissionOutboundPort aasop;
 	protected ApplicationAdmissionNotificationOutboundPort aanop;
-
-	protected DynamicComponentCreationOutboundPort rgport;
-	protected ReflectionOutboundPort rop;
-	
-	protected RequestGeneratorManagementOutboundPort rgmop;
 	
 	protected RandomDataGenerator rng;
 	protected Future<?> nextRequestTaskFuture;
@@ -125,13 +117,13 @@ public class Application extends AbstractComponent implements RequestNotificatio
 		this.addPort(this.amip) ;
 		this.amip.publishPort() ;
 
-		this.addRequiredInterface(ApplicationSubmissionI.class) ;
-		this.asop = new ApplicationSubmissionOutboundPort(this) ;
+		this.addRequiredInterface(RequestSubmissionI.class) ;
+		this.asop = new RequestSubmissionOutboundPort(this) ;
 		this.addPort(this.asop) ;
 		this.asop.publishPort() ;
 
-		this.addOfferedInterface(ApplicationNotificationI.class) ;
-		this.anip = new ApplicationNotificationInboundPort(applicationNotificationInboundPortURI, this) ;
+		this.addOfferedInterface(RequestNotificationI.class) ;
+		this.anip = new RequestNotificationInboundPort(applicationNotificationInboundPortURI, this) ;
 		this.addPort(this.anip) ;
 		this.anip.publishPort() ;
 
@@ -153,7 +145,7 @@ public class Application extends AbstractComponent implements RequestNotificatio
 		assert this.rng != null && this.counter >= 0 ;
 		assert this.meanInterArrivalTime > 0.0 ;
 		assert this.meanNumberOfInstructions > 0 ;
-		assert this.asop != null && this.asop instanceof ApplicationSubmissionI ;
+		assert this.asop != null && this.asop instanceof RequestSubmissionI ;
 		assert this.aasop!=null && aasop instanceof ApplicationAdmissionSubmissionI;
 		assert this.aanop != null && aanop instanceof ApplicationAdmissionNotificationI;		
 	}
@@ -332,7 +324,7 @@ public class Application extends AbstractComponent implements RequestNotificatio
 		}
 
 		// submit the current request.
-		this.asop.submitApplicationAndNotify(appURI, numCores);
+		this.asop.submitRequestAndNotify(r);
 		// schedule the next request generation.
 
 		this.nextRequestTaskFuture = this.scheduleTask(new AbstractComponent.AbstractTask() {

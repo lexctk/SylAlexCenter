@@ -59,7 +59,6 @@ public class ApplicationIntegrator extends AbstractComponent {
 			amop.stopGeneration();
 			
 			amop.freeAdmissionControlerRessources();
-			
 		}
 	}
 

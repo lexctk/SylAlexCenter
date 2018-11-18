@@ -1,7 +1,9 @@
 package fr.sorbonne_u.sylalexcenter.application.connectors;
 
+
 import fr.sorbonne_u.components.connectors.AbstractConnector;
-import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionNotificationI;
 
 /**
  *
@@ -10,11 +12,11 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificatio
  * @author Sylia Righi
  *
  */
-public class ApplicationAdmissionNotificationConnector extends AbstractConnector implements ApplicationNotificationI {
+public class ApplicationAdmissionNotificationConnector extends AbstractConnector implements ApplicationAdmissionNotificationI {
 
 	@Override
-	public void notifyApplicationAdmission(boolean isAccepted) throws Exception {
-		
-		((ApplicationNotificationI)this.offering).notifyApplicationAdmission(isAccepted);		
+	public void acceptRequestTerminationNotification(ApplicationAdmissionI applicationAdmission) throws Exception {
+		((ApplicationAdmissionNotificationI)this.offering).acceptRequestTerminationNotification(applicationAdmission);
+
 	}
 }

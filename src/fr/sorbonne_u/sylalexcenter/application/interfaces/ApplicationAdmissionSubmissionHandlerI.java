@@ -9,6 +9,6 @@ package fr.sorbonne_u.sylalexcenter.application.interfaces;
  */
 public interface ApplicationAdmissionSubmissionHandlerI {
 	
-	public String acceptRequestSubmissionAndNotify (ApplicationAdmissionI applicationAdmission) throws Exception;
+	public String getSubmissionInboundPortURI (ApplicationAdmissionI applicationAdmission) throws Exception;
 	
 }

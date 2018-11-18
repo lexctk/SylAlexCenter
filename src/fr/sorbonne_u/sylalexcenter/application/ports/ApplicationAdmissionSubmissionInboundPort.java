@@ -27,7 +27,7 @@ public class ApplicationAdmissionSubmissionInboundPort extends AbstractInboundPo
 			new AbstractComponent.AbstractService<Void>() {
 				@Override
 				public Void call() throws Exception {
-					((AdmissionController)this.getOwner()).acceptRequestSubmissionAndNotify(applicationAdmission);
+					((AdmissionController)this.getOwner()).getSubmissionInboundPortURI(applicationAdmission);
 					return null;
 				}
 			});

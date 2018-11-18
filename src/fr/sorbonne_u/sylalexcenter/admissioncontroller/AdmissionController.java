@@ -16,16 +16,16 @@ import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
 import fr.sorbonne_u.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
 import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
+import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
+import fr.sorbonne_u.datacenter.software.interfaces.RequestSubmissionI;
+import fr.sorbonne_u.datacenter.software.ports.RequestNotificationInboundPort;
+import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.AdmissionControlerManagementI;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.ports.AdmissionControlerManagementInboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionNotificationHandlerI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionSubmissionHandlerI;
-import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
-import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
-import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInboundPort;
-import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboundPort;
 import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationConnector;
 import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationI;
 import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationOutboundPort;
@@ -72,8 +72,8 @@ implements AdmissionControlerManagementI, ApplicationAdmissionSubmissionHandlerI
 	
 	private AdmissionControlerManagementInboundPort acmip;
 
-	private ApplicationSubmissionInboundPort asip;
-	private ApplicationNotificationInboundPort anip;
+	private RequestSubmissionInboundPort asip;
+	private RequestNotificationInboundPort anip;
 	
 	private Map<String, ApplicationVMManagementOutboundPort> avmopMap;
 	
@@ -111,13 +111,13 @@ implements AdmissionControlerManagementI, ApplicationAdmissionSubmissionHandlerI
 		this.addPort(this.acmip);
 		this.acmip.publishPort();
 		
-		this.addOfferedInterface(ApplicationSubmissionI.class);
-		this.asip = new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURI, this);
+		this.addOfferedInterface(RequestSubmissionI.class);
+		this.asip = new RequestSubmissionInboundPort(applicationSubmissionInboundPortURI, this);
 		this.addPort(this.asip);
 		this.asip.publishPort();
 
-		this.addOfferedInterface(ApplicationNotificationI.class);
-		this.anip = new ApplicationNotificationInboundPort(applicationNotificationInboundPortURI, this);
+		this.addOfferedInterface(RequestNotificationI.class);
+		this.anip = new RequestNotificationInboundPort(applicationNotificationInboundPortURI, this);
 		this.addPort(this.anip);
 		this.anip.publishPort();
 
@@ -204,7 +204,7 @@ implements AdmissionControlerManagementI, ApplicationAdmissionSubmissionHandlerI
 	}
 
 	@Override
-	public String acceptRequestSubmissionAndNotify (ApplicationAdmissionI applicationAdmission) throws Exception {
+	public String getSubmissionInboundPortURI (ApplicationAdmissionI applicationAdmission) throws Exception {
 		assert applicationAdmission != null;
 		
 		List<AllocationMap> coreAllocation = allocateCores();
