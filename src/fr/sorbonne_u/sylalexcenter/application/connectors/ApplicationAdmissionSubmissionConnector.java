@@ -10,7 +10,7 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI
  * @author Sylia Righi
  *
  */
-public class ApplicationSubmissionConnector extends AbstractConnector implements ApplicationSubmissionI {
+public class ApplicationAdmissionSubmissionConnector extends AbstractConnector implements ApplicationSubmissionI {
 
 @Override
 public void submitApplicationAndNotify(String appUri, int mustHaveCores) throws Exception {

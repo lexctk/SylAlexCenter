@@ -17,11 +17,11 @@ import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
 import fr.sorbonne_u.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
 import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.AdmissionControlerManagementI;
-import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.RequestAdmissionI;
-import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.RequestAdmissionNotificationHandlerI;
-import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.RequestAdmissionSubmissionHandlerI;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.ports.AdmissionControlerManagementInboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionNotificationHandlerI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionSubmissionHandlerI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInboundPort;
@@ -52,7 +52,7 @@ import fr.sorbonne_u.sylalexcenter.utils.ComputerURI;
  *
  */
 public class AdmissionController extends AbstractComponent 
-implements AdmissionControlerManagementI, RequestAdmissionSubmissionHandlerI, RequestAdmissionNotificationHandlerI {
+implements AdmissionControlerManagementI, ApplicationAdmissionSubmissionHandlerI, ApplicationAdmissionNotificationHandlerI {
 	
 	public static int DEBUG_LEVEL = 2;
 	
@@ -188,9 +188,9 @@ implements AdmissionControlerManagementI, RequestAdmissionSubmissionHandlerI, Re
 	// Communication
 	// -------------------------------------------------------------------------
 	@Override
-	public void acceptRequestNotification(RequestAdmissionI requestAdmission) throws Exception {
+	public void acceptRequestNotification(ApplicationAdmissionI applicationAdmission) throws Exception {
 		
-		this.allocationMap.get(requestAdmission.getRequestDispatcherURI()).stream().forEach(arg0 -> {
+		this.allocationMap.get(applicationAdmission.getRequestDispatcherURI()).stream().forEach(arg0 -> {
 			try {
 				arg0.freeCores();
 			} catch (Exception e) {
@@ -198,27 +198,27 @@ implements AdmissionControlerManagementI, RequestAdmissionSubmissionHandlerI, Re
 				e.printStackTrace();
 			}
 		});
-		this.allocationMap.remove(requestAdmission.getRequestDispatcherURI());
+		this.allocationMap.remove(applicationAdmission.getRequestDispatcherURI());
 		
 		this.logMessage ("Admission controller " + this.admissionControlerURI + " freeing up resources after application terminated");
 	}
 
 	@Override
-	public String acceptRequestSubmissionAndNotify (RequestAdmissionI requestAdmission) throws Exception {
-		assert requestAdmission != null;
+	public String acceptRequestSubmissionAndNotify (ApplicationAdmissionI applicationAdmission) throws Exception {
+		assert applicationAdmission != null;
 		
 		List<AllocationMap> coreAllocation = allocateCores();
 		
 		if (coreAllocation != null) {
-			String requestSubmissionInboundPortURI = deployComponents(requestAdmission, coreAllocation);
+			String requestSubmissionInboundPortURI = deployComponents(applicationAdmission, coreAllocation);
 			if (AdmissionController.DEBUG_LEVEL == 2) {
-				this.logMessage ("Admission controller " + this.admissionControlerURI + " accepted application " + requestAdmission.getApplicationManagementInboundPortURI() +
+				this.logMessage ("Admission controller " + this.admissionControlerURI + " accepted application " + applicationAdmission.getApplicationManagementInboundPortURI() +
 						"and required notification of application execution progress");
 			}
 			return requestSubmissionInboundPortURI;
 		} else {
 			if (AdmissionController.DEBUG_LEVEL == 2) {
-				this.logMessage ("Admission controller " + this.admissionControlerURI + " rejected application " + requestAdmission.getApplicationManagementInboundPortURI() +
+				this.logMessage ("Admission controller " + this.admissionControlerURI + " rejected application " + applicationAdmission.getApplicationManagementInboundPortURI() +
 						"because there aren't enough resources");
 			}
 			return null;
@@ -256,15 +256,15 @@ implements AdmissionControlerManagementI, RequestAdmissionSubmissionHandlerI, Re
 		
 	}
 	
-	public String deployComponents(RequestAdmissionI requestAdmission, List<AllocationMap> coreAllocation) throws Exception {
+	public String deployComponents(ApplicationAdmissionI applicationAdmission, List<AllocationMap> coreAllocation) throws Exception {
 		this.logMessage("AdmissionController starting component deployment");
 		
 		String rdURI = "rd_" + count;
 
 		String requestDispatcherManagementInboundPortURI = "requestDispatcherManagementInboundPortURI_" + count;
 		String requestDispatcherSubmissionInboundPortURI = "requestDispatcherSubmissionInboundPortURI_" + count;
-		String requestDispatcherNotificationInboundPortURI = requestAdmission.getRequestNotificationPortURI();
-		requestAdmission.setRequestDispatcherURI(rdURI);
+		String requestDispatcherNotificationInboundPortURI = applicationAdmission.getRequestNotificationPortURI();
+		applicationAdmission.setRequestDispatcherURI(rdURI);
 		
 		count++;
 		
@@ -280,7 +280,7 @@ implements AdmissionControlerManagementI, RequestAdmissionSubmissionHandlerI, Re
 			avmRequestNotificationInboundPortURI.add(applicationVMRequestNotificationInboundPortURI + "_" + i);
 		}
 		
-		requestAdmission.setRequestSubmissionPortURI(requestDispatcherSubmissionInboundPortURI);
+		applicationAdmission.setRequestSubmissionPortURI(requestDispatcherSubmissionInboundPortURI);
 		
 		synchronized (dccop) {
 			Object [] requestDispatcher = new Object[] {

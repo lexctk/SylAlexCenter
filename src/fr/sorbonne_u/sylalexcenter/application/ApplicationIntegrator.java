@@ -50,7 +50,17 @@ public class ApplicationIntegrator extends AbstractComponent {
 	@Override
 	public void execute() throws Exception {
 		super.execute();
-		amop.sendAdmissionRequest();
+		
+		if (amop.sendAdmissionRequest()){
+			
+			amop.startGeneration();
+			Thread.sleep(2000L);
+			
+			amop.stopGeneration();
+			
+			amop.freeAdmissionControlerRessources();
+			
+		}
 	}
 
 	@Override

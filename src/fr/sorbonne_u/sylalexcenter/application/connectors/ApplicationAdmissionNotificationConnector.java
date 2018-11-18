@@ -10,7 +10,7 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificatio
  * @author Sylia Righi
  *
  */
-public class ApplicationNotificationConnector extends AbstractConnector implements ApplicationNotificationI {
+public class ApplicationAdmissionNotificationConnector extends AbstractConnector implements ApplicationNotificationI {
 
 	@Override
 	public void notifyApplicationAdmission(boolean isAccepted) throws Exception {

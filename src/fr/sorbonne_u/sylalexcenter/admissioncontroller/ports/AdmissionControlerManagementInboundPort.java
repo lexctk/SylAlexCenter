@@ -17,13 +17,13 @@ public class AdmissionControlerManagementInboundPort extends AbstractInboundPort
 	private static final long serialVersionUID = 1L;
 
 	public AdmissionControlerManagementInboundPort (ComponentI owner) throws Exception {
-		super(AdmissionControlerManagementI.class, owner) ;
-		assert	owner != null && owner instanceof AdmissionController ;
+		super (AdmissionControlerManagementI.class, owner);
+		assert owner != null && owner instanceof AdmissionController;
 	}
 
 	public AdmissionControlerManagementInboundPort (String uri, ComponentI owner) throws Exception {
 		super(uri, AdmissionControlerManagementI.class, owner);
 
-		assert	owner != null && owner instanceof AdmissionController ;
+		assert owner != null && owner instanceof AdmissionController;
 	}
 }

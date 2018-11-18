@@ -34,9 +34,12 @@ public class TestAdmissionController extends AbstractCVM {
 	// -----------------------------------------------------------------
 	protected static final String admissionControlerManagementInboundURI = "acmip";
 	
-	public static final String applicationManagementInboundPortURI = "appmip";
+	protected static final String applicationManagementInboundPortURI = "appmip";
 	protected static final String applicationSubmissionInboundPortURI = "appsip";
 	protected static final String applicationNotificationInboundPortURI = "appnip";
+	
+	protected static final String applicationAdmissionSubmissionInboundPortURI ="appasip";
+	protected static final String applicationAdmissionNotificationInboundPortURI = "appanip";	
 
 	private static final String dynamicComponentCreationInboundPortURI = "dynamicComponentCreationInboundPortURI";
 	
@@ -147,8 +150,8 @@ public class TestAdmissionController extends AbstractCVM {
 				admissionControlerURI,
 				admissionControlerManagementInboundURI, 
 				dynamicComponentCreationInboundPortURI,
-				applicationSubmissionInboundPortURI,
-				applicationNotificationInboundPortURI
+				applicationAdmissionSubmissionInboundPortURI,
+				applicationAdmissionNotificationInboundPortURI
 		);
 		
 		this.admissionController.toggleTracing();
@@ -159,13 +162,13 @@ public class TestAdmissionController extends AbstractCVM {
 		
 		// Create Applications
 		// --------------------------------------------------------------------
+		Integer numCores = 2;
+		Double meanInterArrivalTime = 500.0;
+		Long meanNumberOfInstructions = 6000000000L;
+		
 		for(int i = 0 ; i < numberOfComputers; i++) {
 			String appURI = "app_" + 1;
-			
-			Integer numCores = 2;
-			Double meanInterArrivalTime = 500.0;
-			Long meanNumberOfInstructions = 6000000000L;
-			
+
 			this.application = new Application (
 					appURI, 
 					numCores, 
@@ -173,7 +176,9 @@ public class TestAdmissionController extends AbstractCVM {
 					meanNumberOfInstructions,
 					applicationManagementInboundPortURI + "_" +i ,
 					applicationSubmissionInboundPortURI + "_" + i,
-					applicationNotificationInboundPortURI + "_" + i
+					applicationNotificationInboundPortURI + "_" + i,
+					applicationAdmissionSubmissionInboundPortURI,
+					applicationAdmissionNotificationInboundPortURI
 			);
 			applications.add(application);
 			this.application.toggleLogging();

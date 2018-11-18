@@ -1,4 +1,4 @@
-package fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces;
+package fr.sorbonne_u.sylalexcenter.application.interfaces;
 
 import java.io.Serializable;
 
@@ -9,7 +9,7 @@ import java.io.Serializable;
  * @author Sylia Righi
  *
  */
-public interface RequestAdmissionI extends Serializable {
+public interface ApplicationAdmissionI extends Serializable {
 	
 	public String getRequestNotificationPortURI();
 

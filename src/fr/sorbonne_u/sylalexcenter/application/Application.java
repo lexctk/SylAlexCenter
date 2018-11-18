@@ -1,21 +1,34 @@
 package fr.sorbonne_u.sylalexcenter.application;
 
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.math3.random.RandomDataGenerator;
+
 import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.components.pre.dcc.connectors.DynamicComponentCreationConnector;
-import fr.sorbonne_u.components.pre.dcc.interfaces.DynamicComponentCreationI;
 import fr.sorbonne_u.components.pre.dcc.ports.DynamicComponentCreationOutboundPort;
-import fr.sorbonne_u.components.reflection.connectors.ReflectionConnector;
 import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
-import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector;
+import fr.sorbonne_u.datacenter.TimeManagement;
+import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
+import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
+import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
+import fr.sorbonne_u.datacenterclient.requestgenerator.Request;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
-import fr.sorbonne_u.datacenterclient.requestgenerator.interfaces.RequestGeneratorManagementI;
 import fr.sorbonne_u.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
+import fr.sorbonne_u.datacenterclient.utils.TimeProcessing;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.ApplicationAdmission;
+import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationAdmissionNotificationConnector;
+import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationAdmissionSubmissionConnector;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionNotificationI;
+import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationAdmissionSubmissionI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
+import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationAdmissionNotificationOutboundPort;
+import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationAdmissionSubmissionOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutboundPort;
@@ -38,88 +51,111 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutbou
  * @author Sylia Righi
  *
  */
-public class Application extends AbstractComponent {
+public class Application extends AbstractComponent implements RequestNotificationHandlerI{
+	
+	protected int counter;
 	
 	protected final String appURI;
 	protected final Integer numCores;
-	protected final Double meanInterArrivalTime; //for the request generator
-	protected final Long meanNumberOfInstructions; //for the request generator
+	protected Double meanInterArrivalTime; 
+	protected final Long meanNumberOfInstructions; 
 
-	protected String rgURI;
-	protected String requestGeneratorManagementInboundPortURI;
-	protected String requestGeneratorSubmissionInboundPortURI;
-	protected String requestGeneratorNotificationInboundPortURI;
-	
+	protected String applicationSubmissionInboundPortURI;
+	protected String applicationNotificationInboundPortURI;
+	protected String applicationAdmissionSubmissionInboundPortURI;
+	protected String applicationAdmissionNotificationInboundPortURI;
+		
 	protected ApplicationManagementInboundPort amip;
 	protected ApplicationSubmissionOutboundPort asop;
 	protected ApplicationNotificationInboundPort anip;
 	
-	protected String applicationSubmissionInboundPortURI;
-	
+	protected ApplicationAdmissionSubmissionOutboundPort aasop;
+	protected ApplicationAdmissionNotificationOutboundPort aanop;
+
 	protected DynamicComponentCreationOutboundPort rgport;
 	protected ReflectionOutboundPort rop;
 	
 	protected RequestGeneratorManagementOutboundPort rgmop;
+	
+	protected RandomDataGenerator rng;
+	protected Future<?> nextRequestTaskFuture;
+	
+	protected ApplicationAdmissionI applicationAdmission;
+	
+	protected boolean isRsopPortConnected = false;
 
 	public Application (
 			String appURI, 
 			int numCores, 
 			double meanInterArrivalTime,
-			Long meanNumberOfInstructions,
+			long meanNumberOfInstructions,
 			String applicationManagementInboundPortURI,
 			String applicationSubmissionInboundPortURI,			
-			String applicationNotificationInboundPortURI
+			String applicationNotificationInboundPortURI,
+			String applicationAdmissionSubmissionInboundPortURI,
+			String applicationAdmissionNotificationInboundPortURI
 		) throws Exception {
-		
-		super(1, 1);
-		assert appURI != null;
-		assert numCores > 0;
-		assert meanInterArrivalTime > 0.0;
-		assert meanNumberOfInstructions > 0;		
-		assert applicationManagementInboundPortURI != null;
-		assert applicationSubmissionInboundPortURI != null;
-		assert applicationNotificationInboundPortURI != null;
-		
-		this.appURI = appURI;
+
+		super(1, 1) ;
+
+		// preconditions check
+		assert meanInterArrivalTime > 0.0 && meanNumberOfInstructions > 0 ;
+		assert applicationManagementInboundPortURI != null ;
+		assert applicationSubmissionInboundPortURI != null ;
+		assert applicationNotificationInboundPortURI != null ;
+		assert applicationAdmissionSubmissionInboundPortURI != null;
+		assert applicationAdmissionNotificationInboundPortURI != null;
+
+		// initialization
+		this.appURI = appURI ;
+		this.counter = 0 ;
 		this.numCores = numCores;
+		this.meanInterArrivalTime = meanInterArrivalTime ;
+		this.meanNumberOfInstructions = meanNumberOfInstructions ;
+		this.rng = new RandomDataGenerator() ;
+		this.rng.reSeed() ;
+		this.nextRequestTaskFuture = null ;
 		this.applicationSubmissionInboundPortURI = applicationSubmissionInboundPortURI;
+		this.applicationAdmissionSubmissionInboundPortURI = applicationAdmissionSubmissionInboundPortURI;
 		
-		this.meanInterArrivalTime = meanInterArrivalTime;
-		this.meanNumberOfInstructions = meanNumberOfInstructions;
+		this.applicationNotificationInboundPortURI = applicationNotificationInboundPortURI;
+
+		this.addOfferedInterface(ApplicationManagementI.class) ;
+		this.amip = new ApplicationManagementInboundPort(applicationManagementInboundPortURI, this) ;
+		this.addPort(this.amip) ;
+		this.amip.publishPort() ;
+
+		this.addRequiredInterface(ApplicationSubmissionI.class) ;
+		this.asop = new ApplicationSubmissionOutboundPort(this) ;
+		this.addPort(this.asop) ;
+		this.asop.publishPort() ;
+
+		this.addOfferedInterface(ApplicationNotificationI.class) ;
+		this.anip = new ApplicationNotificationInboundPort(applicationNotificationInboundPortURI, this) ;
+		this.addPort(this.anip) ;
+		this.anip.publishPort() ;
+
+		applicationAdmission = new ApplicationAdmission (applicationNotificationInboundPortURI);
 		
-		// create request generator port URIs for this application		
-		this.rgURI = appURI + "_rg";
-		this.requestGeneratorManagementInboundPortURI = appURI + "_rgmip";
-		this.requestGeneratorSubmissionInboundPortURI = appURI + "_rgsip";
-		this.requestGeneratorNotificationInboundPortURI = appURI + "_rgnip";
+		addRequiredInterface(ApplicationAdmissionSubmissionI.class);
+		aasop = new ApplicationAdmissionSubmissionOutboundPort(this);
+		addPort(aasop);
+		aasop.publishPort();
 		
-		this.addOfferedInterface(ApplicationManagementI.class);
-		this.amip = new ApplicationManagementInboundPort(applicationManagementInboundPortURI, this);
-		this.addPort(this.amip);
-		this.amip.publishPort();		
+		this.applicationAdmissionNotificationInboundPortURI = applicationAdmissionNotificationInboundPortURI;
 		
-		this.addRequiredInterface(ApplicationSubmissionI.class);
-		this.asop = new ApplicationSubmissionOutboundPort(this);
-		this.addPort(this.asop);
-		this.asop.publishPort();
+		addRequiredInterface(ApplicationAdmissionNotificationI.class);
+		aanop = new ApplicationAdmissionNotificationOutboundPort(this);
+		addPort(aanop);
+		aanop.publishPort();
 		
-		this.addOfferedInterface(ApplicationNotificationI.class);
-		this.anip = new ApplicationNotificationInboundPort(applicationNotificationInboundPortURI, this);
-		this.addPort(this.anip);
-		this.anip.publishPort();
-		
-		this.addRequiredInterface(RequestGeneratorManagementI.class);
-		this.rgmop = new RequestGeneratorManagementOutboundPort(this);
-		this.addPort(this.rgmop);
-		this.rgmop.publishPort();
-		
-		this.addRequiredInterface(DynamicComponentCreationI.class);
-		
-		assert this.appURI != null && this.appURI.length() > 0;
-		assert this.amip != null && this.amip instanceof ApplicationManagementI;
-		assert this.asop != null && this.asop instanceof ApplicationSubmissionI;
-		assert this.anip != null && this.anip instanceof ApplicationNotificationI;		
-		assert this.rgmop != null && this.rgmop instanceof RequestGeneratorManagementI;			
+		// post-conditions check
+		assert this.rng != null && this.counter >= 0 ;
+		assert this.meanInterArrivalTime > 0.0 ;
+		assert this.meanNumberOfInstructions > 0 ;
+		assert this.asop != null && this.asop instanceof ApplicationSubmissionI ;
+		assert this.aasop!=null && aasop instanceof ApplicationAdmissionSubmissionI;
+		assert this.aanop != null && aanop instanceof ApplicationAdmissionNotificationI;		
 	}
 	
 	
@@ -136,18 +172,14 @@ public class Application extends AbstractComponent {
 		
 		try {
 			// connect internal port outbound to inbound URI
-			this.doPortConnection(this.asop.getPortURI(), applicationSubmissionInboundPortURI,
-					RequestNotificationConnector.class.getCanonicalName());
-			
-			// create outbound port for the Request Generator
-			this.rgport = new DynamicComponentCreationOutboundPort(this);
-			this.rgport.localPublishPort();
-			this.addPort(this.rgport);
-			this.rgport.doConnection(AbstractCVM.DCC_INBOUNDPORT_URI_SUFFIX, DynamicComponentCreationConnector.class.getCanonicalName());
+			this.doPortConnection(this.aasop.getPortURI(), applicationAdmissionSubmissionInboundPortURI,
+					ApplicationAdmissionSubmissionConnector.class.getCanonicalName());
+			this.doPortConnection(this.aanop.getPortURI(), applicationAdmissionNotificationInboundPortURI,
+					ApplicationAdmissionNotificationConnector.class.getCanonicalName());
+
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
 		}
-		
 		super.start();
 	}
 	
@@ -155,89 +187,236 @@ public class Application extends AbstractComponent {
 	@Override
 	public void finalise() throws Exception {
 
-		if (this.asop.connected()) this.asop.doDisconnection();
-		if (this.rgport.connected()) this.rgport.doDisconnection();
-
-		super.finalise();
+		if (this.nextRequestTaskFuture != null && !(this.nextRequestTaskFuture.isCancelled() ||
+				this.nextRequestTaskFuture.isDone())) {
+			this.nextRequestTaskFuture.cancel(true) ;
+		}
+		
+		if(isRsopPortConnected) this.doPortDisconnection(this.asop.getPortURI());
+		
+		super.finalise() ;
 	}
 	
 	@Override
 	public void shutdown() throws ComponentShutdownException {
 		
 		try {
-			this.asop.unpublishPort();
-			this.anip.unpublishPort();
-			
-			if (this.rgport.isPublished()) this.rgport.unpublishPort();
+			this.asop.unpublishPort() ;
+			this.anip.unpublishPort() ;
+			this.amip.unpublishPort() ;
+			this.aasop.unpublishPort();
+			this.aanop.unpublishPort();
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new ComponentShutdownException(e) ;
 		}
+
+		super.shutdown();
 	}	
 	
-	public void sendAdmissionRequest() throws Exception {
-		this.logMessage("Application " + this.appURI + " asking for admission with " + this.numCores + " cores.");
-		
-		// deploy generator - this is done here to have the ports available if Controller accepts
-		deployGenerator();
-		
-		this.asop.submitApplicationAndNotify(this.appURI, this.numCores);
+	// -------------------------------------------------------------------------
+	// Component internal services
+	// -------------------------------------------------------------------------
+
+	/**
+	 * start the generation and submission of requests.
+	 * 
+	 * <p>
+	 * <strong>Contract</strong>
+	 * </p>
+	 * 
+	 * <pre>
+	 * pre	true			// no precondition.
+	 * post	true			// no postcondition.
+	 * </pre>
+	 *
+	 * @throws Exception <i>todo.</i>
+	 */
+	public void startGeneration() throws Exception {
+		if (RequestGenerator.DEBUG_LEVEL == 1) {
+			this.logMessage("Application " + this.appURI + " starting.");
+		}
+		this.generateNextRequest();
 	}
-	
-	public void acceptApplicationAdmissionNotification (boolean accepted) throws Exception {
-		this.logMessage("Application " + this.appURI + " is notified that admission is " + accepted);
-		
-		if (accepted) {
-			startRequestGeneration();
+
+	/**
+	 * stop the generation and submission of requests.
+	 * 
+	 * <p>
+	 * <strong>Contract</strong>
+	 * </p>
+	 * 
+	 * <pre>
+	 * pre	true			// no precondition.
+	 * post	true			// no postcondition.
+	 * </pre>
+	 *
+	 * @throws Exception <i>todo.</i>
+	 */
+	public void stopGeneration() throws Exception {
+
+		if (RequestGenerator.DEBUG_LEVEL == 1) {
+			this.logMessage("Application " + this.appURI + " stopping.");
+		}
+		if (this.nextRequestTaskFuture != null
+				&& !(this.nextRequestTaskFuture.isCancelled() || this.nextRequestTaskFuture.isDone())) {
+			this.nextRequestTaskFuture.cancel(true);
 		}
 	}
-	
-	
+
 	/**
-	 * (see Javadoc fr.sorbonne_u.components.pre.dcc)
+	 * return the current value of the mean inter-arrival time used to generate
+	 * requests.
 	 * 
-	 * Application will create a Request Generator: 
-	 * call the service createComponent with the appropriate parameters on the 
-	 * DynamicComponentCreationOutboundPort
+	 * <p>
+	 * <strong>Contract</strong>
+	 * </p>
+	 * 
+	 * <pre>
+	 * pre	true			// no precondition.
+	 * post	true			// no postcondition.
+	 * </pre>
+	 *
+	 * @return the current value of the mean inter-arrival time.
 	 */
-	public void deployGenerator () throws Exception {
-		
-		Object [] requestGenerator = new Object[] {
-				this.rgURI,
-				this.meanInterArrivalTime,
-				this.meanNumberOfInstructions,
-				this.requestGeneratorManagementInboundPortURI,
-				this.requestGeneratorSubmissionInboundPortURI,
-				this.requestGeneratorNotificationInboundPortURI
-		};
-		
-		this.logMessage("Trying to deploy generator " + rgURI);
-
-		this.rgport.createComponent (RequestGenerator.class.getCanonicalName(), requestGenerator);
-
-		rop = new ReflectionOutboundPort(this);
-		rop.localPublishPort();
-		this.addPort(rop);
-		rop.doConnection(this.rgURI, ReflectionConnector.class.getCanonicalName());
-		
-		rop.toggleLogging();
-		rop.toggleTracing();
-		
-		this.logMessage("Generator " + rgURI + " deplpoyed.");
+	public double getMeanInterArrivalTime() {
+		return this.meanInterArrivalTime;
 	}
-	
-	public void startRequestGeneration() throws Exception {
+
+	/**
+	 * set the value of the mean inter-arrival time used to generate requests.
+	 * 
+	 * <p>
+	 * <strong>Contract</strong>
+	 * </p>
+	 * 
+	 * <pre>
+	 * pre	true			// no precondition.
+	 * post	true			// no postcondition.
+	 * </pre>
+	 *
+	 * @param miat new value for the mean inter-arrival time.
+	 */
+	public void setMeanInterArrivalTime(double miat) {
+		assert miat > 0.0;
+		this.meanInterArrivalTime = miat;
+	}
+
+	/**
+	 * generate a new request with some processing time following an exponential
+	 * distribution and then schedule the next request generation in a delay also
+	 * following an exponential distribution.
+	 * 
+	 * <p>
+	 * <strong>Contract</strong>
+	 * </p>
+	 * 
+	 * <pre>
+	 * pre	true			// no precondition.
+	 * post	true			// no postcondition.
+	 * </pre>
+	 *
+	 * @throws Exception <i>todo.</i>
+	 */
+	public void generateNextRequest() throws Exception {
+		// generate a random number of instructions for the request.
+		long noi = (long) this.rng.nextExponential(this.meanNumberOfInstructions);
+		Request r = new Request(this.appURI + "-" + this.counter++, noi);
 		
-		this.logMessage("Generator starting");
-		this.doPortConnection(this.rgmop.getPortURI(), requestGeneratorManagementInboundPortURI,
-				RequestNotificationConnector.class.getCanonicalName());
-		
-		// start generation
-		this.rgmop.startGeneration();
-		
-		// wait 20 seconds
-		Thread.sleep(2000L);
-		
-		// then stop the generation.
-		this.rgmop.stopGeneration();
+		// generate a random delay until the next request generation.
+		long interArrivalDelay = (long) this.rng.nextExponential(this.meanInterArrivalTime);
+
+		if (RequestGenerator.DEBUG_LEVEL == 2) {
+			this.logMessage("Request generator " + this.appURI + " submitting request " + r.getRequestURI() + " at "
+					+ TimeProcessing.toString(System.currentTimeMillis() + interArrivalDelay)
+					+ " with number of instructions " + noi);
+		}
+
+		// submit the current request.
+		this.asop.submitApplicationAndNotify(appURI, numCores);
+		// schedule the next request generation.
+
+		this.nextRequestTaskFuture = this.scheduleTask(new AbstractComponent.AbstractTask() {
+			@Override
+			public void run() {
+				try {
+					((RequestGenerator) this.getOwner()).generateNextRequest();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}, TimeManagement.acceleratedDelay(interArrivalDelay), TimeUnit.MILLISECONDS);
+
+	}
+
+	/**
+	 * process an end of execution notification for a request r previously
+	 * submitted.
+	 * 
+	 * <p>
+	 * <strong>Contract</strong>
+	 * </p>
+	 * 
+	 * <pre>
+	 * pre	r != null
+	 * post	true			// no postcondition.
+	 * </pre>
+	 *
+	 * @param r request that just terminated.
+	 * @throws Exception <i>todo.</i>
+	 */
+	@Override
+	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
+		assert r != null;
+
+		if (RequestGenerator.DEBUG_LEVEL == 2) {
+			this.logMessage("Application " + this.appURI + " is notified that request " + r.getRequestURI()
+					+ " has ended.");
+		}
+	}
+
+	public boolean sendAdmissionRequest() throws Exception {
+
+		applicationAdmission.setApplicationManagementInboundPortURI(amip.getPortURI());
+
+		String reqSubInboundPortURI = null;
+		try {
+			aasop.setSubmissionInboundPortURI(applicationAdmission);
+			reqSubInboundPortURI = applicationAdmission.getRequestSubmissionPortURI();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+
+		try {
+			aasop.unpublishPort();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+
+		if (applicationAdmission.getRequestSubmissionPortURI() == null) {
+			this.logMessage("Application " + this.appURI + ": was rejected");
+			return false;
+		}
+
+		this.logMessage("Application " + this.appURI + ": was accepted");
+
+		try {
+			this.doPortConnection(this.asop.getPortURI(), reqSubInboundPortURI,
+					RequestSubmissionConnector.class.getCanonicalName());
+			isRsopPortConnected = true;
+
+		} catch (Exception e) {
+			throw new ComponentStartException(e);
+		}
+
+		return true;
+	}
+
+	public void freeAdmissionControlerRessources() {
+		try {
+			aanop.acceptRequestTerminationNotification(applicationAdmission);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
