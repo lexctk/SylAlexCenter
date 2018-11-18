@@ -6,6 +6,13 @@ import fr.sorbonne_u.components.ports.AbstractInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.Application;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
 
+/**
+ *
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
+ */
 public class ApplicationManagementInboundPort extends AbstractInboundPort implements ApplicationManagementI {
 
 	private static final long serialVersionUID = 1L;

@@ -15,6 +15,13 @@ import fr.sorbonne_u.datacenterclient.requestgenerator.ports.RequestGeneratorMan
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatcherManagementConnector;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 
+/**
+ *
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
+ */
 public class RequestDispatcherIntegrator extends AbstractComponent {
 
 	protected ComputerServicesOutboundPort csop;

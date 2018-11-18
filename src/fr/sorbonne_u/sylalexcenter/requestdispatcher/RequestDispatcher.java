@@ -33,6 +33,11 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherMana
  * available application virtual machines (AVMs) and submits the request to the 
  * least recently used AVM.
  *
+ *
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
  */
 public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI, RequestSubmissionHandlerI, RequestNotificationHandlerI {
 

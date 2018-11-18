@@ -6,6 +6,13 @@ import fr.sorbonne_u.components.ports.AbstractInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationHandlerI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
 
+/**
+ *
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
+ */
 public class ApplicationNotificationInboundPort extends	AbstractInboundPort implements ApplicationNotificationI {
 
 	private static final long serialVersionUID = 1L;

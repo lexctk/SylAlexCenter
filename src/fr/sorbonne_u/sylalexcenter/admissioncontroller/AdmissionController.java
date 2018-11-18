@@ -1,33 +1,39 @@
 package fr.sorbonne_u.sylalexcenter.admissioncontroller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.connectors.DataConnector;
-import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.datacenter.connectors.ControlledDataConnector;
+import fr.sorbonne_u.datacenter.hardware.computers.Computer;
+import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.connectors.ComputerServicesConnector;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerDynamicStateI;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerServicesI;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStaticStateDataI;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStaticStateI;
-import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
-import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
-import fr.sorbonne_u.datacenter.interfaces.ControlledDataOfferedI;
+import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
-import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
-import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
-import fr.sorbonne_u.datacenter.software.interfaces.RequestSubmissionHandlerI;
+import fr.sorbonne_u.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
+import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.AdmissionControlerManagementI;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.RequestAdmissionI;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.RequestAdmissionNotificationHandlerI;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.interfaces.RequestAdmissionSubmissionHandlerI;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.ports.AdmissionControlerManagementInboundPort;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
-import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboundPort;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationConnector;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationI;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationOutboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatcherManagementConnector;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
+import fr.sorbonne_u.sylalexcenter.utils.ComputerInfo;
+import fr.sorbonne_u.sylalexcenter.utils.ComputerURI;
 
 /**
  * The class <code>AdmissionController</code> implements an admission controller.
@@ -39,65 +45,71 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
  * The admission controller component will receive requests from an application, check
  * available resources, and if possible, deploy application vm and request dispatcher.
  *
+ *
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
  */
-
-public class AdmissionController extends AbstractComponent implements ComputerStateDataConsumerI, RequestSubmissionHandlerI, RequestNotificationHandlerI {
+public class AdmissionController extends AbstractComponent 
+implements AdmissionControlerManagementI, RequestAdmissionSubmissionHandlerI, RequestAdmissionNotificationHandlerI {
 	
 	public static int DEBUG_LEVEL = 2;
 	
-	protected String acURI;
+	protected String admissionControlerURI;
 	
-	protected ComputerServicesOutboundPort csop;
-	protected ComputerStaticStateDataOutboundPort cssdop;
-	protected ComputerDynamicStateDataOutboundPort cdsdop;
+	private static final int numberOfCores = 2;
+	private static final int numberOfAVM = 2;
+	private int count = 0;
 	
-	protected ApplicationManagementInboundPort amip;
-	protected ApplicationSubmissionInboundPort asip;
-	protected ApplicationNotificationInboundPort anip;
+	private Map<String, RequestDispatcherManagementOutboundPort> rdmopMap;
+	private Map<String, ComputerInfo> computerInfo;
 	
-	protected String computerServicesInboundPortURI;
-	protected String computerStaticStateDataInboundPortURI;
-	protected String computerDynamicStateDataInboundPortURI;
+	private Map<String, List<AllocationMap>> allocationMap;
+	
+	private String dynamicComponentCreationInboundPortURI;
+	private DynamicComponentCreationOutboundPort dccop;
+	
+	private AdmissionControlerManagementInboundPort acmip;
+
+	private ApplicationSubmissionInboundPort asip;
+	private ApplicationNotificationInboundPort anip;
+	
+	private Map<String, ApplicationVMManagementOutboundPort> avmopMap;
+	
+	private String applicationVMManagementInboundPortURI = "avmip";
+	private String applicationVMRequestSubmissionInboundPortURI = "avmsip";
+	private String applicationVMRequestNotificationInboundPortURI = "avmnip";
+	
+	private static final String vmURI = "avm";
 
 	public AdmissionController (
-			String acURI, 
-			String computersURI, //single computer for now
-			String computerServicesInboundPortURI,
-			String computerStaticStateDataInboundPortURI,
-			String computerDynamicStateDataInboundPortURI,
-			String applicationManagementInboundPortURI,
-			String applicationSubmissionInboundPortURI, // request generator 
-			String applicationNotificationInboundPortURI // request generator 
+			int numberOfComputers,
+			List<Computer> computers,
+			List<ComputerURI> computerURIsAll,
+			List<ComputerMonitor> computerMonitors,
+			String admissionControlerURI,
+			String admissionControlerManagementInboundURI, 
+			String dynamicComponentCreationInboundPortURI,
+			String applicationSubmissionInboundPortURI,
+			String applicationNotificationInboundPortURI
 		) throws Exception {
 		
 		super(1, 1);
 		
-		assert acURI != null;
-		assert computerServicesInboundPortURI != null;
-		assert computerStaticStateDataInboundPortURI != null;
-		assert computerDynamicStateDataInboundPortURI != null;
+		assert numberOfComputers > 0;
+		assert admissionControlerURI != null;
+		assert admissionControlerURI != null;
+		assert admissionControlerManagementInboundURI != null;
+		assert dynamicComponentCreationInboundPortURI != null;
 		assert applicationSubmissionInboundPortURI != null;
 		assert applicationNotificationInboundPortURI != null;
 		
-		this.acURI = acURI;
-		this.computerServicesInboundPortURI = computerServicesInboundPortURI;
-		this.computerStaticStateDataInboundPortURI = computerStaticStateDataInboundPortURI;
-		this.computerDynamicStateDataInboundPortURI = computerDynamicStateDataInboundPortURI;
+		this.admissionControlerURI = admissionControlerURI;
 		
-		this.addRequiredInterface(ComputerServicesI.class);
-		this.csop = new ComputerServicesOutboundPort (this);
-		this.addPort(this.csop);
-		this.csop.publishPort();			
-
-		this.addRequiredInterface(ComputerStaticStateDataI.class);
-		this.cssdop = new ComputerStaticStateDataOutboundPort (this, computersURI);
-		this.addPort(this.cssdop);
-		this.cssdop.publishPort();
-
-		this.addRequiredInterface(ControlledDataOfferedI.ControlledPullI.class);
-		this.cdsdop = new ComputerDynamicStateDataOutboundPort (this, computersURI);
-		this.addPort(cdsdop);
-		this.cdsdop.publishPort();
+		this.acmip = new AdmissionControlerManagementInboundPort(admissionControlerManagementInboundURI, this);
+		this.addPort(this.acmip);
+		this.acmip.publishPort();
 		
 		this.addOfferedInterface(ApplicationSubmissionI.class);
 		this.asip = new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURI, this);
@@ -108,6 +120,27 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		this.anip = new ApplicationNotificationInboundPort(applicationNotificationInboundPortURI, this);
 		this.addPort(this.anip);
 		this.anip.publishPort();
+
+		this.addRequiredInterface(DynamicComponentCreationI.class);
+		this.dynamicComponentCreationInboundPortURI = dynamicComponentCreationInboundPortURI;
+		this.dccop = new DynamicComponentCreationOutboundPort(this);
+		this.addPort(this.dccop);
+		this.dccop.publishPort();
+		
+		this.rdmopMap = new HashMap<>();
+		this.computerInfo = new HashMap<>();
+		this.avmopMap = new HashMap<>();
+		this.allocationMap = new HashMap<>();
+		
+		ComputerServicesOutboundPort csop;
+		
+		for (int i = 0; i < numberOfComputers; i++) {
+			csop = new ComputerServicesOutboundPort(this);
+			addPort(csop);
+			csop.publishPort();
+			computerInfo.put(computerURIsAll.get(i).getComputerUri(), new ComputerInfo(computerURIsAll.get(i), computers.get(i), csop));
+			doPortConnection(csop.getPortURI(),computerURIsAll.get(i).getComputerServicesInboundPortURI(), ComputerServicesConnector.class.getCanonicalName());
+		}
 	}
 
 	// Component life-cycle
@@ -117,12 +150,8 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 		super.start();
 		
 		try {
-			this.doPortConnection(this.csop.getPortURI(), computerServicesInboundPortURI,
-					ComputerServicesConnector.class.getCanonicalName());
-			this.doPortConnection(this.cssdop.getPortURI(), computerStaticStateDataInboundPortURI,
-					DataConnector.class.getCanonicalName());
-			this.doPortConnection(this.cdsdop.getPortURI(), computerDynamicStateDataInboundPortURI,
-					ControlledDataConnector.class.getCanonicalName());
+			this.doPortConnection(this.dccop.getPortURI(), dynamicComponentCreationInboundPortURI, 
+					DynamicComponentCreationConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
 		}
@@ -136,11 +165,7 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 	
 	@Override
 	public void finalise() throws Exception {
-
-		if (this.csop.connected()) this.doPortDisconnection(this.csop.getPortURI());
-		if (this.cssdop.connected()) this.doPortDisconnection(this.cssdop.getPortURI());
-		if (this.cdsdop.connected()) this.doPortDisconnection(this.cdsdop.getPortURI());
-
+		if (this.dccop.connected()) this.doPortDisconnection(this.dccop.getPortURI());
 		super.finalise();
 	}
 	
@@ -148,11 +173,10 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 	public void shutdown() throws ComponentShutdownException {
 
 		try {
-			if (this.csop.isPublished()) this.csop.unpublishPort();
-			if (this.cssdop.isPublished()) this.cssdop.unpublishPort();
-			if (this.cdsdop.isPublished()) this.cdsdop.unpublishPort();
+			if (this.acmip.isPublished()) this.acmip.unpublishPort();
 			if (this.asip.isPublished()) this.asip.unpublishPort();
 			if (this.anip.isPublished()) this.anip.unpublishPort();
+			if (this.dccop.isPublished()) this.dccop.unpublishPort();
 			
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
@@ -160,126 +184,153 @@ public class AdmissionController extends AbstractComponent implements ComputerSt
 
 		super.shutdown();
 	}
-	
-	public void deploy() throws Exception {
-		
-		this.logMessage("AdmissionController starting deployment");
-		
-		// Deploy numAvm AVM
-		// --------------------------------------------------------------------
-		
-		ArrayList<String> applicationVMManagementInboundPortURIList = new ArrayList<String>();
-		ArrayList<String> applicationVMRequestSubmissionInboundPortURIList = new ArrayList<String>();
-		ArrayList<String> applicationVMRequestNotificationInboundPortURIList = new ArrayList<String>();
-		
-		ApplicationVM applicationVM = null;
-		
-		ArrayList<String> vmURIList = new ArrayList<String>();
-		int numAvm = 4;
-		
-		for (int i = 0; i < numAvm; i++) {
-			vmURIList.add("avm" + i);
-			applicationVMManagementInboundPortURIList.add("avmip" + i);
-			applicationVMRequestSubmissionInboundPortURIList.add("avmrsip" + i);
-			applicationVMRequestNotificationInboundPortURIList.add("avmrnip" + i);
-		}
 
-		for (int i = 0; i < numAvm; i++) {
+	// Communication
+	// -------------------------------------------------------------------------
+	@Override
+	public void acceptRequestNotification(RequestAdmissionI requestAdmission) throws Exception {
+		
+		this.allocationMap.get(requestAdmission.getRequestDispatcherURI()).stream().forEach(arg0 -> {
 			try {
-				applicationVM = new ApplicationVM (
-						vmURIList.get(i), 
-						applicationVMManagementInboundPortURIList.get(i), 
-						applicationVMRequestSubmissionInboundPortURIList.get(i), 
-						applicationVMRequestNotificationInboundPortURIList.get(i)
-				);
+				arg0.freeCores();
 			} catch (Exception e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			applicationVM.toggleTracing();
-			applicationVM.toggleLogging();
-			
-			AbstractCVM.getCVM().addDeployedComponent(applicationVM);
-		}
-
+		});
+		this.allocationMap.remove(requestAdmission.getRequestDispatcherURI());
 		
-		// Deploy the request dispatcher
-		// --------------------------------------------------------------------
-		
-		RequestDispatcher requestDispatcher;
-		
-		String requestDispatcherManagementInboundPortURI = "rdmip";
-		
-		String rdURI = "rd0";
-		
-		requestDispatcher = new RequestDispatcher (
-				rdURI, 
-				requestDispatcherManagementInboundPortURI,
-				this.asip.getPortURI(),
-				this.anip.getPortURI(),
-				vmURIList,
-				applicationVMRequestSubmissionInboundPortURIList,
-				applicationVMRequestNotificationInboundPortURIList
-		);
-		
-		requestDispatcher.toggleTracing();
-		requestDispatcher.toggleLogging();
-		
-		AbstractCVM.getCVM().addDeployedComponent(requestDispatcher);
-		
-		this.logMessage("AdmissionController deployment done");
+		this.logMessage ("Admission controller " + this.admissionControlerURI + " freeing up resources after application terminated");
 	}
 
 	@Override
-	public void acceptComputerStaticData(String computerURI, ComputerStaticStateI staticState) throws Exception {
-		// TODO Auto-generated method stub
+	public String acceptRequestSubmissionAndNotify (RequestAdmissionI requestAdmission) throws Exception {
+		assert requestAdmission != null;
 		
-	}
-
-
-	@Override
-	public void acceptComputerDynamicData(String computerURI, ComputerDynamicStateI currentDynamicState)
-			throws Exception {
-		// TODO Auto-generated method stub
+		List<AllocationMap> coreAllocation = allocateCores();
 		
-	}
-	
-
-	private boolean resourcesAvailable() {
-		// TODO Auto-generated method stub
-		return true;
-	}
-	
-	
-	@Override
-	public void acceptRequestSubmission(RequestI r) throws Exception {
-		acceptRequestSubmissionAndNotify(r);
-	}
-
-
-	@Override
-	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
-		assert r != null;
-		
-		if (resourcesAvailable ()) {
+		if (coreAllocation != null) {
+			String requestSubmissionInboundPortURI = deployComponents(requestAdmission, coreAllocation);
 			if (AdmissionController.DEBUG_LEVEL == 2) {
-				this.logMessage ("Admission controller " + this.acURI + " accepted application " + r.getRequestURI() +
+				this.logMessage ("Admission controller " + this.admissionControlerURI + " accepted application " + requestAdmission.getApplicationManagementInboundPortURI() +
 						"and required notification of application execution progress");
 			}
-			deploy();
-			
+			return requestSubmissionInboundPortURI;
 		} else {
 			if (AdmissionController.DEBUG_LEVEL == 2) {
-				this.logMessage ("Admission controller " + this.acURI + " rejected application " + r.getRequestURI() +
+				this.logMessage ("Admission controller " + this.admissionControlerURI + " rejected application " + requestAdmission.getApplicationManagementInboundPortURI() +
 						"because there aren't enough resources");
 			}
+			return null;
 		}
 	}
-
-
-	@Override
-	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
-		// TODO Auto-generated method stub
+	
+	// Methods
+	// -------------------------------------------------------------------------
+	private List<AllocationMap> allocateCores () throws Exception {
+		
+		List<AllocationMap> newAllocation = new ArrayList<>();
+		
+		AllocatedCore[] cores;
+		
+		for(int k = 0; k < numberOfAVM; k++) {
+			for(ComputerInfo c: computerInfo.values()) {
+				cores = c.getCsop().allocateCores(numberOfCores);
+				if(cores.length == numberOfCores) {
+					newAllocation.add(new AllocationMap(c.getComputer(), cores, ""));
+					break;
+				}
+				for(AllocatedCore allocatedCore: cores) {
+					c.getComputer().releaseCore(allocatedCore);
+				}
+			}
+		}
+		if (numberOfAVM == newAllocation.size()) {
+			return newAllocation;
+		}
+		
+		for (AllocationMap allocation: newAllocation) {
+			allocation.freeCores();
+		}
+		return null;
 		
 	}
+	
+	public String deployComponents(RequestAdmissionI requestAdmission, List<AllocationMap> coreAllocation) throws Exception {
+		this.logMessage("AdmissionController starting component deployment");
+		
+		String rdURI = "rd_" + count;
 
+		String requestDispatcherManagementInboundPortURI = "requestDispatcherManagementInboundPortURI_" + count;
+		String requestDispatcherSubmissionInboundPortURI = "requestDispatcherSubmissionInboundPortURI_" + count;
+		String requestDispatcherNotificationInboundPortURI = requestAdmission.getRequestNotificationPortURI();
+		requestAdmission.setRequestDispatcherURI(rdURI);
+		
+		count++;
+		
+		List<String> avmURI = new ArrayList<>();
+		List<String> avmManagementInboundPortURI = new ArrayList<>();
+		List<String> avmRequestSubmissionInboundPortURI = new ArrayList<>();
+		List<String> avmRequestNotificationInboundPortURI = new ArrayList<>();
+		
+		for(int i = 0; i < numberOfAVM; i++) {
+			avmURI.add(vmURI + "_" + i);
+			avmManagementInboundPortURI.add(applicationVMManagementInboundPortURI + "_" + i);
+			avmRequestSubmissionInboundPortURI.add(applicationVMRequestSubmissionInboundPortURI + "_" + i);
+			avmRequestNotificationInboundPortURI.add(applicationVMRequestNotificationInboundPortURI + "_" + i);
+		}
+		
+		requestAdmission.setRequestSubmissionPortURI(requestDispatcherSubmissionInboundPortURI);
+		
+		synchronized (dccop) {
+			Object [] requestDispatcher = new Object[] {
+					rdURI,
+					requestDispatcherManagementInboundPortURI,
+					requestDispatcherSubmissionInboundPortURI,
+					requestDispatcherNotificationInboundPortURI,
+					avmURI,
+					avmRequestSubmissionInboundPortURI,
+					avmRequestNotificationInboundPortURI,
+			};
+			
+			dccop.createComponent(RequestDispatcher.class.getCanonicalName(), requestDispatcher);		
+			
+			RequestDispatcherManagementOutboundPort rdmop = new RequestDispatcherManagementOutboundPort(this);
+			addPort(rdmop);
+			rdmop.publishPort();
+			doPortConnection(rdmop.getPortURI(), requestDispatcherManagementInboundPortURI, RequestDispatcherManagementConnector.class.getCanonicalName());
+			rdmopMap.put(rdURI, rdmop);
+			
+			for(int i = 0; i < numberOfAVM; i++) {
+				Object[] avm = new Object[] {
+						avmURI.get(i),
+						avmManagementInboundPortURI.get(i),
+						avmRequestSubmissionInboundPortURI.get(i),
+						avmRequestNotificationInboundPortURI.get(i)
+				};
+				
+				dccop.createComponent(ApplicationVM.class.getCanonicalName(), avm);	
+			}
+			
+			ApplicationVMManagementOutboundPort avmmop;
+			allocationMap.put(rdURI, new ArrayList<>());
+			
+			for(int i = 0; i < numberOfAVM; i++) {
+				avmmop = new ApplicationVMManagementOutboundPort(this);
+				addPort(avmmop);
+				avmmop.publishPort();
+				doPortConnection(avmmop.getPortURI(), avmManagementInboundPortURI.get(i), ApplicationVMManagementConnector.class.getCanonicalName());
+				avmopMap.put(avmURI.get(i), avmmop);
+				
+				coreAllocation.get(i).setVMUri(avmURI.get(i));
+				avmmop.allocateCores(coreAllocation.get(i).getCores());
+				
+				allocationMap.get(rdURI).add(coreAllocation.get(i));
+			}
+			dccop.startComponents();
+			dccop.executeComponents();
+		}
+		this.logMessage("AdmissionController component deployment done");
+		return requestDispatcherSubmissionInboundPortURI;
+	}
 }

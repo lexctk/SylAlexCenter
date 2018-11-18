@@ -6,6 +6,13 @@ import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationManagementConnector;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementOutboundPort;
 
+/**
+ *
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
+ */
 public class ApplicationIntegrator extends AbstractComponent {
 
 	protected ApplicationManagementOutboundPort amop;

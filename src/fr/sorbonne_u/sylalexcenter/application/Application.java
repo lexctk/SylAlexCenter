@@ -33,8 +33,11 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutbou
  * It dynamically deploys the RequestGenerator, and if application is accepted, 
  * starts generating requests
  * 
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ *
  */
-
 public class Application extends AbstractComponent {
 	
 	protected final String appURI;
@@ -60,8 +63,8 @@ public class Application extends AbstractComponent {
 
 	public Application (
 			String appURI, 
-			Integer numCores, 
-			Double meanInterArrivalTime,
+			int numCores, 
+			double meanInterArrivalTime,
 			Long meanNumberOfInstructions,
 			String applicationManagementInboundPortURI,
 			String applicationSubmissionInboundPortURI,			
@@ -172,7 +175,6 @@ public class Application extends AbstractComponent {
 	}	
 	
 	public void sendAdmissionRequest() throws Exception {
-		System.out.println("Message");
 		this.logMessage("Application " + this.appURI + " asking for admission with " + this.numCores + " cores.");
 		
 		// deploy generator - this is done here to have the ports available if Controller accepts

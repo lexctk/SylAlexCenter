@@ -19,6 +19,10 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcherIntegrator
  * 
  * <p><strong>Description</strong></p>
  * 
+ * 
+ * Sorbonne University 2018-2019
+ * @author Alexandra Tudor
+ * @author Sylia Righi
  *
  */
 public class TestRequestDispatcher extends AbstractCVM {
