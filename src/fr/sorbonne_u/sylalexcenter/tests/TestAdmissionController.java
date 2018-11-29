@@ -11,6 +11,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.AdmissionController;
 import fr.sorbonne_u.sylalexcenter.application.Application;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreator;
 
 /**
  * The class <code>TestAdmissionController</code> deploys all the components
@@ -57,6 +58,8 @@ public class TestAdmissionController extends AbstractCVM {
 	// Components
 	// -----------------------------------------------------------------
 	private AdmissionController admissionController;
+	protected DynamicComponentCreator dynamicComponentCreator;
+	
 	
 	public TestAdmissionController(boolean isDistributed) throws Exception {
 		super(isDistributed);
@@ -130,6 +133,10 @@ public class TestAdmissionController extends AbstractCVM {
 			computerDynamicStateDataInboundPortURIList.add(computerDynamicStateDataInboundPortURI);
 			System.out.println(computerURI + " deployed.");
 		}
+		
+		// Dynamic Component Creator
+		// --------------------------------------------------------------------	
+		dynamicComponentCreator = new DynamicComponentCreator(dynamicComponentCreationInboundPortURI);
 		
 		// Deploy Applications
 		// --------------------------------------------------------------------

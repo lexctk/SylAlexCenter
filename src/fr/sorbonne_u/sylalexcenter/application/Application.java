@@ -3,9 +3,6 @@ package fr.sorbonne_u.sylalexcenter.application;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.components.pre.dcc.connectors.DynamicComponentCreationConnector;
-import fr.sorbonne_u.components.pre.dcc.interfaces.DynamicComponentCreationI;
-import fr.sorbonne_u.components.pre.dcc.ports.DynamicComponentCreationOutboundPort;
 import fr.sorbonne_u.components.reflection.connectors.ReflectionConnector;
 import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
@@ -22,6 +19,9 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationInbo
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationServicesInboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationServicesOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutboundPort;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationConnector;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationI;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationOutboundPort;
 
 /**
  * The class <code>Application</code> implements a an application
@@ -152,6 +152,9 @@ public class Application extends AbstractComponent implements ApplicationService
 			this.doPortConnection(this.asvop.getPortURI(), this.applicationServicesInboundPortURI,
 					ApplicationServicesConnector.class.getCanonicalName());
 			
+			this.doPortConnection(this.dccop.getPortURI(), this.dynamicComponentCreationInboundPortURI, 
+					DynamicComponentCreationConnector.class.getCanonicalName());
+			
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
 		}
@@ -200,9 +203,6 @@ public class Application extends AbstractComponent implements ApplicationService
 		
 		synchronized (dccop) {
 			
-			this.doPortConnection(this.dccop.getPortURI(), this.dynamicComponentCreationInboundPortURI, 
-					DynamicComponentCreationConnector.class.getCanonicalName());
-			
 			Object [] requestGenerator = new Object[] {
 					this.rgURI,
 					this.meanInterArrivalTime,
@@ -236,7 +236,7 @@ public class Application extends AbstractComponent implements ApplicationService
 	public void	sendRequestForApplicationExecution(int coresToReserve) throws Exception {
 		this.logMessage("Application " + this.appURI + " asking for execution permission.");
 		
-		//deployGenerator();
+		deployGenerator();
 
 		this.asop.submitApplicationAndNotify (
 				this.appURI, 

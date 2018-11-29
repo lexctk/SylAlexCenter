@@ -7,9 +7,6 @@ import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.components.interfaces.DataRequiredI;
-import fr.sorbonne_u.components.pre.dcc.connectors.DynamicComponentCreationConnector;
-import fr.sorbonne_u.components.pre.dcc.interfaces.DynamicComponentCreationI;
-import fr.sorbonne_u.components.pre.dcc.ports.DynamicComponentCreationOutboundPort;
 import fr.sorbonne_u.datacenter.connectors.ControlledDataConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.connectors.ComputerServicesConnector;
@@ -28,6 +25,9 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionH
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboundPort;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationConnector;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationI;
+import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreationOutboundPort;
 
 public class AdmissionController extends AbstractComponent 
 	implements ApplicationSubmissionHandlerI, ComputerStateDataConsumerI  {
