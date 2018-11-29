@@ -22,7 +22,7 @@ public class ApplicationNotificationOutboundPort extends AbstractOutboundPort im
 
 	@Override
 	public void notifyApplicationAdmission(boolean isAccepted) throws Exception {
-	
+		
 		((ApplicationNotificationI)this.connector).notifyApplicationAdmission(isAccepted);		
 	}
 }

@@ -18,6 +18,11 @@ import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreator;
  * and runs a test.
  * 
  * <p><strong>Description</strong></p>
+ * TestAdmissionController deploys: computers, applications, admission controller
+ * and a dynamic component creator that overrides BCM, to be used by 
+ * admission controller when deploying components. 
+ * 
+ * The dynamic component creator delays start() until everything is deployed. 
  *
  */
 public class TestAdmissionController extends AbstractCVM {
@@ -138,6 +143,7 @@ public class TestAdmissionController extends AbstractCVM {
 		// --------------------------------------------------------------------	
 		dynamicComponentCreator = new DynamicComponentCreator(dynamicComponentCreationInboundPortURI);
 		
+		
 		// Deploy Applications
 		// --------------------------------------------------------------------
 		Double meanInterArrivalTime = 500.0;
@@ -155,7 +161,6 @@ public class TestAdmissionController extends AbstractCVM {
 					coresNeeded,
 					meanInterArrivalTime,
 					meanNumberOfInstructions,
-					dynamicComponentCreationInboundPortURI,
 					applicationServicesInboundPortURI + "_" + i,
 					applicationSubmissionInboundPortURI + "_" + i,
 					applicationNotificationInboundPortURI + "_" + i
