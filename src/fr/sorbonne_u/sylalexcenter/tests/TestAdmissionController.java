@@ -3,18 +3,14 @@ package fr.sorbonne_u.sylalexcenter.tests;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import fr.sorbonne_u.sylalexcenter.utils.ComputerURI;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.AdmissionController;
 import fr.sorbonne_u.sylalexcenter.application.Application;
-import fr.sorbonne_u.sylalexcenter.application.ApplicationIntegrator;
-import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreator;
 
 /**
  * The class <code>TestAdmissionController</code> deploys all the components
@@ -25,42 +21,41 @@ import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreator;
  */
 public class TestAdmissionController extends AbstractCVM {
 	
-	/** Number of processors per computer and number of cores per processor **/ 
-	public static final int	numberOfProcessors = 2 ;
-	public static final int	numberOfCores = 2 ;
-	public static final int	numberOfComputers = 2 ;
+	private static final String dynamicComponentCreationInboundPortURI = "dynamicComponentCreationInboundPortURI";
+	
+	// Setup
+	// -----------------------------------------------------------------
+	protected static final Integer numberOfComputers = 2;
+	protected static final Integer numberOfProcessors = 2;
+	protected static final Integer numberOfCores = 2;
+	
+	protected static final Integer numberOfApplications = 3;
+	protected static final Integer avmsPerApplication = 2;
+	protected static final Integer coresPerAVM = 2;
+	
+	protected static final Integer coresNeeded = 4;
+	
 
 	// Port URIs
 	// -----------------------------------------------------------------
-	protected static final String admissionControlerManagementInboundURI = "acmip";
-	
-	protected static final String applicationManagementInboundPortURI = "appmip";
+	protected static final String applicationServicesInboundPortURI = "appsvip";
 	protected static final String applicationSubmissionInboundPortURI = "appsip";
 	protected static final String applicationNotificationInboundPortURI = "appnip";
 	
-	protected static final String applicationAdmissionSubmissionInboundPortURI ="appasip";
-	protected static final String applicationAdmissionNotificationInboundPortURI = "appanip";	
-
-	private static final String dynamicComponentCreationInboundPortURI = "dynamicComponentCreationInboundPortURI";
+	protected ArrayList<String> computerServicesInboundPortURIList;
+	protected ArrayList<String> computerStaticStateDataInboundPortURIList;
+	protected ArrayList<String> computerDynamicStateDataInboundPortURIList;
+	
+	protected ArrayList<String> applicationSubmissionInboundPortURIList;
+	protected ArrayList<String> applicationNotificationInboundPortURIList;	
 	
 	// Component URIs
 	// -----------------------------------------------------------------	
-	protected List<String> computersURIs = new ArrayList<>();
-	protected static final String admissionControlerURI = "admissionControler";
+	protected ArrayList<String> computerURIsList;
+	protected ArrayList<String> applicationURIsList;
 
 	// Components
 	// -----------------------------------------------------------------
-	protected List<Computer> computers = new ArrayList<>();
-	protected ComputerMonitor computerMonitor;
-	protected List<ComputerMonitor> computerMonitors = new ArrayList<>();
-	
-	protected DynamicComponentCreator dynamicComponentCreator;
-	
-	private Application application;
-	protected List<Application> applications = new ArrayList<>();
-	private ApplicationIntegrator applicationIntegrator;
-	protected List<ApplicationIntegrator> applicationIntegrators = new ArrayList<>();
-	
 	private AdmissionController admissionController;
 	
 	public TestAdmissionController(boolean isDistributed) throws Exception {
@@ -77,14 +72,17 @@ public class TestAdmissionController extends AbstractCVM {
  	public void deploy() throws Exception { 		
 
 		// Deploy Computers 
-		// -----------------------------------------------------------------		
-		List<ComputerURI> computerURIsAll = new ArrayList<>();
+		// -----------------------------------------------------------------
+		computerURIsList = new ArrayList<String> ();
+		computerServicesInboundPortURIList = new ArrayList<String> ();
+		computerStaticStateDataInboundPortURIList = new ArrayList<String> ();
+		computerDynamicStateDataInboundPortURIList = new ArrayList<String> ();
 		
 		for(int i = 0 ; i < numberOfComputers; i++) {
 			String computerServicesInboundPortURI = "csip_" +i;
 			String computerStaticStateDataInboundPortURI = "cssdip_" + i;
 			String computerDynamicStateDataInboundPortURI = "cdsdip_" + i;
-			String computerURI = "computer_" + i;
+			String computerURI = "computer" + i;
 			
 			Set<Integer> possibleFrequencies = new HashSet<Integer>();
 			possibleFrequencies.add(1500); 
@@ -118,96 +116,76 @@ public class TestAdmissionController extends AbstractCVM {
 			// --------------------------------------------------------------------
 			boolean active = true;
 			
-			this.computerMonitor = new ComputerMonitor (
+			ComputerMonitor computerMonitor = new ComputerMonitor (
 					computerURI, 
 					active, 
 					computerStaticStateDataInboundPortURI, 
 					computerDynamicStateDataInboundPortURI
 			);
+			this.addDeployedComponent(computerMonitor);
 			
-			this.addDeployedComponent(this.computerMonitor);
-			
-			computers.add(computer);
-			computerMonitors.add(computerMonitor);
-			computersURIs.add(computerServicesInboundPortURI);
-			computerURIsAll.add(new ComputerURI(computerURI, computerServicesInboundPortURI, computerStaticStateDataInboundPortURI, computerDynamicStateDataInboundPortURI));
-			
-			System.out.println("computer " + computerURI + " deployed.");
+			computerURIsList.add(computerURI);
+			computerServicesInboundPortURIList.add(computerServicesInboundPortURI);
+			computerStaticStateDataInboundPortURIList.add(computerStaticStateDataInboundPortURI);
+			computerDynamicStateDataInboundPortURIList.add(computerDynamicStateDataInboundPortURI);
+			System.out.println(computerURI + " deployed.");
 		}
 		
-		// Dynamic Component Creator
-		// --------------------------------------------------------------------	
-		dynamicComponentCreator = new DynamicComponentCreator(dynamicComponentCreationInboundPortURI);
-
-		
-		// Create an Admission Controller
-		// --------------------------------------------------------------------		
-		this.admissionController = new AdmissionController (
-				numberOfComputers,
-				computers,
-				computerURIsAll,
-				computerMonitors,
-				admissionControlerURI,
-				admissionControlerManagementInboundURI, 
-				dynamicComponentCreationInboundPortURI,
-				applicationAdmissionSubmissionInboundPortURI,
-				applicationAdmissionNotificationInboundPortURI
-		);
-		
-		this.admissionController.toggleTracing();
-		this.admissionController.toggleLogging();
-		
-		System.out.println("admission controller created.");
-		
-		
-		// Create Applications
+		// Deploy Applications
 		// --------------------------------------------------------------------
-		Integer numCores = 2;
 		Double meanInterArrivalTime = 500.0;
 		Long meanNumberOfInstructions = 6000000000L;
 		
-		for(int i = 0 ; i < numberOfComputers; i++) {
-			String appURI = "app_" + 1;
-
-			this.application = new Application (
-					appURI, 
-					numCores, 
-					meanInterArrivalTime, 
-					meanNumberOfInstructions,
-					applicationManagementInboundPortURI + "_" +i ,
-					applicationSubmissionInboundPortURI + "_" + i,
-					applicationNotificationInboundPortURI + "_" + i,
-					applicationAdmissionSubmissionInboundPortURI,
-					applicationAdmissionNotificationInboundPortURI
-			);
-			applications.add(application);
-			this.application.toggleLogging();
-			this.application.toggleTracing();
+		applicationURIsList = new ArrayList<String> ();
+		applicationSubmissionInboundPortURIList = new ArrayList<String> ();
+		applicationNotificationInboundPortURIList = new ArrayList<String> ();
+		
+		for(int i = 0 ; i < numberOfApplications; i++) {
+			String appURI = "app" + i;
 			
-			// Deploy Application Integrator
-			// --------------------------------------------------------------------	
-			applicationIntegrator = new ApplicationIntegrator(applicationManagementInboundPortURI + "_" +i);
-			applicationIntegrators.add(applicationIntegrator);		
+			Application application = new Application (
+					appURI,
+					coresNeeded,
+					meanInterArrivalTime,
+					meanNumberOfInstructions,
+					dynamicComponentCreationInboundPortURI,
+					applicationServicesInboundPortURI + "_" + i,
+					applicationSubmissionInboundPortURI + "_" + i,
+					applicationNotificationInboundPortURI + "_" + i
+			);
+			this.addDeployedComponent(application);
+			application.toggleLogging();
+			application.toggleTracing();
+			applicationURIsList.add(appURI);
+			applicationSubmissionInboundPortURIList.add(applicationSubmissionInboundPortURI + "_" + i);
+			applicationNotificationInboundPortURIList.add(applicationNotificationInboundPortURI + "_" + i);
+			
+			System.out.println("application " + appURI + " deployed.");
 		}
-		System.out.println("applications created.");
 		
 		
-		addDeployedComponent(dynamicComponentCreator);
+		// Deploy an Admission Controller
+		// --------------------------------------------------------------------		
+		this.admissionController = new AdmissionController (
+			computerURIsList,
+			computerServicesInboundPortURIList,
+			computerStaticStateDataInboundPortURIList,
+			computerDynamicStateDataInboundPortURIList,
+			applicationURIsList,
+			applicationSubmissionInboundPortURIList,
+			applicationNotificationInboundPortURIList,
+			dynamicComponentCreationInboundPortURI,
+			avmsPerApplication,
+			coresPerAVM
+		);
+		this.addDeployedComponent(this.admissionController);
+		this.admissionController.toggleTracing();
+		this.admissionController.toggleLogging();
 		
-		addDeployedComponent(admissionController);
-		
-		for(Application application : applications)
-			addDeployedComponent(application);
-		
-		
-		for(ApplicationIntegrator applicationIntegrator : applicationIntegrators)
-			addDeployedComponent(applicationIntegrator) ;
+		System.out.println("admission controller deployed.");
 		
 		super.deploy();
 		
-		assert this.deploymentDone();
-		
-		System.out.println("deployment done.");
 	}
 	
 	public static void main(String[] args) {

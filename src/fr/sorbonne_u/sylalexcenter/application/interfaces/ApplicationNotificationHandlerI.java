@@ -7,8 +7,8 @@ package fr.sorbonne_u.sylalexcenter.application.interfaces;
  * @author Sylia Righi
  *
  */
-public interface ApplicationAdmissionSubmissionHandlerI {
+public interface ApplicationNotificationHandlerI {
 	
-	public String getSubmissionInboundPortURI (ApplicationAdmissionI applicationAdmission) throws Exception;
-	
+	public void	acceptApplicationAdmissionNotification(boolean isAccepted) throws Exception;
+
 }

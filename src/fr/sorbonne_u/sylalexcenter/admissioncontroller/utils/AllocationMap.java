@@ -13,20 +13,20 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 public class AllocationMap {
 	private Computer computer;
 	private AllocatedCore[] cores;
-	private String VMUri;
+	private String avmURI;
 
-	public AllocationMap(Computer computer, AllocatedCore[] cores, String VMUri) {
+	public AllocationMap(Computer computer, AllocatedCore[] cores, String avmURI) {
 		this.computer = computer;
 		this.cores = cores;
-		this.VMUri = VMUri;
+		this.avmURI = avmURI;
 	}
 
 	public String getVMUri() {
-		return VMUri;
+		return avmURI;
 	}
 
 	public void setVMUri(String vMUri) {
-		VMUri = vMUri;
+		avmURI = vMUri;
 	}
 
 	public Computer getComputer() {

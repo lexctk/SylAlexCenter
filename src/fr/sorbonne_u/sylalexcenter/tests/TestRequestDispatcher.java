@@ -198,7 +198,6 @@ public class TestRequestDispatcher extends AbstractCVM {
 		);
 		this.addDeployedComponent(this.requestDispatcherIntegrator);
 
-		
 		super.deploy();
 	}
 	
