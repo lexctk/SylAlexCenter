@@ -25,8 +25,7 @@ public class ApplicationSubmissionInboundPort extends AbstractInboundPort implem
 	}
 
 	@Override
-	public void submitApplicationAndNotify(String appUri, String requestGeneratorSubmissionInboundPortURI, 
-			String requestGeneratorNotificationInboundPortURI, int mustHaveCores) throws Exception {
+	public void submitApplicationAndNotify(String appUri, int mustHaveCores) throws Exception {
 		
 		final ApplicationSubmissionHandlerI appSubmissionHandler = (ApplicationSubmissionHandlerI) this.owner;
 
@@ -34,7 +33,7 @@ public class ApplicationSubmissionInboundPort extends AbstractInboundPort implem
 			new AbstractComponent.AbstractService<Void>() {
 				@Override
 				public Void call() throws Exception {
-					appSubmissionHandler.acceptApplicationSubmissionAndNotify(appUri, requestGeneratorSubmissionInboundPortURI, requestGeneratorNotificationInboundPortURI, mustHaveCores);
+					appSubmissionHandler.acceptApplicationSubmissionAndNotify(appUri, mustHaveCores);
 					return null;
 				}
 			});		

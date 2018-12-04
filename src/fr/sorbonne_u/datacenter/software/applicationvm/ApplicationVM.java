@@ -215,12 +215,17 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 	 *                                              inbound port.
 	 * @throws Exception <i>todo.</i>
 	 */
-	public ApplicationVM(String vmURI, String applicationVMManagementInboundPortURI,
-			String requestSubmissionInboundPortURI, String requestNotificationInboundPortURI) throws Exception {
+	public ApplicationVM (
+			String vmURI, 
+			String applicationVMManagementInboundPortURI,
+			String requestSubmissionInboundPortURI, 
+			String requestNotificationInboundPortURI ) throws Exception {
+		
 		// The normal thread pool is used to process component services, while
 		// the scheduled one is used to schedule the pushes of dynamic state
 		// when requested.
-		super(1, 1);
+		
+		super(vmURI, 1, 1);
 
 		// Preconditions
 		assert vmURI != null;
@@ -268,8 +273,10 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 
 	@Override
 	public void start() throws ComponentStartException {
+		this.toggleTracing();
+		this.toggleLogging();
+		
 		super.start();
-
 		try {
 			this.doPortConnection(this.requestNotificationOutboundPort.getPortURI(),
 					this.requestNotificationInboundPortURI, RequestNotificationConnector.class.getCanonicalName());

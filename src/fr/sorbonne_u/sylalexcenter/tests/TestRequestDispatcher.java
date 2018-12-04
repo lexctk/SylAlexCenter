@@ -39,7 +39,9 @@ public class TestRequestDispatcher extends AbstractCVM {
 	
 	public static final String requestGeneratorManagementInboundPortURI = "rgmip";
 	public static final String requestGeneratorSubmissionInboundPortURI = "rgsip";
+	public static final String requestGeneratorSubmissionOutboundPortURI = "rgsop";
 	public static final String requestGeneratorNotificationInboundPortURI = "rgnip";
+	public static final String requestGeneratorNotificationOutboundPortURI = "rgnop";
 	
 	public static final String requestDispatcherManagementInboundPortURI = "rdmip";
 
@@ -131,6 +133,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 				meanNumberOfInstructions, 
 				requestGeneratorManagementInboundPortURI, 
 				requestGeneratorSubmissionInboundPortURI, 
+				requestGeneratorSubmissionOutboundPortURI,
 				requestGeneratorNotificationInboundPortURI
 		);
 		
@@ -178,6 +181,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 				requestDispatcherManagementInboundPortURI,
 				requestGeneratorSubmissionInboundPortURI,
 				requestGeneratorNotificationInboundPortURI,
+				requestGeneratorNotificationOutboundPortURI,
 				vmURIList,
 				applicationVMRequestSubmissionInboundPortURIList,
 				applicationVMRequestNotificationInboundPortURIList
@@ -211,7 +215,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 			testRequestDispatcher.startStandardLifeCycle(10000L);
 			
 			Thread.sleep(10000L);
-			System.exit(0);
+			//System.exit(0);
 			
 		} catch (Exception e2) {
 			e2.printStackTrace();

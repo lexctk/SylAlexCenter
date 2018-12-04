@@ -5,6 +5,5 @@ import fr.sorbonne_u.components.interfaces.RequiredI;
 
 public interface ApplicationSubmissionI extends OfferedI, RequiredI {
 	
-	public void submitApplicationAndNotify(String appUri, String requestGeneratorSubmissionInboundPortURI, 
-			String requestGeneratorNotificationInboundPortURI, int mustHaveCores) throws Exception;
+	public void submitApplicationAndNotify(String appUri, int mustHaveCores) throws Exception;
 }

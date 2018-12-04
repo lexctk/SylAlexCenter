@@ -21,9 +21,8 @@ public class ApplicationSubmissionOutboundPort extends AbstractOutboundPort impl
 	}
 
 	@Override
-	public void submitApplicationAndNotify(String appUri, String requestGeneratorSubmissionInboundPortURI, 
-			String requestGeneratorNotificationInboundPortURI, int mustHaveCores) throws Exception {
+	public void submitApplicationAndNotify(String appUri, int mustHaveCores) throws Exception {
 		
-		((ApplicationSubmissionI)this.connector).submitApplicationAndNotify(appUri, requestGeneratorSubmissionInboundPortURI, requestGeneratorNotificationInboundPortURI, mustHaveCores);		
+		((ApplicationSubmissionI)this.connector).submitApplicationAndNotify(appUri, mustHaveCores);		
 	}
 }

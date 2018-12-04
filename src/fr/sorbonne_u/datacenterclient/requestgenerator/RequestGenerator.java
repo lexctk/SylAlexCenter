@@ -41,7 +41,6 @@ import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.datacenter.TimeManagement;
-import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
@@ -124,6 +123,7 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	protected RequestSubmissionOutboundPort rsop;
 	
 	protected String requestSubmissionInboundPortURI;
+	protected String requestSubmissionOutboundPortURI;
 	
 	/** the inbound port receiving end of execution notifications. */
 	protected RequestNotificationInboundPort rnip;
@@ -162,17 +162,23 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 *                                          execution progress.
 	 * @throws Exception <i>todo.</i>
 	 */
-	public RequestGenerator(String rgURI, double meanInterArrivalTime, long meanNumberOfInstructions,
-			String managementInboundPortURI, String requestSubmissionInboundPortURI,
+	public RequestGenerator(
+			String rgURI, 
+			Double meanInterArrivalTime, 
+			Long meanNumberOfInstructions,
+			String managementInboundPortURI, 
+			String requestSubmissionInboundPortURI,
+			String requestSubmissionOutboundPortURI,
 			String requestNotificationInboundPortURI) throws Exception {
-		super(1, 1);
+		super(rgURI,1, 1);
 
 		// preconditions check
 		assert meanInterArrivalTime > 0.0 && meanNumberOfInstructions > 0;
 		assert managementInboundPortURI != null;
 		assert requestSubmissionInboundPortURI != null;
+		assert requestSubmissionOutboundPortURI != null;
 		assert requestNotificationInboundPortURI != null;
-
+		
 		// initialization
 		this.rgURI = rgURI;
 		this.counter = 0;
@@ -182,6 +188,7 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 		this.rng.reSeed();
 		this.nextRequestTaskFuture = null;
 		this.requestSubmissionInboundPortURI = requestSubmissionInboundPortURI;
+		this.requestSubmissionOutboundPortURI = requestSubmissionOutboundPortURI;
 
 		this.addOfferedInterface(RequestGeneratorManagementI.class);
 		this.rgmip = new RequestGeneratorManagementInboundPort(managementInboundPortURI, this);
@@ -189,7 +196,7 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 		this.rgmip.publishPort();
 
 		this.addRequiredInterface(RequestSubmissionI.class);
-		this.rsop = new RequestSubmissionOutboundPort(this);
+		this.rsop = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
 		this.addPort(this.rsop);
 		this.rsop.publishPort();
 
@@ -197,6 +204,10 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 		this.rnip = new RequestNotificationInboundPort(requestNotificationInboundPortURI, this);
 		this.addPort(this.rnip);
 		this.rnip.publishPort();
+		
+		this.tracer.setTitle(rgURI);
+        this.tracer.setRelativePosition(1, 1);
+        this.logMessage("Request generator " + this.rgURI + " deployed and waiting.");
 
 		// post-conditions check
 		assert this.rng != null && this.counter >= 0;
@@ -214,16 +225,12 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 */
 	@Override
 	public void start() throws ComponentStartException {
+		this.toggleTracing();
+		this.toggleLogging();
 		super.start();
-
-		try {
-			this.doPortConnection(this.rsop.getPortURI(), requestSubmissionInboundPortURI,
-					RequestSubmissionConnector.class.getCanonicalName());
-		} catch (Exception e) {
-			throw new ComponentStartException(e);
-		}
+		
 	}
-
+	
 	/**
 	 * @see fr.sorbonne_u.components.AbstractComponent#finalise()
 	 */
@@ -286,7 +293,7 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * @throws Exception <i>todo.</i>
 	 */
 	public void startGeneration() throws Exception {
-		if (RequestGenerator.DEBUG_LEVEL == 1) {
+		if (RequestGenerator.DEBUG_LEVEL == 2) {
 			this.logMessage("Request generator " + this.rgURI + " starting.");
 		}
 		this.generateNextRequest();
@@ -307,7 +314,7 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * @throws Exception <i>todo.</i>
 	 */
 	public void stopGeneration() throws Exception {
-		if (RequestGenerator.DEBUG_LEVEL == 1) {
+		if (RequestGenerator.DEBUG_LEVEL == 2) {
 			this.logMessage("Request generator " + this.rgURI + " stopping.");
 		}
 		if (this.nextRequestTaskFuture != null
@@ -382,7 +389,6 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 					+ TimeProcessing.toString(System.currentTimeMillis() + interArrivalDelay)
 					+ " with number of instructions " + noi);
 		}
-
 		// submit the current request.
 		this.rsop.submitRequestAndNotify(r);
 		// schedule the next request generation.

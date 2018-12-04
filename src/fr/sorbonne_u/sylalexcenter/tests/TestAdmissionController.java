@@ -6,12 +6,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.AdmissionController;
 import fr.sorbonne_u.sylalexcenter.application.Application;
-import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreator;
+
 
 /**
  * The class <code>TestAdmissionController</code> deploys all the components
@@ -26,16 +27,14 @@ import fr.sorbonne_u.sylalexcenter.bcm.overrides.DynamicComponentCreator;
  *
  */
 public class TestAdmissionController extends AbstractCVM {
-	
-	private static final String dynamicComponentCreationInboundPortURI = "dynamicComponentCreationInboundPortURI";
-	
+
 	// Setup
 	// -----------------------------------------------------------------
 	protected static final Integer numberOfComputers = 2;
 	protected static final Integer numberOfProcessors = 2;
 	protected static final Integer numberOfCores = 2;
 	
-	protected static final Integer numberOfApplications = 3;
+	protected static final Integer numberOfApplications = 1;
 	protected static final Integer avmsPerApplication = 2;
 	protected static final Integer coresPerAVM = 2;
 	
@@ -44,6 +43,7 @@ public class TestAdmissionController extends AbstractCVM {
 
 	// Port URIs
 	// -----------------------------------------------------------------
+	protected static final String applicationManagementInboundPortURI = "appmip";
 	protected static final String applicationServicesInboundPortURI = "appsvip";
 	protected static final String applicationSubmissionInboundPortURI = "appsip";
 	protected static final String applicationNotificationInboundPortURI = "appnip";
@@ -52,6 +52,7 @@ public class TestAdmissionController extends AbstractCVM {
 	protected ArrayList<String> computerStaticStateDataInboundPortURIList;
 	protected ArrayList<String> computerDynamicStateDataInboundPortURIList;
 	
+	protected ArrayList<String> applicationManagementInboundPortURIList;
 	protected ArrayList<String> applicationSubmissionInboundPortURIList;
 	protected ArrayList<String> applicationNotificationInboundPortURIList;	
 	
@@ -59,11 +60,11 @@ public class TestAdmissionController extends AbstractCVM {
 	// -----------------------------------------------------------------	
 	protected ArrayList<String> computerURIsList;
 	protected ArrayList<String> applicationURIsList;
+	protected ArrayList<Application> applicationList;
 
 	// Components
 	// -----------------------------------------------------------------
 	private AdmissionController admissionController;
-	protected DynamicComponentCreator dynamicComponentCreator;
 	
 	
 	public TestAdmissionController(boolean isDistributed) throws Exception {
@@ -117,8 +118,8 @@ public class TestAdmissionController extends AbstractCVM {
 			);
 			
 			this.addDeployedComponent(computer);
-			computer.toggleLogging();
-			computer.toggleTracing();	
+		//	computer.toggleLogging();
+		//	computer.toggleTracing();	
 			
 			// Deploy a computer monitor 
 			// --------------------------------------------------------------------
@@ -139,17 +140,14 @@ public class TestAdmissionController extends AbstractCVM {
 			System.out.println(computerURI + " deployed.");
 		}
 		
-		// Dynamic Component Creator
-		// --------------------------------------------------------------------	
-		dynamicComponentCreator = new DynamicComponentCreator(dynamicComponentCreationInboundPortURI);
-		
-		
 		// Deploy Applications
 		// --------------------------------------------------------------------
 		Double meanInterArrivalTime = 500.0;
 		Long meanNumberOfInstructions = 6000000000L;
 		
 		applicationURIsList = new ArrayList<String> ();
+		applicationList = new ArrayList<Application> ();
+		applicationManagementInboundPortURIList = new ArrayList<String> ();
 		applicationSubmissionInboundPortURIList = new ArrayList<String> ();
 		applicationNotificationInboundPortURIList = new ArrayList<String> ();
 		
@@ -161,6 +159,7 @@ public class TestAdmissionController extends AbstractCVM {
 					coresNeeded,
 					meanInterArrivalTime,
 					meanNumberOfInstructions,
+					applicationManagementInboundPortURI + "_" + i,
 					applicationServicesInboundPortURI + "_" + i,
 					applicationSubmissionInboundPortURI + "_" + i,
 					applicationNotificationInboundPortURI + "_" + i
@@ -169,6 +168,8 @@ public class TestAdmissionController extends AbstractCVM {
 			application.toggleLogging();
 			application.toggleTracing();
 			applicationURIsList.add(appURI);
+			applicationList.add(application);
+			applicationManagementInboundPortURIList.add(applicationManagementInboundPortURI + "_" + i);
 			applicationSubmissionInboundPortURIList.add(applicationSubmissionInboundPortURI + "_" + i);
 			applicationNotificationInboundPortURIList.add(applicationNotificationInboundPortURI + "_" + i);
 			
@@ -184,9 +185,9 @@ public class TestAdmissionController extends AbstractCVM {
 			computerStaticStateDataInboundPortURIList,
 			computerDynamicStateDataInboundPortURIList,
 			applicationURIsList,
+			applicationManagementInboundPortURIList,
 			applicationSubmissionInboundPortURIList,
 			applicationNotificationInboundPortURIList,
-			dynamicComponentCreationInboundPortURI,
 			avmsPerApplication,
 			coresPerAVM
 		);
@@ -197,6 +198,25 @@ public class TestAdmissionController extends AbstractCVM {
 		System.out.println("admission controller deployed.");
 		
 		super.deploy();
+	}
+	
+	
+	
+	public void execute() throws Exception {
+		super.start();
+		
+		for(int i = 0 ; i < numberOfApplications; i++) {
+			
+			this.applicationList.get(i).runTask(new AbstractComponent.AbstractTask() {
+				public void run() {
+					try {
+						((Application) this.getOwner()).sendRequest();
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				}
+			});
+		}
 		
 	}
 	

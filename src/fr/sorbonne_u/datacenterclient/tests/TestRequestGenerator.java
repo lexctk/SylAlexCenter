@@ -102,6 +102,7 @@ public class TestRequestGenerator extends AbstractCVM {
 	public static final String ComputerDynamicStateDataInboundPortURI = "cds-dip";
 	public static final String ApplicationVMManagementInboundPortURI = "avm-ibp";
 	public static final String RequestSubmissionInboundPortURI = "rsibp";
+	public static final String RequestSubmissionOutboundPortURI = "rsobp";
 	public static final String RequestNotificationInboundPortURI = "rnibp";
 	public static final String RequestGeneratorManagementInboundPortURI = "rgmip";
 
@@ -182,7 +183,7 @@ public class TestRequestGenerator extends AbstractCVM {
 		this.rg = new RequestGenerator("rg", // generator component URI
 				500.0, // mean time between two requests
 				6000000000L, // mean number of instructions in requests
-				RequestGeneratorManagementInboundPortURI, RequestSubmissionInboundPortURI,
+				RequestGeneratorManagementInboundPortURI, RequestSubmissionInboundPortURI, RequestSubmissionOutboundPortURI,
 				RequestNotificationInboundPortURI);
 		this.addDeployedComponent(rg);
 
