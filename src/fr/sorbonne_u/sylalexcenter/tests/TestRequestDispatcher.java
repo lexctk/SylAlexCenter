@@ -140,7 +140,6 @@ public class TestRequestDispatcher extends AbstractCVM {
 		this.addDeployedComponent(requestGenerator);
 		this.requestGenerator.toggleTracing();
 		this.requestGenerator.toggleLogging();
-
 		
 		// Deploy numAvm AVM
 		// --------------------------------------------------------------------
@@ -179,9 +178,8 @@ public class TestRequestDispatcher extends AbstractCVM {
 		this.requestDispatcher = new RequestDispatcher (
 				rdURI, 
 				requestDispatcherManagementInboundPortURI,
-				requestGeneratorSubmissionInboundPortURI,
+				requestGeneratorSubmissionOutboundPortURI,
 				requestGeneratorNotificationInboundPortURI,
-				requestGeneratorNotificationOutboundPortURI,
 				vmURIList,
 				applicationVMRequestSubmissionInboundPortURIList,
 				applicationVMRequestNotificationInboundPortURIList
@@ -191,7 +189,6 @@ public class TestRequestDispatcher extends AbstractCVM {
 		this.requestDispatcher.toggleTracing();
 		this.requestDispatcher.toggleLogging();
 	
-
 		// Deploy an integrator.
 		// --------------------------------------------------------------------
 		this.requestDispatcherIntegrator = new RequestDispatcherIntegrator (
@@ -214,7 +211,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 			
 			testRequestDispatcher.startStandardLifeCycle(10000L);
 			
-			Thread.sleep(10000L);
+			Thread.sleep(40000L);
 			//System.exit(0);
 			
 		} catch (Exception e2) {

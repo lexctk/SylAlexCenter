@@ -149,6 +149,8 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		
 		this.rop = new ReflectionOutboundPort(this);
 		
+		this.tracer.setRelativePosition(0, 1);
+		
 		assert this.appURI != null && this.appURI.length() > 0;
 		assert this.amip != null && this.amip instanceof ApplicationManagementI;
 		assert this.asvip != null && this.asvip instanceof ApplicationServicesI;
@@ -295,22 +297,22 @@ public class Application extends AbstractComponent implements ApplicationManagem
 				RequestSubmissionConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			
-			System.out.println("Exception connecting Request Generator with Dispatcher for Submission");
-			System.out.println(e);
+			System.err.println("Exception connecting Request Generator with Dispatcher for Submission");
+			System.err.println(e);
 			throw new Exception(e);
 		}
 	}
 	
 	@Override
-	public void doConnectionWithDispatcherForNotification (ReflectionOutboundPort ropDispatcher, String requestDispatcherNotificationOutboundPortUri) throws Exception {			
+	public void doConnectionWithDispatcherForNotification (ReflectionOutboundPort ropDispatcher, String requestDispatcherNotificationInboundPortURI) throws Exception {			
 		try {
 			ropDispatcher.doPortConnection(
-				requestDispatcherNotificationOutboundPortUri,
+					requestDispatcherNotificationInboundPortURI,
 				this.requestGeneratorNotificationInboundPortURI,
 				RequestNotificationConnector.class.getCanonicalName());			
 		} catch (Exception e) {
-			System.out.println("Exception connecting Request Generator with Dispatcher for Notification");
-			System.out.println(e);
+			System.err.println("Exception connecting Request Generator with Dispatcher for Notification");
+			System.err.println(e);
 			throw new Exception(e);
 		}
 	}

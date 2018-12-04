@@ -62,7 +62,6 @@ import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMDynami
 import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMIntrospectionInboundPort;
 import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementInboundPort;
 import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMStaticStateDataInboundPort;
-import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestSubmissionHandlerI;
@@ -265,6 +264,8 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 		this.requestNotificationOutboundPort = new RequestNotificationOutboundPort(this);
 		this.addPort(this.requestNotificationOutboundPort);
 		this.requestNotificationOutboundPort.publishPort();
+		
+        this.tracer.setRelativePosition(0, 2);
 	}
 
 	// ------------------------------------------------------------------------
@@ -277,12 +278,6 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 		this.toggleLogging();
 		
 		super.start();
-		try {
-			this.doPortConnection(this.requestNotificationOutboundPort.getPortURI(),
-					this.requestNotificationInboundPortURI, RequestNotificationConnector.class.getCanonicalName());
-		} catch (Exception e) {
-			throw new ComponentStartException(e);
-		}
 	}
 
 	@Override
@@ -336,6 +331,7 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 	 */
 	@Override
 	public void acceptRequestSubmissionAndNotify(final RequestI r) throws Exception {
+		System.out.println("ApplicationVM#acceptRequestSubmission");
 		if (ApplicationVM.DEBUG) {
 			this.logMessage("ApplicationVM>>acceptRequestSubmissionAndNotify");
 		}

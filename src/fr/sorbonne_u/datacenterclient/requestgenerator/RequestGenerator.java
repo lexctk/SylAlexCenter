@@ -228,7 +228,6 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 		this.toggleTracing();
 		this.toggleLogging();
 		super.start();
-		
 	}
 	
 	/**

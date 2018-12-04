@@ -25,6 +25,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboun
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.interfaces.ControlledDataRequiredI;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
+import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationManagementConnector;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationNotificationConnector;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
@@ -170,6 +171,9 @@ public class AdmissionController extends AbstractComponent
 		this.dccop = new DynamicComponentCreationOutboundPort(this);
 		this.addPort(this.dccop);
 		this.dccop.publishPort();
+		
+		this.tracer.setTitle("Admission Controller");
+		this.tracer.setRelativePosition(2, 0);
 
 		assert this.csopList !=null && this.csopList.get(0) instanceof ComputerServicesOutboundPort;
 		assert this.cssdopList !=null && this.cssdopList.get(0) instanceof DataRequiredI.PullI;
@@ -360,7 +364,7 @@ public class AdmissionController extends AbstractComponent
 		addPort(rop);
 		rop.publishPort();
 		
-		// AVM URIs
+		// Create URIs
 		// --------------------------------------------------------------------
 		ArrayList<String> avmURIList = new ArrayList<String>();
 		
@@ -368,36 +372,39 @@ public class AdmissionController extends AbstractComponent
 		ArrayList<String> avmRequestSubmissionInboundPortURIList = new ArrayList<String>();
 		ArrayList<String> avmRequestNotificationInboundPortURIList = new ArrayList<String>();
 		
+		String rdURI = appUri + "-rd";
+		String requestDispatcherManagementInboundPortURI = appUri + "-rdmip";
+		String requestDispatcherSubmissionInboundPortURI = appUri + "-rdsip";
+		String requestDispatcherNotificationInboundPortURI = appUri + "-rdnip";
+		
+		ArrayList<String> requestDispatcherSubmissionOutboundPortURIList = new ArrayList<String>();
+		ArrayList<String> requestDispatcherNotificationOutboundPortURIList = new ArrayList<String>();
+		
 		for (int i = 0; i < applicationVMCount; i++) {
 			avmURIList.add(appUri + "-avm" + i);
 			avmManagementInboundPortURIList.add(appUri + "-avmip" + i);
 			avmRequestSubmissionInboundPortURIList.add(appUri + "-avmrsip" + i);
 			avmRequestNotificationInboundPortURIList.add(appUri + "-avmrnip" + i);
+			
+			requestDispatcherSubmissionOutboundPortURIList.add(appUri + "-rdsop" + i);
+			requestDispatcherNotificationOutboundPortURIList.add(appUri + "-rdnop" + i);
 		}
-
 		
 		// Deploy the request dispatcher
 		// --------------------------------------------------------------------
-		String rdURI = appUri + "-rd";
-		String requestDispatcherManagementInboundPortURI = appUri + "-rdmip";
-		String requestDispatcherSubmissionInboundPortURI = appUri + "-rdsip";
-		String requestDispatcherNotificationInboundPortURI = appUri + "-rdnip";
-		String requestDispatcherNotificationOutboundPortURI = appUri + "-rdnop";
-		
 		try {
 			this.dccop.createComponent(RequestDispatcher.class.getCanonicalName(), new Object[] {
 					rdURI, 
 					requestDispatcherManagementInboundPortURI,
 					requestDispatcherSubmissionInboundPortURI,
 					requestDispatcherNotificationInboundPortURI,
-					requestDispatcherNotificationOutboundPortURI,
 					avmURIList,
-					avmRequestSubmissionInboundPortURIList,
-					avmRequestNotificationInboundPortURIList
+					requestDispatcherSubmissionOutboundPortURIList,
+					requestDispatcherNotificationOutboundPortURIList
 			});
 		} catch (Exception e) {
-			System.out.println("Error creating Dispatcher ");
-			System.out.println(e);
+			System.err.println("Error creating Dispatcher ");
+			System.err.println(e);
 			throw new Exception(e);
 		}
 		
@@ -412,16 +419,16 @@ public class AdmissionController extends AbstractComponent
 						avmRequestNotificationInboundPortURIList.get(i)
 				});
 			} catch (Exception e) {
-				System.out.println("Error creating AVM " + i);
-				System.out.println(e);
+				System.err.println("Error creating AVM " + i);
+				System.err.println(e);
 				throw new Exception(e);
 			}
 			
 			try {
 				rop.doConnection(avmURIList.get(i), ReflectionConnector.class.getCanonicalName());
 			} catch (Exception e) {
-				System.out.println("Error connecting Reflection Outbound Port for AVM ");
-				System.out.println(e);
+				System.err.println("Error connecting Reflection Outbound Port for AVM ");
+				System.err.println(e);
 				throw new Exception(e);
 			}
 		}
@@ -429,13 +436,27 @@ public class AdmissionController extends AbstractComponent
 		try {
 			rop.doConnection(rdURI, ReflectionConnector.class.getCanonicalName());
 		} catch (Exception e) {
-			System.out.println("Error connecting Reflection Outbound Port for Dispatcher ");
-			System.out.println(e);
+			System.err.println("Error connecting Reflection Outbound Port for Dispatcher ");
+			System.err.println(e);
 			throw new Exception(e);
 		}
 		
+		try {
+			for (int i = 0; i < applicationVMCount; i++ ) {
+				rop.doPortConnection(
+						requestDispatcherSubmissionOutboundPortURIList.get(i),
+						avmRequestSubmissionInboundPortURIList.get(i), 
+						RequestSubmissionConnector.class.getCanonicalName());
+			}
+			
+
+		} catch (Exception e) {
+			System.err.println("AdmissionController#deployComponents(): Exception connecting Submission ports");
+			throw new ComponentStartException(e);
+		}
+		
 		this.amopMap.get(appUri).doConnectionWithDispatcherForSubmission(requestDispatcherSubmissionInboundPortURI);
-		this.amopMap.get(appUri).doConnectionWithDispatcherForNotification(rop, requestDispatcherNotificationOutboundPortURI);
+		this.amopMap.get(appUri).doConnectionWithDispatcherForNotification(rop, requestDispatcherNotificationInboundPortURI);
 		
 		// Deploy the integrator
 		// --------------------------------------------------------------------

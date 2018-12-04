@@ -118,8 +118,8 @@ public class TestAdmissionController extends AbstractCVM {
 			);
 			
 			this.addDeployedComponent(computer);
-		//	computer.toggleLogging();
-		//	computer.toggleTracing();	
+			computer.toggleLogging();
+			computer.toggleTracing();	
 			
 			// Deploy a computer monitor 
 			// --------------------------------------------------------------------
