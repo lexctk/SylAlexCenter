@@ -122,7 +122,12 @@ import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionInboundPort;
  * </p>
  * 
  * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * 
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ * 
  */
+// Modified: remove connectors from start()
 public class ApplicationVM extends AbstractComponent implements ProcessorServicesNotificationConsumerI,
 		RequestSubmissionHandlerI, ApplicationVMManagementI, PushModeControllingI {
 	public static boolean DEBUG = false;
@@ -282,7 +287,7 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 
 	@Override
 	public void finalise() throws Exception {
-		this.doPortDisconnection(this.requestNotificationOutboundPort.getPortURI());
+		if (this.requestNotificationOutboundPort.connected()) this.doPortDisconnection(this.requestNotificationOutboundPort.getPortURI());
 		for (ProcessorServicesOutboundPort p : this.processorServicesPorts.values()) {
 			p.doDisconnection();
 		}
@@ -297,15 +302,15 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 		// Disconnect ports to the request emitter and to the processors owning
 		// the allocated cores.
 		try {
-			this.requestNotificationOutboundPort.unpublishPort();
+			if (this.requestNotificationOutboundPort.isPublished()) this.requestNotificationOutboundPort.unpublishPort();
 			for (ProcessorServicesOutboundPort p : this.processorServicesPorts.values()) {
 				p.unpublishPort();
 			}
-			this.requestSubmissionInboundPort.unpublishPort();
+			if (this.requestSubmissionInboundPort.isPublished()) this.requestSubmissionInboundPort.unpublishPort();
 			for (String uri : this.processorNotificationInboundPorts.keySet()) {
 				this.processorNotificationInboundPorts.get(uri).unpublishPort();
 			}
-			this.applicationVMManagementInboundPort.unpublishPort();
+			if (this.applicationVMManagementInboundPort.isPublished()) this.applicationVMManagementInboundPort.unpublishPort();
 		} catch (Exception e) {
 			throw new ComponentShutdownException("processor services outbound port disconnection" + " error", e);
 		}
@@ -331,7 +336,6 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 	 */
 	@Override
 	public void acceptRequestSubmissionAndNotify(final RequestI r) throws Exception {
-		System.out.println("ApplicationVM#acceptRequestSubmission");
 		if (ApplicationVM.DEBUG) {
 			this.logMessage("ApplicationVM>>acceptRequestSubmissionAndNotify");
 		}

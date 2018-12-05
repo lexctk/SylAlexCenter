@@ -227,6 +227,9 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		
 		if (isAccepted) {
 			launch();					
+		} else {
+			this.rop.toggleLogging();
+			this.rop.toggleTracing();
 		}
 	}
 
@@ -280,10 +283,10 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		this.rgmop.startGeneration();
 		
 		// wait
-		Thread.sleep(5000L);
+		// Thread.sleep(5000L);
 		
 		// then stop the generation.
-		this.rgmop.stopGeneration();		
+		// this.rgmop.stopGeneration();		
 	}
 	
 	// Connect to Dispatcher

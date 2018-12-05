@@ -43,6 +43,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.processors.Processor;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
+import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
 
 /**
@@ -89,7 +90,12 @@ import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
  * </p>
  * 
  * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * 
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ * 
  */
+// Modified: update to work with new RequestGenerator: connect submission in/out ports and remove logging
 public class TestRequestGenerator extends AbstractCVM {
 	// ------------------------------------------------------------------------
 	// Constants and instance variables
@@ -187,13 +193,6 @@ public class TestRequestGenerator extends AbstractCVM {
 				RequestNotificationInboundPortURI);
 		this.addDeployedComponent(rg);
 
-		// Toggle on tracing and logging in the request generator to
-		// follow the submission and end of execution notification of
-		// individual requests.
-		this.rg.toggleTracing();
-		this.rg.toggleLogging();
-		// --------------------------------------------------------------------
-
 		// --------------------------------------------------------------------
 		// Creating the integrator component.
 		// --------------------------------------------------------------------
@@ -201,6 +200,13 @@ public class TestRequestGenerator extends AbstractCVM {
 				RequestGeneratorManagementInboundPortURI);
 		this.addDeployedComponent(this.integ);
 		// --------------------------------------------------------------------
+		
+		try {
+ 			this.rg.doPortConnection(RequestSubmissionOutboundPortURI, RequestSubmissionInboundPortURI,
+ 					RequestSubmissionConnector.class.getCanonicalName());
+ 		} catch (Exception e) {
+ 			throw new Exception(e);
+ 		}
 
 		// complete the deployment at the component virtual machine level.
 		super.deploy();
@@ -222,7 +228,7 @@ public class TestRequestGenerator extends AbstractCVM {
 			final TestRequestGenerator trg = new TestRequestGenerator();
 			trg.startStandardLifeCycle(10000L);
 			// Augment the time if you want to examine the traces after
-			// the exeuction of the program.
+			// the execution of the program.
 			Thread.sleep(10000L);
 			// Exit from Java (closes all trace windows...).
 			// System.exit(0);

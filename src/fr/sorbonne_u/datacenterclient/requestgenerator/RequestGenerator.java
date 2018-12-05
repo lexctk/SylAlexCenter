@@ -85,7 +85,7 @@ import fr.sorbonne_u.datacenterclient.utils.TimeProcessing;
  * </p>
  * 
  * <pre>
- * invariant	true
+ * invariant true
  * </pre>
  * 
  * <p>
@@ -93,7 +93,12 @@ import fr.sorbonne_u.datacenterclient.utils.TimeProcessing;
  * </p>
  * 
  * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * 
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ * 
  */
+// Modified: remove connector from start()
 public class RequestGenerator extends AbstractComponent implements RequestNotificationHandlerI {
 	public static int DEBUG_LEVEL = 2;
 
@@ -239,7 +244,7 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 				&& !(this.nextRequestTaskFuture.isCancelled() || this.nextRequestTaskFuture.isDone())) {
 			this.nextRequestTaskFuture.cancel(true);
 		}
-		this.doPortDisconnection(this.rsop.getPortURI());
+		if (this.rsop.connected()) this.doPortDisconnection(this.rsop.getPortURI());
 
 		super.finalise();
 	}
@@ -263,9 +268,9 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	public void shutdown() throws ComponentShutdownException {
 
 		try {
-			this.rsop.unpublishPort();
-			this.rnip.unpublishPort();
-			this.rgmip.unpublishPort();
+			if (this.rsop.isPublished()) this.rsop.unpublishPort();
+			if (this.rnip.isPublished()) this.rnip.unpublishPort();
+			if (this.rgmip.isPublished()) this.rgmip.unpublishPort();
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
 		}

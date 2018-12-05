@@ -33,12 +33,11 @@ public class TestAdmissionController extends AbstractCVM {
 	protected static final Integer numberOfComputers = 2;
 	protected static final Integer numberOfProcessors = 2;
 	protected static final Integer numberOfCores = 2;
+	protected static final Integer numberOfApplications = 4;
 	
-	protected static final Integer numberOfApplications = 1;
-	protected static final Integer avmsPerApplication = 2;
 	protected static final Integer coresPerAVM = 2;
 	
-	protected static final Integer coresNeeded = 4;
+	protected static final Integer[] coresNeeded = new Integer[] {4, 2, 4, 2};
 	
 
 	// Port URIs
@@ -156,7 +155,7 @@ public class TestAdmissionController extends AbstractCVM {
 			
 			Application application = new Application (
 					appURI,
-					coresNeeded,
+					coresNeeded[i],
 					meanInterArrivalTime,
 					meanNumberOfInstructions,
 					applicationManagementInboundPortURI + "_" + i,
@@ -188,7 +187,6 @@ public class TestAdmissionController extends AbstractCVM {
 			applicationManagementInboundPortURIList,
 			applicationSubmissionInboundPortURIList,
 			applicationNotificationInboundPortURIList,
-			avmsPerApplication,
 			coresPerAVM
 		);
 		this.addDeployedComponent(this.admissionController);
@@ -202,7 +200,7 @@ public class TestAdmissionController extends AbstractCVM {
 	
 	
 	
-	public void execute() throws Exception {
+	public void start() throws Exception {
 		super.start();
 		
 		for(int i = 0 ; i < numberOfApplications; i++) {
@@ -227,10 +225,10 @@ public class TestAdmissionController extends AbstractCVM {
 		try {
 			testAdmissionController = new TestAdmissionController();
 			
-			testAdmissionController.startStandardLifeCycle(10000L);
+			testAdmissionController.startStandardLifeCycle(40000L);
 			
-			Thread.sleep(10000L);
-			//System.exit(0);
+			Thread.sleep(40000L);
+			System.exit(0);
 			
 		} catch (Exception e2) {
 			e2.printStackTrace();
