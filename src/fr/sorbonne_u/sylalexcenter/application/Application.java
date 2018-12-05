@@ -283,10 +283,10 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		this.rgmop.startGeneration();
 		
 		// wait
-		// Thread.sleep(5000L);
+		Thread.sleep(10000L);
 		
 		// then stop the generation.
-		// this.rgmop.stopGeneration();		
+		this.rgmop.stopGeneration();		
 	}
 	
 	// Connect to Dispatcher

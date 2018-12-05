@@ -3,7 +3,6 @@ package fr.sorbonne_u.sylalexcenter.admissioncontroller;
 import java.util.ArrayList;
 import java.util.HashMap;
 import fr.sorbonne_u.components.AbstractComponent;
-import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
@@ -13,14 +12,10 @@ import fr.sorbonne_u.components.pre.dcc.interfaces.DynamicComponentCreationI;
 import fr.sorbonne_u.components.pre.dcc.ports.DynamicComponentCreationOutboundPort;
 import fr.sorbonne_u.components.reflection.connectors.ReflectionConnector;
 import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
-import fr.sorbonne_u.datacenter.connectors.ControlledDataConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.connectors.ComputerServicesConnector;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerDynamicStateI;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerServicesI;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI;
-import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStaticStateI;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
@@ -39,7 +34,7 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboun
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 
 public class AdmissionController extends AbstractComponent 
-	implements ApplicationSubmissionHandlerI, ComputerStateDataConsumerI  {
+	implements ApplicationSubmissionHandlerI {
 	
 	private static final String dynamicComponentCreationInboundPortURI = "";
 	
@@ -51,8 +46,6 @@ public class AdmissionController extends AbstractComponent
 
 	protected ArrayList<String> computersURIList;
 	protected ArrayList<String> computerServicesInboundPortURIList;
-	protected ArrayList<String> computerStaticStateDataInboundPortURIList;
-	protected ArrayList<String> computerDynamicStateDataInboundPortURIList;
 	
 	protected ArrayList<ComputerServicesOutboundPort> csopList;
 	protected ArrayList<ComputerStaticStateDataOutboundPort> cssdopList;
@@ -72,8 +65,6 @@ public class AdmissionController extends AbstractComponent
 	public AdmissionController(
 			ArrayList<String> computersURIList,			
 			ArrayList<String> computerServicesInboundPortURIList,
-			ArrayList<String> computerStaticStateDataInboundPortURIList,
-			ArrayList<String> computerDynamicStateDataInboundPortURIList,
 			ArrayList<String> appsURIList,
 			ArrayList<String> applicationManagementInboundPortURIList,
 			ArrayList<String> applicationSubmissionInboundPortURIList,
@@ -84,9 +75,7 @@ public class AdmissionController extends AbstractComponent
 		
 		assert computersURIList != null && computersURIList.size() > 0;
 		assert computerServicesInboundPortURIList != null && computerServicesInboundPortURIList.size() > 0;	
-		assert computerStaticStateDataInboundPortURIList != null && computerStaticStateDataInboundPortURIList.size() > 0;	
-		assert computerDynamicStateDataInboundPortURIList != null && computerDynamicStateDataInboundPortURIList.size() > 0;	
-		
+
 		assert appsURIList != null && appsURIList.size() > 0;
 		assert applicationManagementInboundPortURIList != null && applicationManagementInboundPortURIList.size() > 0;
 		assert applicationSubmissionInboundPortURIList != null && applicationSubmissionInboundPortURIList.size() > 0;
@@ -101,9 +90,7 @@ public class AdmissionController extends AbstractComponent
 		// Computers
 		this.computersURIList = new ArrayList<String>();
 		this.computerServicesInboundPortURIList = new ArrayList<String>();
-		this.computerStaticStateDataInboundPortURIList = new ArrayList<String>();
-		this.computerDynamicStateDataInboundPortURIList = new ArrayList<String>();
-		
+
 		// Computer Ports
 		this.csopList = new ArrayList<ComputerServicesOutboundPort>();
 		this.cssdopList = new ArrayList<ComputerStaticStateDataOutboundPort>();
@@ -116,9 +103,7 @@ public class AdmissionController extends AbstractComponent
 		
 		for (int i = 0; i < numberOfComputers; i++) {
 			this.computerServicesInboundPortURIList.add(computerServicesInboundPortURIList.get(i));
-			this.computerStaticStateDataInboundPortURIList.add(computerStaticStateDataInboundPortURIList.get(i));
-			this.computerDynamicStateDataInboundPortURIList.add(computerDynamicStateDataInboundPortURIList.get(i));
-			
+
 			this.csopList.add(new ComputerServicesOutboundPort(this));
 			this.addPort(this.csopList.get(i));
 			this.csopList.get(i).publishPort();
@@ -202,14 +187,6 @@ public class AdmissionController extends AbstractComponent
 			for (int i = 0; i < numberOfComputers; i++) {
 				this.doPortConnection(this.csopList.get(i).getPortURI(), this.computerServicesInboundPortURIList.get(i),
 						ComputerServicesConnector.class.getCanonicalName());
-				
-				this.doPortConnection(this.cssdopList.get(i).getPortURI(), this.computerStaticStateDataInboundPortURIList.get(i),
-						DataConnector.class.getCanonicalName());
-				
-				this.doPortConnection(this.cdsdopList.get(i).getPortURI(), this.computerDynamicStateDataInboundPortURIList.get(i),
-						ControlledDataConnector.class.getCanonicalName());
-				
-				this.cdsdopList.get(i).startUnlimitedPushing(timer); 
 			}
 			
 			for (HashMap.Entry<String, ApplicationManagementOutboundPort> entry : amopMap.entrySet()) {
@@ -241,7 +218,10 @@ public class AdmissionController extends AbstractComponent
 	@Override
 	public void finalise() throws Exception {
 		
-		try {		
+		try {
+			for (int i = 0; i < numberOfComputers; i++) {
+				if (this.csopList.get(i).connected()) this.csopList.get(i).doDisconnection();
+			}
 			if (this.dccop.connected()) this.dccop.doDisconnection();
 		} catch (Exception e) {
 			throw new ComponentShutdownException("Admission Controller port disconnection error", e);
@@ -261,17 +241,6 @@ public class AdmissionController extends AbstractComponent
 
 		super.shutdown();
 	}
-	
-	@Override
-	public void acceptComputerStaticData(String computerURI, ComputerStaticStateI staticState) throws Exception {
-//		numberOfProcessors = staticState.getNumberOfProcessors();
-//		numberOfCores = staticState.getNumberOfCoresPerProcessor();
-	}
-	
-	@Override
-	public void acceptComputerDynamicData(String computerURI, ComputerDynamicStateI currentDynamicState) throws Exception {
-//		boolean [][] reservedCores = currentDynamicState.getCurrentCoreReservations();
-	}	
 	
 	/**
 	 * Check if a number of cores is available, 

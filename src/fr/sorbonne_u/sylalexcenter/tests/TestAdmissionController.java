@@ -30,7 +30,7 @@ public class TestAdmissionController extends AbstractCVM {
 
 	// Setup
 	// -----------------------------------------------------------------
-	protected static final Integer numberOfComputers = 2;
+	protected static final Integer numberOfComputers = 4;
 	protected static final Integer numberOfProcessors = 2;
 	protected static final Integer numberOfCores = 2;
 	protected static final Integer numberOfApplications = 4;
@@ -181,8 +181,6 @@ public class TestAdmissionController extends AbstractCVM {
 		this.admissionController = new AdmissionController (
 			computerURIsList,
 			computerServicesInboundPortURIList,
-			computerStaticStateDataInboundPortURIList,
-			computerDynamicStateDataInboundPortURIList,
 			applicationURIsList,
 			applicationManagementInboundPortURIList,
 			applicationSubmissionInboundPortURIList,
