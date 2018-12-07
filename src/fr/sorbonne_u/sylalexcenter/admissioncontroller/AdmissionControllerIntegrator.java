@@ -20,13 +20,13 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherMana
  */
 public class AdmissionControllerIntegrator extends AbstractComponent {
 
-	protected ArrayList<ApplicationVMManagementOutboundPort> avmopList;
-	protected RequestDispatcherManagementOutboundPort rdmop;
+	private ArrayList<ApplicationVMManagementOutboundPort> avmopList;
+	private RequestDispatcherManagementOutboundPort rdmop;
 	
-	protected ArrayList<String> applicationVMManagementInboundPortURIList;
-	protected String requestDispatcherManagementInboundPortURI;
+	private ArrayList<String> applicationVMManagementInboundPortURIList;
+	private String requestDispatcherManagementInboundPortURI;
 	
-	ArrayList<AllocatedCore[]> allocatedCores;
+	private ArrayList<AllocatedCore[]> allocatedCores;
 	
 	public AdmissionControllerIntegrator (
 			String integratorURI, 
@@ -40,10 +40,10 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 		assert applicationVMManagementInboundPortURIList != null && applicationVMManagementInboundPortURIList.size() > 0 ;
 		assert requestDispatcherManagementInboundPortURI != null;
 		
-		this.applicationVMManagementInboundPortURIList = new ArrayList<String>(applicationVMManagementInboundPortURIList);
+		this.applicationVMManagementInboundPortURIList = new ArrayList<>(applicationVMManagementInboundPortURIList);
 		this.requestDispatcherManagementInboundPortURI = requestDispatcherManagementInboundPortURI;
 		
-		this.avmopList = new ArrayList<ApplicationVMManagementOutboundPort>();
+		this.avmopList = new ArrayList<>();
 		for (int i = 0; i< applicationVMManagementInboundPortURIList.size(); i++) {
 			ApplicationVMManagementOutboundPort avmop = new ApplicationVMManagementOutboundPort(this);
 			this.avmopList.add(avmop);
@@ -71,15 +71,13 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 			this.doPortConnection(this.rdmop.getPortURI(), this.requestDispatcherManagementInboundPortURI,
 					RequestDispatcherManagementConnector.class.getCanonicalName());
 		} catch (Exception e) {
-			System.err.println("AdmissionControllerIntegrator#start(): couldn't connect ports");
-			System.err.println(e);
-			throw new ComponentStartException(e);
+			throw new ComponentStartException("Couldn't connect ports" + e);
 		}
 		
 		try {
 			this.execute();
 		} catch (Exception e) {
-			System.err.println(e);
+			throw new ComponentStartException("Error executing" + e);
 		}
 	}
 
@@ -93,9 +91,7 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 			try {
 				this.avmopList.get(i).allocateCores(this.allocatedCores.get(i));
 			} catch (Exception e) {
-				System.err.println("AdmissionControllerIntegrator#execute(): couldn't allocate to AVM out port");
-				System.err.println(e);
-				throw new ComponentStartException(e);
+				throw new ComponentStartException("Couldn't allocate to AVM out port" + e);
 			}
 		}
 		super.execute();
@@ -106,9 +102,9 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 	 */
 	@Override
 	public void finalise() throws Exception {
-		
-		for (int i = 0; i< this.avmopList.size(); i++) { 
-			if (this.avmopList.get(i).connected()) this.doPortDisconnection(this.avmopList.get(i).getPortURI());
+
+		for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
+			if (anAvmopList.connected()) this.doPortDisconnection(anAvmopList.getPortURI());
 		}
 		if (this.rdmop.connected()) this.doPortDisconnection(this.rdmop.getPortURI());
 		
@@ -121,8 +117,8 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 	@Override
 	public void shutdown() throws ComponentShutdownException {
 		try {
-			for (int i = 0; i< this.avmopList.size(); i++) { 
-				if (this.avmopList.get(i).isPublished()) this.avmopList.get(i).unpublishPort();
+			for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
+				if (anAvmopList.isPublished()) anAvmopList.unpublishPort();
 			}
 			if (this.rdmop.isPublished()) this.rdmop.unpublishPort();
 		} catch (Exception e) {
@@ -137,8 +133,8 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 	@Override
 	public void shutdownNow() throws ComponentShutdownException {
 		try {
-			for (int i = 0; i< this.avmopList.size(); i++) { 
-				if (this.avmopList.get(i).isPublished()) this.avmopList.get(i).unpublishPort();
+			for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
+				if (anAvmopList.isPublished()) anAvmopList.unpublishPort();
 			}
 			if (this.rdmop.isPublished()) this.rdmop.unpublishPort();
 		} catch (Exception e) {

@@ -12,13 +12,6 @@ public class ApplicationNotificationOutboundPort extends AbstractOutboundPort im
 		
 		super(ApplicationNotificationI.class, owner);
 	}
-	
-	public ApplicationNotificationOutboundPort(String uri, ComponentI owner) throws Exception {
-			
-		super(uri, ApplicationNotificationI.class, owner);
-
-		assert uri != null;
-	}
 
 	@Override
 	public void notifyApplicationAdmission(boolean isAccepted) throws Exception {

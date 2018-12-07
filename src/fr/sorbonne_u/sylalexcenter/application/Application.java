@@ -13,7 +13,6 @@ import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector
 import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
 import fr.sorbonne_u.datacenterclient.requestgenerator.connectors.RequestGeneratorManagementConnector;
-import fr.sorbonne_u.datacenterclient.requestgenerator.interfaces.RequestGeneratorManagementI;
 import fr.sorbonne_u.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationServicesConnector;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationSubmissionConnector;
@@ -46,36 +45,29 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutbou
 
 public class Application extends AbstractComponent implements ApplicationManagementI, ApplicationServicesI, ApplicationNotificationHandlerI {
 	
-	protected final String appURI;
-	protected final Double meanInterArrivalTime; //for the request generator
-	protected final Long meanNumberOfInstructions; //for the request generator
+	private final String appURI;
+	private final Double meanInterArrivalTime; //for the request generator
+	private final Long meanNumberOfInstructions; //for the request generator
 
-	protected String rgURI;
-	protected String requestGeneratorManagementInboundPortURI;
-	protected String requestGeneratorSubmissionInboundPortURI;
-	protected String requestGeneratorSubmissionOutboundPortURI;
-	protected String requestGeneratorNotificationInboundPortURI;
-	
-	protected String applicationManagementInboundPortURI;
-	protected String applicationSubmissionInboundPortURI;
-	protected String applicationServicesInboundPortURI;
-	
-	protected int coresNeeded;
-	
-	protected ApplicationManagementInboundPort amip;
-	protected ApplicationServicesInboundPort asvip;
-	protected ApplicationServicesOutboundPort asvop;
-	
-	protected ApplicationSubmissionOutboundPort asop;
-	protected ApplicationNotificationInboundPort anip;
-	
-	protected RequestGeneratorManagementOutboundPort rgmop;
-	
+	private String rgURI;
+	private String requestGeneratorManagementInboundPortURI;
+	private String requestGeneratorSubmissionInboundPortURI;
+	private String requestGeneratorSubmissionOutboundPortURI;
+	private String requestGeneratorNotificationInboundPortURI;
+
+	private String applicationSubmissionInboundPortURI;
+	private String applicationServicesInboundPortURI;
+
+	private int coresNeeded;
+
+	private ApplicationServicesOutboundPort asvop;
+
+	private ApplicationSubmissionOutboundPort asop;
+	private ApplicationNotificationInboundPort anip;
+
 	// Dynamic Component Creation
-	protected DynamicComponentCreationOutboundPort dccop;
-	protected ReflectionOutboundPort rop;
-	// Used by reflection port
-	protected String dynamicComponentCreationInboundPortURI = "";
+	private DynamicComponentCreationOutboundPort dccop;
+	private ReflectionOutboundPort rop;
 
 	/**
 	 * @param appURI: application uri
@@ -85,7 +77,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 	 * @param applicationServicesInboundPortURI: services handle admission communication
 	 * @param applicationSubmissionInboundPortURI: submissions handle requests to admission controller
 	 * @param applicationNotificationInboundPortURI: notifications handle termination requests
-	 * @throws Exception
+	 * @throws Exception: throws Exception
 	 */
 	public Application (
 			String appURI, 
@@ -108,7 +100,6 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		assert applicationNotificationInboundPortURI != null;
 		
 		this.appURI = appURI;
-		this.applicationManagementInboundPortURI = applicationManagementInboundPortURI;
 		this.applicationSubmissionInboundPortURI = applicationSubmissionInboundPortURI;
 		this.applicationServicesInboundPortURI = applicationServicesInboundPortURI;
 		this.coresNeeded = coresNeeded;
@@ -124,14 +115,14 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		this.requestGeneratorNotificationInboundPortURI = appURI + "-rgnip";
 		
 		this.addOfferedInterface(ApplicationManagementI.class);
-		this.amip = new ApplicationManagementInboundPort(applicationManagementInboundPortURI, this);
-		this.addPort(this.amip);
-		this.amip.publishPort();
+		ApplicationManagementInboundPort amip = new ApplicationManagementInboundPort(applicationManagementInboundPortURI, this);
+		this.addPort(amip);
+		amip.publishPort();
 
 		this.addOfferedInterface(ApplicationServicesI.class);
-		this.asvip = new ApplicationServicesInboundPort(applicationServicesInboundPortURI, this);
-		this.addPort(this.asvip);
-		this.asvip.publishPort();
+		ApplicationServicesInboundPort asvip = new ApplicationServicesInboundPort(applicationServicesInboundPortURI, this);
+		this.addPort(asvip);
+		asvip.publishPort();
 		
 		this.asvop = new ApplicationServicesOutboundPort(this);
 		this.addPort(this.asvop);
@@ -152,11 +143,6 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		this.tracer.setRelativePosition(0, 1);
 		
 		assert this.appURI != null && this.appURI.length() > 0;
-		assert this.amip != null && this.amip instanceof ApplicationManagementI;
-		assert this.asvip != null && this.asvip instanceof ApplicationServicesI;
-		assert this.asop != null && this.asop instanceof ApplicationSubmissionI;
-		assert this.anip != null && this.anip instanceof ApplicationNotificationI;		
-		assert this.rgmop != null && this.rgmop instanceof RequestGeneratorManagementI;	
 	}
 	
 	@Override
@@ -174,8 +160,10 @@ public class Application extends AbstractComponent implements ApplicationManagem
 			this.dccop = new DynamicComponentCreationOutboundPort(this.appURI + "dccop", this);
 			this.addPort(this.dccop);
 			this.dccop.localPublishPort();
-			
-			this.dccop.doConnection (this.dynamicComponentCreationInboundPortURI + AbstractCVM.DCC_INBOUNDPORT_URI_SUFFIX,
+
+			// Needed to avoid class cast exception
+			String dynamicComponentCreationInboundPortURI = "";
+			this.dccop.doConnection (dynamicComponentCreationInboundPortURI + AbstractCVM.DCC_INBOUNDPORT_URI_SUFFIX,
 					DynamicComponentCreationConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new ComponentStartException(e);
@@ -240,7 +228,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 	 * call the service createComponent with the appropriate parameters on the 
 	 * DynamicComponentCreationOutboundPort
 	 */
-	public void deployGenerator () throws Exception {
+	private void deployGenerator () throws Exception {
 
 		try {
 			this.dccop.createComponent(RequestGenerator.class.getCanonicalName(), new Object[] {
@@ -253,9 +241,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 				this.requestGeneratorNotificationInboundPortURI
 			});
 		} catch (Exception e) {
-			System.out.println("Error dynamically creating Request Generator");
-			System.out.println(e);
-			throw new Exception(e);
+			throw new Exception("Error dynamically creating Request Generator " + e);
 		}
 
 		this.addPort(this.rop);
@@ -264,29 +250,28 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		try {
 			this.rop.doConnection(this.rgURI, ReflectionConnector.class.getCanonicalName());
 		} catch (Exception e) {
-			System.out.println("Error connecting Reflection Outbound Port for Generator ");
-			System.out.println(e);
+			throw new Exception("Error connecting Reflection Outbound Port for Generator " + e);
 		}
 		
 		this.logMessage("Application " + this.appURI + " deployed request generator " + this.rgURI + ".");
 	}	
 	
-	public void	launch() throws Exception {
+	private void launch() throws Exception {
 
-		this.rgmop = new RequestGeneratorManagementOutboundPort(this);
-		this.addPort(this.rgmop);
+		RequestGeneratorManagementOutboundPort rgmop = new RequestGeneratorManagementOutboundPort(this);
+		this.addPort(rgmop);
 		
-		this.doPortConnection(this.rgmop.getPortURI(),
+		this.doPortConnection(rgmop.getPortURI(),
 			this.requestGeneratorManagementInboundPortURI,
 			RequestGeneratorManagementConnector.class.getCanonicalName());
 		// start generation
-		this.rgmop.startGeneration();
+		rgmop.startGeneration();
 		
 		// wait
-		Thread.sleep(10000L);
+		Thread.sleep(50000L);
 		
 		// then stop the generation.
-		this.rgmop.stopGeneration();		
+		 rgmop.stopGeneration();
 	}
 	
 	// Connect to Dispatcher
@@ -299,10 +284,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 				requestDispatcherSubmissionInboundPortUri,
 				RequestSubmissionConnector.class.getCanonicalName());
 		} catch (Exception e) {
-			
-			System.err.println("Exception connecting Request Generator with Dispatcher for Submission");
-			System.err.println(e);
-			throw new Exception(e);
+			throw new Exception("Exception connecting Request Generator with Dispatcher for Submission " + e);
 		}
 	}
 	
@@ -314,9 +296,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 				this.requestGeneratorNotificationInboundPortURI,
 				RequestNotificationConnector.class.getCanonicalName());			
 		} catch (Exception e) {
-			System.err.println("Exception connecting Request Generator with Dispatcher for Notification");
-			System.err.println(e);
-			throw new Exception(e);
+			throw new Exception("Exception connecting Request Generator with Dispatcher for Notification " + e);
 		}
 	}
 }

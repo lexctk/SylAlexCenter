@@ -14,8 +14,8 @@ import javassist.CtMethod;
 
 public abstract class Javassist {
 	
-	protected final static Class<?> abstractConnectorClass = AbstractConnector.class;
-	protected final static String packageName = "fr.sorbonne_u.sylalexcenter.utils";	
+	private final static Class<?> abstractConnectorClass = AbstractConnector.class;
+	private final static String packageName = "fr.sorbonne_u.sylalexcenter.utils";
 	
 	private static Class<?> applicationNotificationConnector;
 	private static Class<?> applicationServicesConnector;
@@ -80,17 +80,17 @@ public abstract class Javassist {
 				
 		connectorCtClass.setSuperclass(cs);
 		
-		Method[] methodsToImplement = connectorImplementedInterface.getDeclaredMethods();			
-		
-		for (int i = 0; i < methodsToImplement.length; i++) {
-			
-			String source = "public ";			
-			source += methodsToImplement[i].getReturnType().getTypeName() + " ";			
-			source += methodsToImplement[i].getName() + "(";					
-			
-			Class<?>[] pt = methodsToImplement[i].getParameterTypes();
+		Method[] methodsToImplement = connectorImplementedInterface.getDeclaredMethods();
+
+		for (Method aMethodsToImplement : methodsToImplement) {
+
+			String source = "public ";
+			source += aMethodsToImplement.getReturnType().getTypeName() + " ";
+			source += aMethodsToImplement.getName() + "(";
+
+			Class<?>[] pt = aMethodsToImplement.getParameterTypes();
 			String callParam = "";
-			
+
 			for (int j = 0; j < pt.length; j++) {
 				String pName = "arg" + j;
 				source += pt[j].getCanonicalName() + " " + pName;
@@ -101,8 +101,8 @@ public abstract class Javassist {
 				}
 			}
 			source += ")";
-			Class<?>[] et = methodsToImplement[i].getExceptionTypes();
-			if (et != null && et.length > 0) {
+			Class<?>[] et = aMethodsToImplement.getExceptionTypes();
+			if (et.length > 0) {
 				source += " throws ";
 
 				for (int z = 0; z < et.length; z++) {
@@ -113,8 +113,8 @@ public abstract class Javassist {
 				}
 			}
 			source += " {\n\n	return ((";
-			source += connectorImplementedInterface.getCanonicalName() + ")this.offering).";			
-			source += methodsToImplement[i].getName();
+			source += connectorImplementedInterface.getCanonicalName() + ")this.offering).";
+			source += aMethodsToImplement.getName();
 			source += "(" + callParam + ");\n}";
 			CtMethod theCtMethod = CtMethod.make(source, connectorCtClass);
 			connectorCtClass.addMethod(theCtMethod);

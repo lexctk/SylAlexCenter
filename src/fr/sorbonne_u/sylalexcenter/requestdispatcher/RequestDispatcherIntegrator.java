@@ -24,16 +24,16 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherMana
  */
 public class RequestDispatcherIntegrator extends AbstractComponent {
 
-	protected ComputerServicesOutboundPort csop;
-	protected ArrayList<ApplicationVMManagementOutboundPort> avmopList;
-	protected RequestGeneratorManagementOutboundPort rgmop;
-	protected RequestDispatcherManagementOutboundPort rdmop;
+	private ComputerServicesOutboundPort csop;
+	private ArrayList<ApplicationVMManagementOutboundPort> avmopList;
+	private RequestGeneratorManagementOutboundPort rgmop;
+	private RequestDispatcherManagementOutboundPort rdmop;
 	
 	
-	protected String computerServicesInboundPortURI;
-	protected ArrayList<String> applicationVMManagementInboundPortURIList;
-	protected String requestGeneratorManagementInboundPortURI; 
-	protected String requestDispatcherManagementInboundPortURI;
+	private String computerServicesInboundPortURI;
+	private ArrayList<String> applicationVMManagementInboundPortURIList;
+	private String requestGeneratorManagementInboundPortURI;
+	private String requestDispatcherManagementInboundPortURI;
 	
 	public RequestDispatcherIntegrator (
 			String computerServicesInboundPortURI,
@@ -50,7 +50,7 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 		assert requestDispatcherManagementInboundPortURI != null;
 		
 		this.computerServicesInboundPortURI = computerServicesInboundPortURI;
-		this.applicationVMManagementInboundPortURIList = new ArrayList<String>(applicationVMManagementInboundPortURIList);
+		this.applicationVMManagementInboundPortURIList = new ArrayList<>(applicationVMManagementInboundPortURIList);
 		this.requestGeneratorManagementInboundPortURI = requestGeneratorManagementInboundPortURI;
 		this.requestDispatcherManagementInboundPortURI = requestDispatcherManagementInboundPortURI;
 		
@@ -58,7 +58,7 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 		this.addPort(this.csop);
 		this.csop.publishPort();
 		
-		this.avmopList = new ArrayList<ApplicationVMManagementOutboundPort>();
+		this.avmopList = new ArrayList<>();
 		for (int i = 0; i< applicationVMManagementInboundPortURIList.size(); i++) {
 			ApplicationVMManagementOutboundPort avmop = new ApplicationVMManagementOutboundPort(this);
 			this.avmopList.add(avmop);
@@ -108,17 +108,17 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	@Override
 	public void execute() throws Exception {
 		super.execute();
-		
-		for (int i = 0; i< this.avmopList.size(); i++) {
+
+		for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
 			AllocatedCore[] ac = this.csop.allocateCores(2);
-			this.avmopList.get(i).allocateCores(ac);
+			anAvmopList.allocateCores(ac);
 		}
 		
 		// start generation
 		this.rgmop.startGeneration();
 		
 		// wait 20 seconds
-		Thread.sleep(2000L);
+		Thread.sleep(500000L);
 		
 		// then stop the generation.
 		this.rgmop.stopGeneration();
@@ -131,8 +131,8 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void finalise() throws Exception {
 		
 		this.doPortDisconnection(this.csop.getPortURI());
-		for (int i = 0; i< this.avmopList.size(); i++) { 
-			this.doPortDisconnection(this.avmopList.get(i).getPortURI());
+		for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
+			this.doPortDisconnection(anAvmopList.getPortURI());
 		}
 		this.doPortDisconnection(this.rgmop.getPortURI());
 		this.doPortDisconnection(this.rdmop.getPortURI());
@@ -147,8 +147,8 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void shutdown() throws ComponentShutdownException {
 		try {
 			this.csop.unpublishPort();
-			for (int i = 0; i< this.avmopList.size(); i++) { 
-				this.avmopList.get(i).unpublishPort();
+			for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
+				anAvmopList.unpublishPort();
 			}
 			this.rgmop.unpublishPort();
 			this.rdmop.unpublishPort();
@@ -165,8 +165,8 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	public void shutdownNow() throws ComponentShutdownException {
 		try {
 			this.csop.unpublishPort();
-			for (int i = 0; i< this.avmopList.size(); i++) { 
-				this.avmopList.get(i).unpublishPort();
+			for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
+				anAvmopList.unpublishPort();
 			}
 			this.rgmop.unpublishPort();
 			this.rdmop.unpublishPort();

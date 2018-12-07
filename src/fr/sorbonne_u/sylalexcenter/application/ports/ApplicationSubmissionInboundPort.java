@@ -9,13 +9,6 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI
 public class ApplicationSubmissionInboundPort extends AbstractInboundPort implements ApplicationSubmissionI {
 
 	private static final long serialVersionUID = 1L;
-	
-	public ApplicationSubmissionInboundPort(ComponentI owner) throws Exception {
-			
-		super(ApplicationSubmissionI.class, owner);
-		
-		assert owner instanceof ApplicationSubmissionHandlerI;
-	}
 
 	public ApplicationSubmissionInboundPort(String uri, ComponentI owner ) throws Exception {
 		

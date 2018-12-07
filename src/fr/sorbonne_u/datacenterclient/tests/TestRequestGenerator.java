@@ -110,6 +110,7 @@ public class TestRequestGenerator extends AbstractCVM {
 	public static final String RequestSubmissionInboundPortURI = "rsibp";
 	public static final String RequestSubmissionOutboundPortURI = "rsobp";
 	public static final String RequestNotificationInboundPortURI = "rnibp";
+	public static final String RequestNotificationOutboundPortURI = "rnobp";
 	public static final String RequestGeneratorManagementInboundPortURI = "rgmip";
 
 	/** Computer monitor component. */
@@ -175,7 +176,7 @@ public class TestRequestGenerator extends AbstractCVM {
 		// --------------------------------------------------------------------
 		this.vm = new ApplicationVM("vm0", // application vm component URI
 				ApplicationVMManagementInboundPortURI, RequestSubmissionInboundPortURI,
-				RequestNotificationInboundPortURI);
+				RequestNotificationInboundPortURI, RequestNotificationOutboundPortURI);
 		this.addDeployedComponent(this.vm);
 		// Toggle on tracing and logging in the application virtual machine to
 		// follow the execution of individual requests.

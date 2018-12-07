@@ -10,14 +10,8 @@ public class ApplicationServicesOutboundPort extends AbstractOutboundPort implem
 
 	public ApplicationServicesOutboundPort(ComponentI owner) throws Exception {
 		super(ApplicationServicesI.class, owner);
-			
+
 		assert owner != null;
-	}
-
-	public ApplicationServicesOutboundPort(String uri, ComponentI owner) throws Exception {
-		super(uri, ApplicationServicesI.class, owner);
-
-		assert uri != null && owner != null;
 	}
 	
 	@Override

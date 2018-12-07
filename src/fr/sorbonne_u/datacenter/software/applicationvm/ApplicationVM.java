@@ -223,7 +223,8 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 			String vmURI, 
 			String applicationVMManagementInboundPortURI,
 			String requestSubmissionInboundPortURI, 
-			String requestNotificationInboundPortURI ) throws Exception {
+			String requestNotificationInboundPortURI,
+			String requestNotificationOutboundPortURI) throws Exception {
 		
 		// The normal thread pool is used to process component services, while
 		// the scheduled one is used to schedule the pushes of dynamic state
@@ -266,7 +267,7 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 		this.requestSubmissionInboundPort.publishPort();
 
 		this.addRequiredInterface(RequestNotificationI.class);
-		this.requestNotificationOutboundPort = new RequestNotificationOutboundPort(this);
+		this.requestNotificationOutboundPort = new RequestNotificationOutboundPort(requestNotificationOutboundPortURI,this);
 		this.addPort(this.requestNotificationOutboundPort);
 		this.requestNotificationOutboundPort.publishPort();
 		

@@ -10,6 +10,7 @@ import fr.sorbonne_u.components.exceptions.ComponentStartException;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.tests.ComputerMonitor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
+import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector;
 import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
@@ -21,7 +22,6 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcherIntegrator
  * 
  * <p><strong>Description</strong></p>
  * 
- * 
  * Sorbonne University 2018-2019
  * @author Alexandra Tudor
  * @author Sylia Righi
@@ -31,47 +31,33 @@ public class TestRequestDispatcher extends AbstractCVM {
 	
 	// Port URIs
 	// -----------------------------------------------------------------
-	public static final String computerServicesInboundPortURI = "csip";
-	public static final String computerStaticStateDataInboundPortURI = "cssdip";
-	public static final String computerDynamicStateDataInboundPortURI = "cdsdip";
+	private static final String computerServicesInboundPortURI = "csip";
+	private static final String computerStaticStateDataInboundPortURI = "cssdip";
+	private static final String computerDynamicStateDataInboundPortURI = "cdsdip";
 	
-	public static final ArrayList<String> applicationVMManagementInboundPortURIList = new ArrayList<String>();
-	public static final ArrayList<String> applicationVMRequestSubmissionInboundPortURIList = new ArrayList<String>();
-	public static final ArrayList<String> applicationVMRequestNotificationInboundPortURIList = new ArrayList<String>();
+	private static final ArrayList<String> applicationVMManagementInboundPortURIList = new ArrayList<>();
+	private static final ArrayList<String> applicationVMRequestSubmissionInboundPortURIList = new ArrayList<>();
+	private static final ArrayList<String> applicationVMRequestNotificationInboundPortURIList = new ArrayList<>();
+	private static final ArrayList<String> applicationVMRequestNotificationOutboundPortURIList = new ArrayList<>();
 	
-	public static final String requestGeneratorManagementInboundPortURI = "rgmip";
-	public static final String requestGeneratorSubmissionInboundPortURI = "rgsip";
-	public static final String requestGeneratorSubmissionOutboundPortURI = "rgsop";
-	public static final String requestGeneratorNotificationInboundPortURI = "rgnip";
-	public static final String requestGeneratorNotificationOutboundPortURI = "rgnop";
+	private static final String requestGeneratorManagementInboundPortURI = "rgmip";
+	private static final String requestGeneratorSubmissionInboundPortURI = "rgsip";
+	private static final String requestGeneratorSubmissionOutboundPortURI = "rgsop";
+	private static final String requestGeneratorNotificationInboundPortURI = "rgnip";
 	
-	public static final String requestDispatcherManagementInboundPortURI = "rdmip";
-	public static final String requestDispatcherSubmissionInboundPortURI = "rdsip";
-	public static final String requestDispatcherrNotificationInboundPortURI = "rdnip";
+	private static final String requestDispatcherManagementInboundPortURI = "rdmip";
+	private static final String requestDispatcherSubmissionInboundPortURI = "rdsip";
+	private static final String requestDispatcherNotificationOutboundPortURI = "rdnop";
 
-	public static final ArrayList<String> requestDispatcherSubmissionOutboundPortURIList = new ArrayList<String>();
-	public static final ArrayList<String> requestDispatcherNotificationOutboundPortURIList = new ArrayList<String>();
-	
-	// Components
-	// -----------------------------------------------------------------
-	private ApplicationVM applicationVM;
-	private RequestGenerator requestGenerator;
-	private ComputerMonitor computerMonitor;
-	private RequestDispatcherIntegrator requestDispatcherIntegrator;
-	private RequestDispatcher requestDispatcher;
-	
+	private static final ArrayList<String> requestDispatcherSubmissionOutboundPortURIList = new ArrayList<>();
+	private static final ArrayList<String> requestDispatcherNotificationInboundPortURIList = new ArrayList<>();
 
 	// Constructors
 	// -----------------------------------------------------------------
-	public TestRequestDispatcher() throws Exception {
+	private TestRequestDispatcher() throws Exception {
 		super();
 	}
-	
-	public TestRequestDispatcher(boolean isDistributed) throws Exception {
-		super(isDistributed);
-	}
-	
-	
+
 	// Deploy
 	// -----------------------------------------------------------------	
 	@Override
@@ -82,11 +68,11 @@ public class TestRequestDispatcher extends AbstractCVM {
 		int numberOfProcessors = 2;
 		int numberOfCores = 2;
 		
-		Set<Integer> possibleFrequencies = new HashSet<Integer>();
+		Set<Integer> possibleFrequencies = new HashSet<>();
 		possibleFrequencies.add(1500); 
 		possibleFrequencies.add(3000); 
 		
-		Map<Integer, Integer> processingPower = new HashMap<Integer, Integer>();
+		Map<Integer, Integer> processingPower = new HashMap<>();
 		processingPower.put(1500, 1500000); 
 		processingPower.put(3000, 3000000); 
 		
@@ -113,16 +99,14 @@ public class TestRequestDispatcher extends AbstractCVM {
 		
 		// Deploy a computer monitor 
 		// --------------------------------------------------------------------
-		boolean active = true;
-		
-		this.computerMonitor = new ComputerMonitor (
-				computerURI, 
-				active, 
-				computerStaticStateDataInboundPortURI, 
+		ComputerMonitor computerMonitor = new ComputerMonitor(
+				computerURI,
+				true,
+				computerStaticStateDataInboundPortURI,
 				computerDynamicStateDataInboundPortURI
 		);
 		
-		this.addDeployedComponent(this.computerMonitor);
+		this.addDeployedComponent(computerMonitor);
 		
 
 		// Deploy a Request Generator
@@ -130,13 +114,13 @@ public class TestRequestDispatcher extends AbstractCVM {
 		String rgURI = "rg0";
 		double meanInterArrivalTime = 500.0;
 		long meanNumberOfInstructions = 6000000000L;
-		
-		this.requestGenerator = new RequestGenerator (
-				rgURI, 
-				meanInterArrivalTime, 
-				meanNumberOfInstructions, 
-				requestGeneratorManagementInboundPortURI, 
-				requestGeneratorSubmissionInboundPortURI, 
+
+		RequestGenerator requestGenerator = new RequestGenerator(
+				rgURI,
+				meanInterArrivalTime,
+				meanNumberOfInstructions,
+				requestGeneratorManagementInboundPortURI,
+				requestGeneratorSubmissionInboundPortURI,
 				requestGeneratorSubmissionOutboundPortURI,
 				requestGeneratorNotificationInboundPortURI
 		);
@@ -145,7 +129,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 		
 		// AVM URIs
 		// --------------------------------------------------------------------
-		ArrayList<String> vmURIList = new ArrayList<String>();
+		ArrayList<String> vmURIList = new ArrayList<>();
 		int numAvm = 2;
 		
 		for (int i = 0; i < numAvm; i++) {
@@ -153,6 +137,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 			applicationVMManagementInboundPortURIList.add("avmip" + i);
 			applicationVMRequestSubmissionInboundPortURIList.add("avmrsip" + i);
 			applicationVMRequestNotificationInboundPortURIList.add("avmrnip" + i);
+			applicationVMRequestNotificationOutboundPortURIList.add("avmrnop" + i);
 		}
 		
 
@@ -162,70 +147,89 @@ public class TestRequestDispatcher extends AbstractCVM {
 		
 		for (int i = 0; i < numAvm; i++) {
 			requestDispatcherSubmissionOutboundPortURIList.add("rdsop" + i);
-			requestDispatcherNotificationOutboundPortURIList.add("rdnop" + i);
+			requestDispatcherNotificationInboundPortURIList.add("rdnip" + i);
 		}
-		
-		this.requestDispatcher = new RequestDispatcher (
-				rdURI, 
+
+		RequestDispatcher requestDispatcher = new RequestDispatcher(
+				rdURI,
+				vmURIList,
 				requestDispatcherManagementInboundPortURI,
 				requestDispatcherSubmissionInboundPortURI,
-				requestDispatcherrNotificationInboundPortURI,
-				vmURIList,
 				requestDispatcherSubmissionOutboundPortURIList,
-				requestDispatcherNotificationOutboundPortURIList
+				requestDispatcherNotificationInboundPortURIList,
+				requestDispatcherNotificationOutboundPortURI
 		);
 		
-		this.addDeployedComponent(this.requestDispatcher);
+		this.addDeployedComponent(requestDispatcher);
 	
 		// Deploy numAvm AVM
 		// --------------------------------------------------------------------
+		// Components
+		// -----------------------------------------------------------------
+		ArrayList<ApplicationVM> applicationVM = new ArrayList<>();
+
 		for (int i = 0; i < numAvm; i++) {
 			try {
-				this.applicationVM = new ApplicationVM (
+				applicationVM.add(new ApplicationVM (
 						vmURIList.get(i), 
 						applicationVMManagementInboundPortURIList.get(i), 
 						applicationVMRequestSubmissionInboundPortURIList.get(i), 
-						applicationVMRequestNotificationInboundPortURIList.get(i)
-				);
+						applicationVMRequestNotificationInboundPortURIList.get(i),
+						applicationVMRequestNotificationOutboundPortURIList.get(i)
+				));
 			} catch (Exception e) {
-				e.printStackTrace();
+				throw new Exception (e);
 			}
-			this.addDeployedComponent(this.applicationVM);
+			this.addDeployedComponent(applicationVM.get(i));
 		}
-		
-		try {
-			for (int i = 0; i < numAvm; i++ ) {
-				this.requestDispatcher.doPortConnection(
+
+		for (int i = 0; i < numAvm; i++ ) {
+			try {
+				requestDispatcher.doPortConnection(
 						requestDispatcherSubmissionOutboundPortURIList.get(i),
-						applicationVMRequestSubmissionInboundPortURIList.get(i), 
+						applicationVMRequestSubmissionInboundPortURIList.get(i),
 						RequestSubmissionConnector.class.getCanonicalName());
+			} catch (Exception e) {
+				throw new ComponentStartException("Exception connecting Dispatcher with AVM for submission " + e);
 			}
-		} catch (Exception e) {
-			System.err.println("Exception connecting Dispatcher with AVM for Submission.");
-			throw new ComponentStartException(e);
+
+			try {
+				applicationVM.get(i).doPortConnection(
+						applicationVMRequestNotificationOutboundPortURIList.get(i),
+						requestDispatcherNotificationInboundPortURIList.get(i),
+						RequestNotificationConnector.class.getCanonicalName());
+			} catch (Exception e) {
+				throw new ComponentStartException("Exception connecting AVM with Dispatcher for notification " + e);
+			}
 		}
 		
 		try {
-			this.requestGenerator.doPortConnection(
+			requestGenerator.doPortConnection(
 				requestGeneratorSubmissionOutboundPortURI,
 				requestDispatcherSubmissionInboundPortURI,
 				RequestSubmissionConnector.class.getCanonicalName());
 		} catch (Exception e) {
-			
-			System.err.println("Exception connecting Request Generator with Dispatcher for Submission");
-			System.err.println(e);
-			throw new Exception(e);
-		}		
-		
+			throw new Exception("Exception connecting Request Generator with Dispatcher for submission " + e);
+		}
+
+		try {
+			requestDispatcher.doPortConnection(
+					requestDispatcherNotificationOutboundPortURI,
+					requestGeneratorNotificationInboundPortURI,
+					RequestNotificationConnector.class.getCanonicalName());
+		} catch (Exception e) {
+			throw new Exception("Exception connecting Request Generator with Dispatcher for notification " + e);
+		}
+
 		// Deploy an integrator.
 		// --------------------------------------------------------------------
-		this.requestDispatcherIntegrator = new RequestDispatcherIntegrator (
-				computerServicesInboundPortURI, 
+		RequestDispatcherIntegrator requestDispatcherIntegrator = new RequestDispatcherIntegrator(
+				computerServicesInboundPortURI,
 				applicationVMManagementInboundPortURIList,
 				requestGeneratorManagementInboundPortURI,
 				requestDispatcherManagementInboundPortURI
 		);
-		this.addDeployedComponent(this.requestDispatcherIntegrator);
+		this.addDeployedComponent(requestDispatcherIntegrator);
 
 		super.deploy();
 	}
@@ -237,9 +241,9 @@ public class TestRequestDispatcher extends AbstractCVM {
 		try {
 			testRequestDispatcher = new TestRequestDispatcher();
 			
-			testRequestDispatcher.startStandardLifeCycle(10000L);
+			testRequestDispatcher.startStandardLifeCycle(500000L);
 			
-			Thread.sleep(40000L);
+			Thread.sleep(500L);
 			System.exit(0);
 			
 		} catch (Exception e2) {

@@ -6,8 +6,8 @@ import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
 
 public interface ApplicationManagementI extends OfferedI, RequiredI {
 	
-	public void doConnectionWithDispatcherForSubmission (String requestDispatcherSubmissionInboundPortUri) 
+	void doConnectionWithDispatcherForSubmission (String requestDispatcherSubmissionInboundPortUri)
 			throws Exception;
 
-	public void doConnectionWithDispatcherForNotification(ReflectionOutboundPort ropDispatcher, String requestDispatcherNotificationOutboundPortUri) throws Exception;
+	void doConnectionWithDispatcherForNotification(ReflectionOutboundPort ropDispatcher, String requestDispatcherNotificationOutboundPortUri) throws Exception;
 }

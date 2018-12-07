@@ -19,13 +19,6 @@ public class RequestDispatcherManagementOutboundPort extends AbstractOutboundPor
 	public RequestDispatcherManagementOutboundPort(ComponentI owner) throws Exception {
 		super(RequestDispatcherManagementI.class, owner);
 		
-		assert	owner != null && owner instanceof RequestDispatcher ;
+		assert owner instanceof RequestDispatcher;
 	}
-	
-	public RequestDispatcherManagementOutboundPort(String uri, ComponentI owner) throws Exception {
-		super(uri, RequestDispatcherManagementI.class, owner);
-		
-		assert	owner != null && owner instanceof RequestDispatcher ;
-	}	
-
 }

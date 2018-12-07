@@ -13,14 +13,7 @@ public class ApplicationManagementOutboundPort extends AbstractOutboundPort impl
 	public ApplicationManagementOutboundPort(ComponentI owner) throws Exception {
 		super(ApplicationManagementI.class, owner);
 		
-		assert owner != null && owner instanceof Application;
-	}
-
-	public ApplicationManagementOutboundPort(String uri, ComponentI owner)
-			throws Exception {
-		super(uri, ApplicationManagementI.class, owner);
-		
-		assert owner != null && owner instanceof Application;
+		assert owner instanceof Application;
 	}
 
 	@Override

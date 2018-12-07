@@ -12,13 +12,6 @@ public class ApplicationSubmissionOutboundPort extends AbstractOutboundPort impl
 	
 		super(ApplicationSubmissionI.class, owner);
 	}
-	
-	public ApplicationSubmissionOutboundPort(String uri, ComponentI owner) throws Exception {
-		
-		super(uri, ApplicationSubmissionI.class, owner);
-
-		assert uri != null;
-	}
 
 	@Override
 	public void submitApplicationAndNotify(String appUri, int mustHaveCores) throws Exception {

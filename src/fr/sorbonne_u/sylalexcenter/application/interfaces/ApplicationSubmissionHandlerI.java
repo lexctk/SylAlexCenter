@@ -9,5 +9,5 @@ package fr.sorbonne_u.sylalexcenter.application.interfaces;
  */
 public interface ApplicationSubmissionHandlerI {
 	
-	public void	acceptApplicationSubmissionAndNotify (String appUri, int mustHaveCores) throws Exception;
+	void acceptApplicationSubmissionAndNotify (String appUri, int mustHaveCores) throws Exception;
 }

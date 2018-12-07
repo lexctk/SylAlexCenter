@@ -10,13 +10,6 @@ public class ApplicationNotificationInboundPort extends	AbstractInboundPort impl
 
 	private static final long serialVersionUID = 1L;
 
-	public ApplicationNotificationInboundPort(ComponentI owner) throws Exception {
-		
-		super(ApplicationNotificationI.class, owner);
-
-		assert owner instanceof ApplicationNotificationHandlerI;		
-	}
-	
 	public ApplicationNotificationInboundPort(String uri, ComponentI owner) throws Exception {
 			
 		super(uri, ApplicationNotificationI.class, owner);

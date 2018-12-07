@@ -10,18 +10,11 @@ public class ApplicationServicesInboundPort extends AbstractInboundPort implemen
 
 	private static final long serialVersionUID = 1L;
 
-	public ApplicationServicesInboundPort(ComponentI owner) throws Exception {
-			
-		super(ApplicationServicesI.class, owner);
-
-		assert owner != null && owner instanceof Application;
-	}
-
 	public ApplicationServicesInboundPort(String uri, ComponentI owner) throws Exception {
 		
 		super(uri, ApplicationServicesI.class, owner);
 
-		assert	owner != null && owner instanceof Application;
+		assert owner instanceof Application;
 	}
 		
 	@Override

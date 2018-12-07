@@ -234,7 +234,7 @@ public class TestApplicationVM extends AbstractCVM {
 		AllocatedCore[] ac = this.csPort.allocateCores(4);
 
 		ApplicationVM vm = new ApplicationVM("vm0", ApplicationVMManagementInboundPortURI,
-				RequestSubmissionInboundPortURI, RequestNotificationOutboundPortURI);
+				RequestSubmissionInboundPortURI, RequestNotificationInboundPortURI, RequestNotificationOutboundPortURI);
 		this.addDeployedComponent(vm);
 		vm.toggleTracing();
 		vm.toggleLogging();
