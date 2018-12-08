@@ -44,7 +44,8 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 	private static final Integer coresPerAVM = 2;
 	
 	private static final Integer[] coresNeeded = new Integer[] {4, 2, 4, 2};
-	
+
+	private static final long applicationTime = 50000L;
 
 	// Port URIs
 	// -----------------------------------------------------------------
@@ -152,6 +153,7 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 						coresNeeded[i],
 						meanInterArrivalTime,
 						meanNumberOfInstructions,
+						applicationTime,
 						applicationManagementInboundPortURI + "_" + i,
 						applicationServicesInboundPortURI + "_" + i,
 						applicationSubmissionInboundPortURI + "_" + i,

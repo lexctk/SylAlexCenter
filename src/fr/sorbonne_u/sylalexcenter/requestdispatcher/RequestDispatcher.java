@@ -1,10 +1,16 @@
 package fr.sorbonne_u.sylalexcenter.requestdispatcher;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
+import fr.sorbonne_u.datacenter.TimeManagement;
+import fr.sorbonne_u.datacenter.interfaces.ControlledDataOfferedI;
+import fr.sorbonne_u.datacenter.interfaces.PushModeControllingI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationI;
@@ -14,8 +20,11 @@ import fr.sorbonne_u.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionOutboundPort;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherDynamicStateI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataInboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
+import fr.sorbonne_u.sylalexcenter.utils.ExponentialMovingAverage;
 
 /**
  * The class <code>RequestDispatcher</code> implements a request dispatcher.
@@ -37,7 +46,8 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherMana
  * @author Sylia Righi
  *
  */
-public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI, RequestSubmissionHandlerI, RequestNotificationHandlerI {
+public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI,
+		RequestSubmissionHandlerI, RequestNotificationHandlerI, PushModeControllingI {
 
 	private static int DEBUG_LEVEL = 2;
 
@@ -51,12 +61,23 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	private ArrayList<RequestSubmissionOutboundPort> rsopList;
 	private ArrayList<RequestNotificationInboundPort> rnipList;
 	private RequestNotificationOutboundPort rnop;
+
+	private RequestDispatcherDynamicStateDataInboundPort rddsdip;
 	
 	// List of available avm
 	private ArrayList<String> vmURIList;
 	private ArrayList<Long> vmPriority;
 
-	
+	// Statistics
+	private double currentAverage;
+	private ExponentialMovingAverage exponentialMovingAverage;
+
+	private HashMap<String, Long> vmStartTime = new HashMap<>();
+	private HashMap<String, Long> vmExecutionTime = new HashMap<>();
+
+	// Data Pushing
+	private ScheduledFuture<?> pushingFuture;
+
 	// Constructor
 	// -------------------------------------------------------------------------
 	public RequestDispatcher (
@@ -66,7 +87,8 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			String requestDispatcherSubmissionInboundPortURI,
 			ArrayList<String> requestDispatcherSubmissionOutboundPortURIList,
 			ArrayList<String> requestDispatcherNotificationInboundPortURIList,
-			String requestDispatcherNotificationOutboundPortURI
+			String requestDispatcherNotificationOutboundPortURI,
+			String requestDispatcherDynamicStateDataInboundPortURI
 		) throws Exception {
 		
 		super(rdURI,1, 1);
@@ -79,6 +101,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		assert requestDispatcherSubmissionOutboundPortURIList != null && requestDispatcherSubmissionOutboundPortURIList.size() > 0;
 		assert requestDispatcherNotificationInboundPortURIList != null && requestDispatcherNotificationInboundPortURIList.size() > 0;
 		assert requestDispatcherNotificationOutboundPortURI != null;
+		assert requestDispatcherDynamicStateDataInboundPortURI != null;
 
 		// initialization
 		this.rdURI = rdURI;
@@ -87,8 +110,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.vmPriority = new ArrayList<>();
 		for (int i = 0; i < this.vmURIList.size(); i++ ) {
 			this.vmPriority.add(System.nanoTime());
-		}	
-		
+		}
+
+		this.exponentialMovingAverage = new ExponentialMovingAverage();
+
 		this.rdmip = new RequestDispatcherManagementInboundPort(requestDispatcherManagementInboundPortURI, this);
 		this.addPort(rdmip);
 		this.rdmip.publishPort();
@@ -119,12 +144,18 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			this.addPort(rsop);
 			this.rsopList.get(i).publishPort();
 		}
-		
+
+		this.addOfferedInterface(ControlledDataOfferedI.ControlledPullI.class);
+		this.rddsdip = new RequestDispatcherDynamicStateDataInboundPort(requestDispatcherDynamicStateDataInboundPortURI, this);
+		this.addPort(rddsdip);
+		this.rddsdip.publishPort();
+
 		this.tracer.setRelativePosition(1, 0);
 		
 		// post-conditions check
 		assert this.rsopList != null && this.rsopList.size() > 0;
 		assert this.rnipList != null && this.rnipList.size() > 0;
+		assert this.rddsdip !=null;
 	}
 
 	// Component life-cycle
@@ -142,6 +173,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			if (this.rsopList.get(i).connected()) this.doPortDisconnection(this.rsopList.get(i).getPortURI());
 		}
 		if (this.rnop.connected()) this.doPortDisconnection(this.rnop.getPortURI());
+		if (this.rddsdip.connected()) this.doPortDisconnection(this.rddsdip.getPortURI());
 
 		super.finalise();
 	}
@@ -157,6 +189,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 				if (this.rnipList.get(i).isPublished()) this.rnipList.get(i).unpublishPort();
 			}
 			if (this.rnop.isPublished()) this.rnop.unpublishPort();
+			if (this.rddsdip.isPublished()) this.rddsdip.unpublishPort();
 			
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e);
@@ -177,10 +210,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		}
 		return index;
 	}
-	
-	// Component internal services
-	// -------------------------------------------------------------------------	
 
+
+	// Component internal services
+	// -------------------------------------------------------------------------
 	/**
 	 * accept a request submission from request generator and send it to
 	 * least recently used AVM
@@ -195,6 +228,8 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		int vmIndex = leastUsedVM();
 		if (vmIndex >= 0) {
 			this.vmPriority.set(vmIndex, System.nanoTime());
+
+			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
 			
 			if (RequestDispatcher.DEBUG_LEVEL == 2) {
 				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI());
@@ -220,7 +255,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		int vmIndex = leastUsedVM();
 		if (vmIndex >= 0) {
 			this.vmPriority.set(vmIndex, System.nanoTime());
-			
+
+			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
+
 			if (RequestDispatcher.DEBUG_LEVEL == 2) {
 				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
 						" and required notification of request execution progress");
@@ -243,12 +280,105 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	@Override
 	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
 		assert r != null;
-		this.rnop.notifyRequestTermination(r);
-		
+
+		this.vmExecutionTime.put(r.getRequestURI(),System.nanoTime() - this.vmStartTime.get(r.getRequestURI()));
+
+		synchronized (this) {
+			currentAverage = exponentialMovingAverage.getNextAverage(this.vmExecutionTime.get(r.getRequestURI()));
+		}
 		if (RequestDispatcher.DEBUG_LEVEL == 2) {
 			this.logMessage ("Request dispatcher " + this.rdURI + " notified request generator that request " + 
 					r.getRequestURI() + " has terminated");
 		}
-	}	
+		this.rnop.notifyRequestTermination(r);
+	}
 
+
+	// Component dynamic state services
+	// -------------------------------------------------------------------------
+
+	public RequestDispatcherDynamicStateI getDynamicState() throws Exception {
+		return new RequestDispatcherDynamicState(this.rdURI, this.currentAverage, this.vmURIList.size());
+	}
+
+	private void sendDynamicState() throws Exception {
+		if (this.rddsdip.connected()) {
+			RequestDispatcherDynamicStateI requestDispatcherDynamicState = this.getDynamicState();
+			this.rddsdip.send(requestDispatcherDynamicState);
+		}
+	}
+
+	private void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
+		this.sendDynamicState();
+		final int fNumberOfRemainingPushes = numberOfRemainingPushes - 1;
+		if (fNumberOfRemainingPushes > 0) {
+			final RequestDispatcher rd = this;
+			this.pushingFuture = this.scheduleTask(
+				new AbstractComponent.AbstractTask() {
+					@Override
+					public void run() {
+						try {
+							rd.sendDynamicState(interval, fNumberOfRemainingPushes);
+						} catch (Exception e) {
+							throw new RuntimeException("Error sending dynamic state " + e);
+						}
+					}
+				},
+				TimeManagement.acceleratedDelay(interval),
+				TimeUnit.MILLISECONDS);
+		}
+	}
+
+	@Override
+	public void startUnlimitedPushing(int interval) throws RuntimeException {
+		final RequestDispatcher rd = this;
+
+		this.pushingFuture = this.scheduleTaskAtFixedRate(
+			new AbstractComponent.AbstractTask() {
+				@Override
+				public void run() {
+					try {
+						rd.sendDynamicState();
+					} catch (Exception e) {
+						throw new RuntimeException("Error unlimited pushing dynamic state " + e);
+					}
+				}
+			},
+			TimeManagement.acceleratedDelay(interval),
+			TimeManagement.acceleratedDelay(interval),
+			TimeUnit.MILLISECONDS);
+	}
+
+	@Override
+	public void startLimitedPushing(int interval, int n) throws RuntimeException {
+		assert n > 0;
+		final RequestDispatcher rd = this;
+
+		this.logMessage(this.rdURI + " startLimitedPushing with interval " + interval + " ms for " + n + " times.");
+
+		this.pushingFuture = this.scheduleTask(
+			new AbstractComponent.AbstractTask() {
+				@Override
+				public void run() {
+					try {
+						rd.sendDynamicState(interval, n);
+					} catch (Exception e) {
+						throw new RuntimeException("Error limited pushing dynamic state " + e);
+					}
+				}
+			},
+			TimeManagement.acceleratedDelay(interval),
+			TimeUnit.MILLISECONDS);
+	}
+
+	@Override
+	public void stopPushing() throws Exception {
+		try {
+			if (this.pushingFuture != null && !(this.pushingFuture.isCancelled() || this.pushingFuture.isDone())) {
+				this.pushingFuture.cancel(false);
+			}
+		} catch (Exception e) {
+			throw new Exception("Error stop pushing " + e);
+		}
+	}
 }

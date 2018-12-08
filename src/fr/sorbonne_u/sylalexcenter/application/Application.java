@@ -49,6 +49,8 @@ public class Application extends AbstractComponent implements ApplicationManagem
 	private final Double meanInterArrivalTime; //for the request generator
 	private final Long meanNumberOfInstructions; //for the request generator
 
+	private final Long applicationTime;
+
 	private String rgURI;
 	private String requestGeneratorManagementInboundPortURI;
 	private String requestGeneratorSubmissionInboundPortURI;
@@ -84,6 +86,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 			Integer coresNeeded, 
 			Double meanInterArrivalTime, 
 			Long meanNumberOfInstructions,
+			Long applicationTime,
 			String applicationManagementInboundPortURI,
 			String applicationServicesInboundPortURI,
 			String applicationSubmissionInboundPortURI,
@@ -107,6 +110,8 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		// Request Generator
 		this.meanInterArrivalTime = meanInterArrivalTime;
 		this.meanNumberOfInstructions = meanNumberOfInstructions;
+
+		this.applicationTime = applicationTime;
 		
 		this.rgURI = appURI + "-rg";
 		this.requestGeneratorManagementInboundPortURI = appURI + "-rgmip";
@@ -268,7 +273,7 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		rgmop.startGeneration();
 		
 		// wait
-		Thread.sleep(50000L);
+		Thread.sleep(applicationTime);
 		
 		// then stop the generation.
 		 rgmop.stopGeneration();

@@ -38,7 +38,8 @@ public class TestAdmissionController extends AbstractCVM {
 	private static final Integer coresPerAVM = 2;
 	
 	private static final Integer[] coresNeeded = new Integer[] {4, 8, 4, 2};
-	
+
+	private static final long applicationTime = 500000L;
 
 	// Port URIs
 	// -----------------------------------------------------------------
@@ -134,6 +135,7 @@ public class TestAdmissionController extends AbstractCVM {
 					coresNeeded[i],
 					meanInterArrivalTime,
 					meanNumberOfInstructions,
+					applicationTime,
 					applicationManagementInboundPortURI + "_" + i,
 					applicationServicesInboundPortURI + "_" + i,
 					applicationSubmissionInboundPortURI + "_" + i,
@@ -201,7 +203,7 @@ public class TestAdmissionController extends AbstractCVM {
 		try {
 			testAdmissionController = new TestAdmissionController();
 			
-			testAdmissionController.startStandardLifeCycle(250000L);
+			testAdmissionController.startStandardLifeCycle(applicationTime*10);
 			
 			Thread.sleep(5000L);
 //			System.exit(0);

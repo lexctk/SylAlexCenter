@@ -32,6 +32,10 @@ import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationSubmissionI
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboundPort;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.PerformanceController;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.connectors.PerformanceControllerManagementConnector;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerManagementI;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 
 public class AdmissionController extends AbstractComponent 
@@ -58,6 +62,8 @@ public class AdmissionController extends AbstractComponent
 	private HashMap<String,ApplicationManagementOutboundPort> amopMap;
 	private HashMap<String,ApplicationSubmissionInboundPort> asipMap;
 	private HashMap<String,ApplicationNotificationOutboundPort> anopMap;
+
+	private HashMap<String, PerformanceControllerManagementOutboundPort> pcmopMap;
 	
 	//private HashMap<String, ComputerData> allocationMap;
 	
@@ -156,6 +162,9 @@ public class AdmissionController extends AbstractComponent
 		this.dccop = new DynamicComponentCreationOutboundPort(this);
 		this.addPort(this.dccop);
 		this.dccop.publishPort();
+
+		this.addRequiredInterface(PerformanceControllerManagementI.class);
+		this.pcmopMap = new HashMap<>();
 		
 		this.tracer.setTitle("Admission Controller");
 		this.tracer.setRelativePosition(2, 0);
@@ -361,6 +370,7 @@ public class AdmissionController extends AbstractComponent
 		String requestDispatcherManagementInboundPortURI = appUri + "-rdmip";
 		String requestDispatcherSubmissionInboundPortURI = appUri + "-rdsip";
 		String requestDispatcherNotificationOutboundPortURI = appUri + "-rdnop";
+		String requestDispatcherDynamicStateDataInboundPortURI = appUri + "-rddsdip";
 		
 		ArrayList<String> requestDispatcherSubmissionOutboundPortURIList = new ArrayList<>();
 		ArrayList<String> requestDispatcherNotificationInboundPortURIList = new ArrayList<>();
@@ -386,7 +396,8 @@ public class AdmissionController extends AbstractComponent
 					requestDispatcherSubmissionInboundPortURI,
 					requestDispatcherSubmissionOutboundPortURIList,
 					requestDispatcherNotificationInboundPortURIList,
-					requestDispatcherNotificationOutboundPortURI
+					requestDispatcherNotificationOutboundPortURI,
+					requestDispatcherDynamicStateDataInboundPortURI
 			});
 		} catch (Exception e) {
 			throw new Exception("Error creating Dispatcher " + e);
@@ -438,8 +449,44 @@ public class AdmissionController extends AbstractComponent
 		
 		this.amopMap.get(appUri).doConnectionWithDispatcherForSubmission(requestDispatcherSubmissionInboundPortURI);
 		this.amopMap.get(appUri).doConnectionWithDispatcherForNotification(rop, requestDispatcherNotificationOutboundPortURI);
-		
-		
+
+
+		// Deploy the Performance Controller
+		// --------------------------------------------------------------------
+		String performanceControllerURI = appUri + "-pc";
+		String performanceControllerManagementInboundPortURI = appUri + "-pcmip";
+		try {
+			this.dccop.createComponent(PerformanceController.class.getCanonicalName(), new Object[] {
+					performanceControllerURI,
+					performanceControllerManagementInboundPortURI,
+					appUri,
+					rdURI,
+					requestDispatcherDynamicStateDataInboundPortURI
+			});
+		} catch (Exception e) {
+			throw new Exception("Error creating Performance Controller " + e);
+		}
+
+		this.pcmopMap.put(performanceControllerURI, new PerformanceControllerManagementOutboundPort(this));
+		this.addPort(this.pcmopMap.get(performanceControllerURI));
+		this.pcmopMap.get(performanceControllerURI).publishPort();
+
+		try {
+			this.doPortConnection(this.pcmopMap.get(performanceControllerURI).getPortURI(),
+					performanceControllerManagementInboundPortURI,
+					PerformanceControllerManagementConnector.class.getCanonicalName());
+		} catch (Exception e) {
+			throw new Exception ("Error connecting performance controller management ports " + e);
+		}
+
+		try {
+			rop.doConnection(performanceControllerURI, ReflectionConnector.class.getCanonicalName());
+		} catch (Exception e) {
+			throw new Exception("Error connecting Reflection Outbound Port for Performance Controller " + e);
+		}
+
+		this.pcmopMap.get(performanceControllerURI).doConnectionWithRequestDispatcherForDynamicState(requestDispatcherDynamicStateDataInboundPortURI);
+
 		// Deploy the integrator
 		// --------------------------------------------------------------------
 		String integratorURI = appUri + "-integrator";

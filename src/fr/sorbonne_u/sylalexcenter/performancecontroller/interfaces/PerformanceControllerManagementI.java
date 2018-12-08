@@ -1,0 +1,6 @@
+package fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces;
+
+public interface PerformanceControllerManagementI {
+
+	void doConnectionWithRequestDispatcherForDynamicState(String requestDispatcherDynamicStateInboundPortUri) throws Exception;
+}

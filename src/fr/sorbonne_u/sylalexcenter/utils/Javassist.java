@@ -1,4 +1,4 @@
-package fr.sorbonne_u.sylalexcenter.application.utils;
+package fr.sorbonne_u.sylalexcenter.utils;
 
 import java.lang.reflect.Method;
 

@@ -48,6 +48,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 	private static final String requestDispatcherManagementInboundPortURI = "rdmip";
 	private static final String requestDispatcherSubmissionInboundPortURI = "rdsip";
 	private static final String requestDispatcherNotificationOutboundPortURI = "rdnop";
+	private static final String requestDispatcherDynamicStateDataInboundPortURI = "rddsdip";
 
 	private static final ArrayList<String> requestDispatcherSubmissionOutboundPortURIList = new ArrayList<>();
 	private static final ArrayList<String> requestDispatcherNotificationInboundPortURIList = new ArrayList<>();
@@ -157,7 +158,8 @@ public class TestRequestDispatcher extends AbstractCVM {
 				requestDispatcherSubmissionInboundPortURI,
 				requestDispatcherSubmissionOutboundPortURIList,
 				requestDispatcherNotificationInboundPortURIList,
-				requestDispatcherNotificationOutboundPortURI
+				requestDispatcherNotificationOutboundPortURI,
+				requestDispatcherDynamicStateDataInboundPortURI
 		);
 		
 		this.addDeployedComponent(requestDispatcher);
