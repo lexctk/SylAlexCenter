@@ -11,5 +11,4 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatche
  *
  */
 public class RequestDispatcherManagementConnector extends AbstractConnector implements RequestDispatcherManagementI {
-
 }

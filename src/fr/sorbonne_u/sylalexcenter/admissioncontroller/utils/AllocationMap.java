@@ -6,6 +6,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 /**
  *
  * Sorbonne University 2018-2019
+ *
  * @author Alexandra Tudor
  * @author Sylia Righi
  *

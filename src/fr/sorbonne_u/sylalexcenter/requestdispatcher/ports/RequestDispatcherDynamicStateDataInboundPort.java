@@ -8,12 +8,6 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 
 public class RequestDispatcherDynamicStateDataInboundPort extends AbstractControlledDataInboundPort {
 
-	public RequestDispatcherDynamicStateDataInboundPort(ComponentI owner) throws Exception {
-		super(owner);
-
-		assert owner instanceof RequestDispatcher;
-	}
-
 	public RequestDispatcherDynamicStateDataInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, owner);
 
@@ -23,7 +17,7 @@ public class RequestDispatcherDynamicStateDataInboundPort extends AbstractContro
 	@Override
 	public DataOfferedI.DataI get() throws Exception {
 		final RequestDispatcher requestDispatcher = (RequestDispatcher) this.owner;
-		return requestDispatcher.handleRequestSync(new AbstractComponent.AbstractService<DataOfferedI.DataI>() {
+		return requestDispatcher.handleRequestSync(new AbstractComponent.AbstractService<>() {
 			@Override
 			public DataOfferedI.DataI call() throws Exception {
 				return requestDispatcher.getDynamicState();

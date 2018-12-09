@@ -39,7 +39,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 	private static final ArrayList<String> applicationVMRequestSubmissionInboundPortURIList = new ArrayList<>();
 	private static final ArrayList<String> applicationVMRequestNotificationInboundPortURIList = new ArrayList<>();
 	private static final ArrayList<String> applicationVMRequestNotificationOutboundPortURIList = new ArrayList<>();
-	
+
 	private static final String requestGeneratorManagementInboundPortURI = "rgmip";
 	private static final String requestGeneratorSubmissionInboundPortURI = "rgsip";
 	private static final String requestGeneratorSubmissionOutboundPortURI = "rgsop";

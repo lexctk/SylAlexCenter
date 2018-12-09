@@ -5,18 +5,25 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatche
 public class RequestDispatcherDynamicState implements RequestDispatcherDynamicStateI {
 
 	private final String rdURI;
+
 	private final double exponentialAverageExecutionTime;
 	private final int availableAVMsCount;
+	private final int totalRequestSubmitted;
+	private final int totalRequestTerminated;
 
 	RequestDispatcherDynamicState(
 			String rdURI,
 			double exponentialAverageExecutionTime,
-			int availableAVMsCount) {
+			int availableAVMsCount,
+			int totalRequestSubmitted,
+			int totalRequestTerminated) {
 
 		super();
 		this.rdURI = rdURI;
 		this.exponentialAverageExecutionTime = exponentialAverageExecutionTime;
 		this.availableAVMsCount = availableAVMsCount;
+		this.totalRequestSubmitted = totalRequestSubmitted;
+		this.totalRequestTerminated = totalRequestTerminated;
 	}
 
 	@Override
@@ -32,5 +39,20 @@ public class RequestDispatcherDynamicState implements RequestDispatcherDynamicSt
 	@Override
 	public int getAvailableAVMsCount() {
 		return this.availableAVMsCount;
+	}
+
+	@Override
+	public int getTotalRequestSubmitted() {
+		return this.totalRequestSubmitted;
+	}
+
+	@Override
+	public int getTotalRequestTerminated() {
+		return this.totalRequestTerminated;
+	}
+
+	@Override
+	public int getQueueSize() {
+		return (this.totalRequestSubmitted - this.totalRequestTerminated);
 	}
 }

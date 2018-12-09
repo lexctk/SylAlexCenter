@@ -37,6 +37,8 @@ import fr.sorbonne_u.sylalexcenter.performancecontroller.connectors.PerformanceC
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerManagementI;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatcherManagementConnector;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 
 public class AdmissionController extends AbstractComponent 
 	implements ApplicationSubmissionHandlerI {
@@ -64,6 +66,7 @@ public class AdmissionController extends AbstractComponent
 	private HashMap<String,ApplicationNotificationOutboundPort> anopMap;
 
 	private HashMap<String, PerformanceControllerManagementOutboundPort> pcmopMap;
+	private HashMap<String, RequestDispatcherManagementOutboundPort> rdmopMap;
 	
 	//private HashMap<String, ComputerData> allocationMap;
 	
@@ -129,7 +132,7 @@ public class AdmissionController extends AbstractComponent
 		// Application Ports
 		this.applicationManagementInboundPortURIMap = new HashMap<>();
 		this.amopMap = new HashMap<>();
-		
+
 		this.asipMap = new HashMap<>();
 		
 		this.applicationNotificationInboundPortURIMap = new HashMap<>();
@@ -146,9 +149,9 @@ public class AdmissionController extends AbstractComponent
 			this.addPort(this.amopMap.get(appsURIList.get(i)));
 			this.amopMap.get(appsURIList.get(i)).publishPort();	
 			
-			this.asipMap.put(appsURIList.get(i), new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURIList.get(i), this));		
+			this.asipMap.put(appsURIList.get(i), new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURIList.get(i), this));
 			this.addPort(this.asipMap.get(appsURIList.get(i)));
-			this.asipMap.get(appsURIList.get(i)).publishPort();	
+			this.asipMap.get(appsURIList.get(i)).publishPort();
 			
 			this.applicationNotificationInboundPortURIMap.put(appsURIList.get(i), applicationNotificationInboundPortURIList.get(i));
 			
@@ -165,6 +168,7 @@ public class AdmissionController extends AbstractComponent
 
 		this.addRequiredInterface(PerformanceControllerManagementI.class);
 		this.pcmopMap = new HashMap<>();
+		this.rdmopMap = new HashMap<>();
 		
 		this.tracer.setTitle("Admission Controller");
 		this.tracer.setRelativePosition(2, 0);
@@ -365,7 +369,6 @@ public class AdmissionController extends AbstractComponent
 		ArrayList<String> avmRequestNotificationInboundPortURIList = new ArrayList<>();
 		ArrayList<String> avmRequestNotificationOutboundPortURIList = new ArrayList<>();
 
-
 		String rdURI = appUri + "-rd";
 		String requestDispatcherManagementInboundPortURI = appUri + "-rdmip";
 		String requestDispatcherSubmissionInboundPortURI = appUri + "-rdsip";
@@ -402,7 +405,19 @@ public class AdmissionController extends AbstractComponent
 		} catch (Exception e) {
 			throw new Exception("Error creating Dispatcher " + e);
 		}
-		
+
+		this.rdmopMap.put(rdURI, new RequestDispatcherManagementOutboundPort(this));
+		this.addPort(this.rdmopMap.get(rdURI));
+		this.rdmopMap.get(rdURI).publishPort();
+
+		try {
+			this.doPortConnection(this.rdmopMap.get(rdURI).getPortURI(),
+					requestDispatcherManagementInboundPortURI,
+					RequestDispatcherManagementConnector.class.getCanonicalName());
+		} catch (Exception e) {
+			throw new Exception ("Error connecting request dispatcher management ports " + e);
+		}
+
 		// Deploy applicationVMCount AVM
 		// --------------------------------------------------------------------
 		for (int i = 0; i < applicationVMCount; i++) {
@@ -450,7 +465,6 @@ public class AdmissionController extends AbstractComponent
 		this.amopMap.get(appUri).doConnectionWithDispatcherForSubmission(requestDispatcherSubmissionInboundPortURI);
 		this.amopMap.get(appUri).doConnectionWithDispatcherForNotification(rop, requestDispatcherNotificationOutboundPortURI);
 
-
 		// Deploy the Performance Controller
 		// --------------------------------------------------------------------
 		String performanceControllerURI = appUri + "-pc";
@@ -494,8 +508,7 @@ public class AdmissionController extends AbstractComponent
 			this.dccop.createComponent(AdmissionControllerIntegrator.class.getCanonicalName(), new Object[] {
 					integratorURI,
 					avmManagementInboundPortURIList,
-					allocatedCores,
-					requestDispatcherManagementInboundPortURI
+					allocatedCores
 			});
 		} catch (Exception e) {
 			throw new Exception("Error creating Integrator " + e);

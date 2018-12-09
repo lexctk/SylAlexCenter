@@ -13,9 +13,9 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDyna
 
 public class PerformanceController extends AbstractComponent implements PerformanceControllerManagementI, RequestDispatcherStateDataConsumerI {
 
-	private static final int timer = 2000;
+	private static final int timer = 4000;
 
-	private String performanceController;
+	private String performanceControllerURI;
 	private String requestDispatcherURI;
 	private String appURI;
 
@@ -26,14 +26,14 @@ public class PerformanceController extends AbstractComponent implements Performa
 	private RequestDispatcherDynamicStateDataOutboundPort rddsdop;
 
 	public PerformanceController(
-			String performanceController,
+			String performanceControllerURI,
 			String performanceControllerManagementInboundPortURI,
 			String appURI,
 			String requestDispatcherURI,
 			String requestDispatcherDynamicStateDataInboundPortURI) throws Exception {
-		super(performanceController, 1, 1);
+		super(performanceControllerURI, 1, 1);
 
-		this.performanceController = performanceController;
+		this.performanceControllerURI = performanceControllerURI;
 		this.appURI = appURI;
 		this.requestDispatcherURI = requestDispatcherURI;
 		this.requestDispatcherDynamicStateDataInboundPortURI = requestDispatcherDynamicStateDataInboundPortURI;
@@ -72,7 +72,7 @@ public class PerformanceController extends AbstractComponent implements Performa
 	public void doConnectionWithRequestDispatcherForDynamicState (String requestDispatcherDynamicStateInboundPortUri) throws Exception {
 		this.doPortConnection(
 				this.rddsdop.getPortURI(),
-				this.requestDispatcherDynamicStateDataInboundPortURI,
+				requestDispatcherDynamicStateInboundPortUri,
 				ControlledDataConnector.class.getCanonicalName());
 		try {
 			this.rddsdop.startUnlimitedPushing(timer);
@@ -86,7 +86,10 @@ public class PerformanceController extends AbstractComponent implements Performa
 	public synchronized void acceptRequestDispatcherDynamicData (String requestDispatcherURI, RequestDispatcherDynamicStateI currentDynamicState) throws Exception {
 		if (!requestDispatcherURI.equals(this.requestDispatcherURI)) return;
 
-		this.logMessage("Average execution time for " + this.appURI + " is " + currentDynamicState.getExponentialAverageExecutionTime());
+		this.logMessage("Average execution time " + this.appURI + " with "
+				+ currentDynamicState.getAvailableAVMsCount() +  " AVMs: "
+				+ currentDynamicState.getExponentialAverageExecutionTime());
+		this.logMessage(this.appURI + " queue size " + currentDynamicState.getQueueSize());
 	}
 
 }

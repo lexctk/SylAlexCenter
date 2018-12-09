@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenter.hardware.computers;
 
-// Copyright Jacques Malenfant, Sorbonne Universite.
-// 
-// Jacques.Malenfant@lip6.fr
-// 
-// This software is a computer program whose purpose is to provide a
-// basic component programming model to program with components
-// distributed applications in the Java programming language.
-// 
-// This software is governed by the CeCILL-C license under French law and
-// abiding by the rules of distribution of free software.  You can use,
-// modify and/ or redistribute the software under the terms of the
-// CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-// URL "http://www.cecill.info".
-// 
-// As a counterpart to the access to the source code and  rights to copy,
-// modify and redistribute granted by the license, users are provided only
-// with a limited warranty  and the software's author,  the holder of the
-// economic rights,  and the successive licensors  have only  limited
-// liability. 
-// 
-// In this respect, the user's attention is drawn to the risks associated
-// with loading,  using,  modifying and/or developing or reproducing the
-// software by the user in light of its specific status of free software,
-// that may mean  that it is complicated to manipulate,  and  that  also
-// therefore means  that it is reserved for developers  and  experienced
-// professionals having in-depth computer knowledge. Users are therefore
-// encouraged to load and test the software's suitability as regards their
-// requirements in conditions enabling the security of their systems and/or 
-// data to be ensured and,  more generally, to use and operate it in the 
-// same conditions as regards security. 
-// 
-// The fact that you are presently reading this means that you have had
-// knowledge of the CeCILL-C license and that you accept its terms.
-
 import java.io.Serializable;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -91,7 +57,7 @@ import fr.sorbonne_u.datacenter.interfaces.PushModeControllingI;
  * The computer component offers its baseline services through the interface
  * <code>ComputerServicesI</code>. It allows to obtain information about its
  * static state by offering the interface <code>ComputerStaticStateDataI</code>,
- * which is a simple subinterface of the standard component interface
+ * which is a simple sub interface of the standard component interface
  * <code>DataOfferedI</code>, and thus offers its pull interface and requires
  * its push one. Similarly, it allows to obtain information about its dynamic
  * state by offering the interface <code>ComputerDynamicStateDataI</code>, which
@@ -157,9 +123,9 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * invariant		processorURI != null
 	 * invariant		processorNo &gt;= 0 and coreNo &gt;= 0
 	 * invariant		processorInboundPortURI != null
-	 * invariant		forall uri in processorInboundPortURI.values() {
+	 * invariant		for all uri in processorInboundPortURI.values() {
 	 * 				    uri != null
-	 * 				}
+	 * 				    }
 	 * </pre>
 	 * 
 	 * <p>
@@ -171,7 +137,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	public static class AllocatedCore implements Serializable {
 		private static final long serialVersionUID = 1L;
 		/** the number of the owning processor within its computer. */
-		public final int processorNo;
+		final int processorNo;
 		/** the URI of the owning processor within its computer. */
 		public final String processorURI;
 		/** the number of the core within its owning processor. */
@@ -192,10 +158,10 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		 * pre	processorURI != null
 		 * pre	processorNo &gt;= 0 and coreNo &gt;= 0
 		 * pre	processorInboundPortURI != null
-		 * pre	forall uri in processorInboundPortURI.values() {
+		 * pre	for all uri in processorInboundPortURI.values() {
 		 * 		    uri != null
 		 * 		}
-		 * post	true			// no postcondition.
+		 * post	true			// no post condition.
 		 * </pre>
 		 *
 		 * @param processorNo             processor number within the computer.
@@ -231,35 +197,35 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	/** URI of the computer component. */
 	protected final String computerURI;
 	/** the number of processor owned by the computer. */
-	protected final int numberOfProcessors;
+	private final int numberOfProcessors;
 	/** references to the owned processor components for internal usage. */
 	protected final Processor[] processors;
 	/**
 	 * ports of the computer receiving the static data from its processor
 	 * components.
 	 */
-	protected final ProcessorStaticStateDataOutboundPort[] processorStaticDataOutboundPorts;
+	private final ProcessorStaticStateDataOutboundPort[] processorStaticDataOutboundPorts;
 	/**
 	 * ports of the computer receiving the dynamic data from its processor
 	 * components.
 	 */
-	protected final ProcessorDynamicStateDataOutboundPort[] processorDynamicDataOutboundPorts;
+	private final ProcessorDynamicStateDataOutboundPort[] processorDynamicDataOutboundPorts;
 	/** number of cores of each processor (processor are core homogeneous). */
-	protected final int numberOfCores;
+	private final int numberOfCores;
 	/** a map from processor numbers to processors URI. */
-	protected final Map<Integer, String> processorsURI;
+	private final Map<Integer, String> processorsURI;
 	/** a map from processor URI to their different inbound ports URI. */
-	protected final Map<String, Map<Processor.ProcessorPortTypes, String>> processorsInboundPortURI;
+	private final Map<String, Map<Processor.ProcessorPortTypes, String>> processorsInboundPortURI;
 	/** array collecting the reservation status of the cores. */
-	protected boolean[][] reservedCores;
+	private boolean[][] reservedCores;
 	/** computer inbound port through which management methods are called. */
-	protected ComputerServicesInboundPort computerServicesInboundPort;
+	private ComputerServicesInboundPort computerServicesInboundPort;
 	/** computer data inbound port through which it pushes its static data. */
-	protected ComputerStaticStateDataInboundPort computerStaticStateDataInboundPort;
+	private ComputerStaticStateDataInboundPort computerStaticStateDataInboundPort;
 	/** computer data inbound port through which it pushes its dynamic data. */
-	protected ComputerDynamicStateDataInboundPort computerDynamicStateDataInboundPort;
+	private ComputerDynamicStateDataInboundPort computerDynamicStateDataInboundPort;
 	/** future of the task scheduled to push dynamic data. */
-	protected ScheduledFuture<?> pushingFuture;
+	private ScheduledFuture<?> pushingFuture;
 
 	// ------------------------------------------------------------------------
 	// Component constructor
@@ -274,17 +240,17 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * 
 	 * <pre>
 	 * pre	computerURI != null
-	 * pre	possibleFrequencies != null and forall i in possibleFrequencies, i &gt; 0
-	 * pre	processingPower != null and forall i in processingPower.values(), i &gt; 0
+	 * pre	possibleFrequencies != null and for all i in possibleFrequencies, i &gt; 0
+	 * pre	processingPower != null and for all i in processingPower.values(), i &gt; 0
 	 * pre	processingPower.keySet().containsAll(possibleFrequencies)
 	 * pre	possibleFrequencies.contains(defaultFrequency)
-	 * pre	maxFrequencyGap &gt;= 0 and forall i in possibleFrequencies, maxFrequencyGap &lt;= i
+	 * pre	maxFrequencyGap &gt;= 0 and for all i in possibleFrequencies, maxFrequencyGap &lt;= i
 	 * pre	numberOfProcessors &gt; 0
 	 * pre	numberOfCores &gt; 0
 	 * pre	computerServicesInboundPortURI != null
 	 * pre	computerStaticStateDataInboundPortURI != null
 	 * pre	computerDynamicStateDataInboundPortURI != null
-	 * post	true			// no postcondition.
+	 * post	true			// no post condition.
 	 * </pre>
 	 *
 	 * @param computerURI                            URI of the computer.
@@ -305,7 +271,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 *                                               notification inbound port.
 	 * @param computerDynamicStateDataInboundPortURI URI of the computer dynamic
 	 *                                               data notification inbound port.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
 	public Computer(String computerURI, Set<Integer> possibleFrequencies, Map<Integer, Integer> processingPower,
 			int defaultFrequency, int maxFrequencyGap, int numberOfProcessors, int numberOfCores,
@@ -356,17 +322,17 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		this.processors = new Processor[numberOfProcessors];
 		this.processorStaticDataOutboundPorts = new ProcessorStaticStateDataOutboundPort[numberOfProcessors];
 		this.processorDynamicDataOutboundPorts = new ProcessorDynamicStateDataOutboundPort[numberOfProcessors];
-		this.processorsURI = new HashMap<Integer, String>();
-		this.processorsInboundPortURI = new HashMap<String, Map<Processor.ProcessorPortTypes, String>>();
+		this.processorsURI = new HashMap<>();
+		this.processorsInboundPortURI = new HashMap<>();
 		// Create the different processors
 		for (int i = 0; i < numberOfProcessors; i++) {
 			// generate URI for the processor and its different ports
 			String processorURI = this.computerURI + "-processor-" + i;
-			String psibpURI = processorURI + "-psibp";
-			String piibpURI = processorURI + "-piibp";
-			String pmibpURI = processorURI + "-pmibp";
-			String pssdibpURI = processorURI + "-pssdibp";
-			String pdsdibpURI = processorURI + "-pdsdibp";
+			String psipURI = processorURI + "-psip";
+			String piipURI = processorURI + "-piip";
+			String pmipURI = processorURI + "-pmip";
+			String pssdipURI = processorURI + "-pssdip";
+			String pdsdipURI = processorURI + "-pdsdip";
 
 			// record the mapping between the processor number and its generated
 			// URI
@@ -374,33 +340,33 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 
 			// create the processor component
 			this.processors[i] = new Processor(processorURI, possibleFrequencies, processingPower, defaultFrequency,
-					maxFrequencyGap, numberOfCores, psibpURI, piibpURI, pmibpURI, pssdibpURI, pdsdibpURI);
+					maxFrequencyGap, numberOfCores, psipURI, piipURI, pmipURI, pssdipURI, pdsdipURI);
 			// add it to the deployed components in the CVM
 			AbstractCVM.getCVM().addDeployedComponent(this.processors[i]);
 
 			// create a map between the port types and the ports URI
-			EnumMap<Processor.ProcessorPortTypes, String> map = new EnumMap<Processor.ProcessorPortTypes, String>(
+			EnumMap<Processor.ProcessorPortTypes, String> map = new EnumMap<>(
 					Processor.ProcessorPortTypes.class);
-			map.put(Processor.ProcessorPortTypes.SERVICES, psibpURI);
-			map.put(Processor.ProcessorPortTypes.INTROSPECTION, piibpURI);
-			map.put(Processor.ProcessorPortTypes.MANAGEMENT, pmibpURI);
-			map.put(Processor.ProcessorPortTypes.STATIC_STATE, pssdibpURI);
-			map.put(Processor.ProcessorPortTypes.DYNAMIC_STATE, pdsdibpURI);
+			map.put(Processor.ProcessorPortTypes.SERVICES, psipURI);
+			map.put(Processor.ProcessorPortTypes.INTROSPECTION, piipURI);
+			map.put(Processor.ProcessorPortTypes.MANAGEMENT, pmipURI);
+			map.put(Processor.ProcessorPortTypes.STATIC_STATE, pssdipURI);
+			map.put(Processor.ProcessorPortTypes.DYNAMIC_STATE, pdsdipURI);
 			// record this map for the processor in the computer data
 			this.processorsInboundPortURI.put(processorURI, map);
 
-			// create the computer ports to receive the static and dynmaic data
+			// create the computer ports to receive the static and dynamic data
 			// from the processor
 			this.processorStaticDataOutboundPorts[i] = new ProcessorStaticStateDataOutboundPort(this, processorURI);
 			this.addPort(this.processorStaticDataOutboundPorts[i]);
 			this.processorStaticDataOutboundPorts[i].publishPort();
-			this.doPortConnection(this.processorStaticDataOutboundPorts[i].getPortURI(), pssdibpURI,
+			this.doPortConnection(this.processorStaticDataOutboundPorts[i].getPortURI(), pssdipURI,
 					DataConnector.class.getCanonicalName());
 
 			this.processorDynamicDataOutboundPorts[i] = new ProcessorDynamicStateDataOutboundPort(this, processorURI);
 			this.addPort(this.processorDynamicDataOutboundPorts[i]);
 			this.processorDynamicDataOutboundPorts[i].publishPort();
-			this.doPortConnection(this.processorDynamicDataOutboundPorts[i].getPortURI(), pdsdibpURI,
+			this.doPortConnection(this.processorDynamicDataOutboundPorts[i].getPortURI(), pdsdipURI,
 					ControlledDataConnector.class.getCanonicalName());
 		}
 
@@ -475,7 +441,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * 
 	 * <pre>
 	 * pre	true				// no more preconditions.
-	 * post	true				// no more postconditions.
+	 * post	true				// no more post conditions.
 	 * </pre>
 	 * 
 	 * @see fr.sorbonne_u.components.AbstractComponent#shutdown()
@@ -505,7 +471,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * 
 	 * <pre>
 	 * pre	true				// no more preconditions.
-	 * post	true				// no more postconditions.
+	 * post	true				// no more post conditions.
 	 * </pre>
 	 * 
 	 * @see fr.sorbonne_u.components.AbstractComponent#toggleLogging()
@@ -527,7 +493,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * 
 	 * <pre>
 	 * pre	true				// no more preconditions.
-	 * post	true				// no more postconditions.
+	 * post	true				// no more post conditions.
 	 * </pre>
 	 * 
 	 * @see fr.sorbonne_u.components.AbstractComponent#toggleTracing()
@@ -557,15 +523,15 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * </pre>
 	 *
 	 * @return the static state of the computer.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
 	public ComputerStaticStateI getStaticState() throws Exception {
-		Map<Integer, String> pURIs = new HashMap<Integer, String>(this.processorsURI.size());
-		Map<String, Map<Processor.ProcessorPortTypes, String>> pPortsURI = new HashMap<String, Map<Processor.ProcessorPortTypes, String>>(
+		Map<Integer, String> pURIs = new HashMap<>(this.processorsURI.size());
+		Map<String, Map<Processor.ProcessorPortTypes, String>> pPortsURI = new HashMap<>(
 				this.processorsURI.size());
 		for (Integer n : this.processorsURI.keySet()) {
 			pURIs.put(n, this.processorsURI.get(n));
-			Map<Processor.ProcessorPortTypes, String> pIbpURIs = new HashMap<Processor.ProcessorPortTypes, String>();
+			Map<Processor.ProcessorPortTypes, String> pIbpURIs = new HashMap<>();
 			for (Processor.ProcessorPortTypes ppt : this.processorsInboundPortURI.get(this.processorsURI.get(n))
 					.keySet()) {
 				pIbpURIs.put(ppt, this.processorsInboundPortURI.get(this.processorsURI.get(n)).get(ppt));
@@ -588,9 +554,9 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
-	public void sendStaticState() throws Exception {
+	private void sendStaticState() throws Exception {
 		if (this.computerStaticStateDataInboundPort.connected()) {
 			ComputerStaticStateI css = this.getStaticState();
 			this.computerStaticStateDataInboundPort.send(css);
@@ -614,7 +580,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * </pre>
 	 *
 	 * @return the dynamic state of the computer.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
 	public ComputerDynamicStateI getDynamicState() throws Exception {
 		return new ComputerDynamicState(this.computerURI, this.reservedCores);
@@ -633,9 +599,9 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
-	public void sendDynamicState() throws Exception {
+	private void sendDynamicState() throws Exception {
 		if (this.computerDynamicStateDataInboundPort.connected()) {
 			ComputerDynamicStateI cds = this.getDynamicState();
 			this.computerDynamicStateDataInboundPort.send(cds);
@@ -657,9 +623,9 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 *
 	 * @param interval                time interval between data pushes.
 	 * @param numberOfRemainingPushes number of data pushes yet to be done.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
-	public void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
+	private void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
 		this.sendDynamicState();
 		final int fNumberOfRemainingPushes = numberOfRemainingPushes - 1;
 		if (fNumberOfRemainingPushes > 0) {
@@ -763,24 +729,24 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		this.logMessage("  number of cores        : " + ss.getNumberOfCores());
 		this.logMessage("  default frequency      : " + ss.getDefaultFrequency());
 		this.logMessage("  max. frequency gap     : " + ss.getMaxFrequencyGap());
-		String adfreq = "  admissible frequencies : [";
+		StringBuilder admissibleFrequencies = new StringBuilder("  admissible frequencies : [");
 		int count = ss.getAdmissibleFrequencies().size();
 		for (Integer f : ss.getAdmissibleFrequencies()) {
-			adfreq += "" + f;
+			admissibleFrequencies.append(f);
 			count--;
 			if (count > 0) {
-				adfreq += ", ";
+				admissibleFrequencies.append(", ");
 			}
 		}
-		adfreq += "]";
-		this.logMessage(adfreq);
-		String pp = "  processing power       : [";
+		admissibleFrequencies.append("]");
+		this.logMessage(admissibleFrequencies.toString());
+		StringBuilder pp = new StringBuilder("  processing power       : [");
 		count = ss.getProcessingPower().entrySet().size();
 		for (Entry<Integer, Integer> e : ss.getProcessingPower().entrySet()) {
-			pp += "(" + e.getKey() + " => " + e.getValue() + ")";
+			pp.append("(").append(e.getKey()).append(" => ").append(e.getValue()).append(")");
 			count--;
 			if (count > 0) {
-				pp += ", ";
+				pp.append(", ");
 			}
 		}
 		this.logMessage(pp + "]");
@@ -810,19 +776,19 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		this.logMessage("Computer " + this.computerURI + " accepting dynamic data from " + processorURI);
 		this.logMessage("  timestamp                : " + cds.getTimeStamp());
 		this.logMessage("  timestamper id           : " + cds.getTimeStamperId());
-		String idleStatus = "  current idle status      : [";
+		StringBuilder idleStatus = new StringBuilder("  current idle status      : [");
 		for (int i = 0; i < cds.getCoresIdleStatus().length; i++) {
-			idleStatus += cds.getCoreIdleStatus(i);
+			idleStatus.append(cds.getCoreIdleStatus(i));
 			if (i < cds.getCoresIdleStatus().length - 1) {
-				idleStatus += ", ";
+				idleStatus.append(", ");
 			}
 		}
 		this.logMessage(idleStatus + "]");
-		String coreFreq = "  current core frequencies : [";
+		StringBuilder coreFreq = new StringBuilder("  current core frequencies : [");
 		for (int i = 0; i < cds.getCurrentCoreFrequencies().length; i++) {
-			coreFreq += cds.getCurrentCoreFrequency(i);
+			coreFreq.append(cds.getCurrentCoreFrequency(i));
 			if (i < cds.getCurrentCoreFrequencies().length - 1) {
-				coreFreq += ", ";
+				coreFreq.append(", ");
 			}
 		}
 		this.logMessage(coreFreq + "]");
@@ -849,7 +815,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 *
 	 * @return an instance of <code>AllocatedCore</code> with the data about the
 	 *         allocated core.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
 	public AllocatedCore allocateCore() throws Exception {
 		AllocatedCore ret = null;
@@ -890,10 +856,10 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * @param numberRequested number of cores to be allocated.
 	 * @return an array of instances of <code>AllocatedCore</code> with the data
 	 *         about the allocated cores.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
 	public AllocatedCore[] allocateCores(int numberRequested) throws Exception {
-		Vector<AllocatedCore> allocated = new Vector<AllocatedCore>(numberRequested);
+		Vector<AllocatedCore> allocated = new Vector<>(numberRequested);
 		boolean notExhausted = true;
 		for (int i = 0; notExhausted && i < numberRequested; i++) {
 			AllocatedCore c = this.allocateCore();
@@ -907,7 +873,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	}
 
 	/**
-	 * releases a priorly reserved core.
+	 * releases a previously reserved core.
 	 * 
 	 * <p>
 	 * <strong>Contract</strong>
@@ -918,8 +884,8 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * post	!this.isReserved(ac.processorNo, ac.coreNo) ;
 	 * </pre>
 	 *
-	 * @param ac priorly allocated core data.
-	 * @throws Exception <i>todo.</i>
+	 * @param ac previously allocated core data.
+	 * @throws Exception exception
 	 */
 	public void releaseCore(AllocatedCore ac) throws Exception {
 		assert this.isReserved(ac.processorNo, ac.coreNo);
@@ -930,7 +896,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	}
 
 	/**
-	 * release an array of priorly reserved cores.
+	 * release an array of previously reserved cores.
 	 * 
 	 * <p>
 	 * <strong>Contract</strong>
@@ -941,12 +907,12 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @param acs array of priorly allocated cores data.
-	 * @throws Exception <i>todo.</i>
+	 * @param acs array of previously allocated cores data.
+	 * @throws Exception exception
 	 */
 	public void releaseCores(AllocatedCore[] acs) throws Exception {
-		for (int i = 0; i < acs.length; i++) {
-			this.releaseCore(acs[i]);
+		for (AllocatedCore ac : acs) {
+			this.releaseCore(ac);
 		}
 	}
 
@@ -994,9 +960,9 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * @param processorNo number of the processor on which is the core to be tested.
 	 * @param coreNo      number of the core to be tested.
 	 * @return true if the core is reserved, false otherwise.
-	 * @throws Exception <i>todo.</i>
+	 * @throws Exception exception
 	 */
-	public boolean isReserved(int processorNo, int coreNo) throws Exception {
+	private boolean isReserved(int processorNo, int coreNo) throws Exception {
 		return this.reservedCores[processorNo][coreNo];
 	}
 
@@ -1033,16 +999,16 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		assert processorsInboundPortURI != null;
 		assert processorsURI.size() == processorsInboundPortURI.size();
 
-		StringBuffer sb = new StringBuffer();
-		String leading = "";
+		StringBuilder sb = new StringBuilder();
+		StringBuilder leading = new StringBuilder();
 		for (int i = 0; i < leadingBlanks; i++) {
-			leading += " ";
+			leading.append(" ");
 		}
 		for (int p = 0; p < processorsURI.size(); p++) {
-			sb.append(leading + processorsURI.get(p) + "\n");
+			sb.append(leading).append(processorsURI.get(p)).append("\n");
 			Map<Processor.ProcessorPortTypes, String> pURIs = processorsInboundPortURI.get(processorsURI.get(p));
 			for (Processor.ProcessorPortTypes pt : pURIs.keySet()) {
-				sb.append(leading + "    " + pt + "  " + pURIs.get(pt) + "\n");
+				sb.append(leading).append("    ").append(pt).append("  ").append(pURIs.get(pt)).append("\n");
 			}
 		}
 		return sb.toString();

@@ -84,39 +84,39 @@ public abstract class Javassist {
 
 		for (Method aMethodsToImplement : methodsToImplement) {
 
-			String source = "public ";
-			source += aMethodsToImplement.getReturnType().getTypeName() + " ";
-			source += aMethodsToImplement.getName() + "(";
+			StringBuilder source = new StringBuilder("public ");
+			source.append(aMethodsToImplement.getReturnType().getTypeName()).append(" ");
+			source.append(aMethodsToImplement.getName()).append("(");
 
 			Class<?>[] pt = aMethodsToImplement.getParameterTypes();
-			String callParam = "";
+			StringBuilder callParam = new StringBuilder();
 
 			for (int j = 0; j < pt.length; j++) {
 				String pName = "arg" + j;
-				source += pt[j].getCanonicalName() + " " + pName;
-				callParam += pName;
+				source.append(pt[j].getCanonicalName()).append(" ").append(pName);
+				callParam.append(pName);
 				if (j < pt.length - 1) {
-					source += ", ";
-					callParam += ", ";
+					source.append(", ");
+					callParam.append(", ");
 				}
 			}
-			source += ")";
+			source.append(")");
 			Class<?>[] et = aMethodsToImplement.getExceptionTypes();
 			if (et.length > 0) {
-				source += " throws ";
+				source.append(" throws ");
 
 				for (int z = 0; z < et.length; z++) {
-					source += et[z].getCanonicalName();
+					source.append(et[z].getCanonicalName());
 					if (z < et.length - 1) {
-						source += ",";
+						source.append(",");
 					}
 				}
 			}
-			source += " {\n\n	return ((";
-			source += connectorImplementedInterface.getCanonicalName() + ")this.offering).";
-			source += aMethodsToImplement.getName();
-			source += "(" + callParam + ");\n}";
-			CtMethod theCtMethod = CtMethod.make(source, connectorCtClass);
+			source.append(" {\n\n	return ((");
+			source.append(connectorImplementedInterface.getCanonicalName()).append(")this.offering).");
+			source.append(aMethodsToImplement.getName());
+			source.append("(").append(callParam).append(");\n}");
+			CtMethod theCtMethod = CtMethod.make(source.toString(), connectorCtClass);
 			connectorCtClass.addMethod(theCtMethod);
 		}
 		

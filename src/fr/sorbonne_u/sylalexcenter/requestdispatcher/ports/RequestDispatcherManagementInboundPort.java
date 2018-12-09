@@ -19,13 +19,12 @@ public class RequestDispatcherManagementInboundPort extends AbstractInboundPort 
 	public RequestDispatcherManagementInboundPort(ComponentI owner) throws Exception {
 		super(RequestDispatcherManagementI.class, owner);
 		
-		assert	owner != null && owner instanceof RequestDispatcher ;
+		assert owner instanceof RequestDispatcher;
 	}
 	
 	public RequestDispatcherManagementInboundPort(String uri, ComponentI owner) throws Exception {
 		super(uri, RequestDispatcherManagementI.class, owner);
 		
-		assert	owner != null && owner instanceof RequestDispatcher ;
-	}	
-
+		assert owner instanceof RequestDispatcher;
+	}
 }

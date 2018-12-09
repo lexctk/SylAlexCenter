@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenter.hardware.tests;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
@@ -79,11 +45,11 @@ public class ComputerMonitor extends AbstractComponent implements ComputerStateD
 	// Constants and instance variables
 	// -------------------------------------------------------------------------
 
-	protected boolean active;
-	protected String computerStaticStateDataInboundPortURI;
-	protected String computerDynamicStateDataInboundPortURI;
-	protected ComputerStaticStateDataOutboundPort cssPort;
-	protected ComputerDynamicStateDataOutboundPort cdsPort;
+	private boolean active;
+	private String computerStaticStateDataInboundPortURI;
+	private String computerDynamicStateDataInboundPortURI;
+	private ComputerStaticStateDataOutboundPort cssPort;
+	private ComputerDynamicStateDataOutboundPort cdsPort;
 
 	// -------------------------------------------------------------------------
 	// Constructors
@@ -129,7 +95,7 @@ public class ComputerMonitor extends AbstractComponent implements ComputerStateD
 					ControlledDataConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new ComponentStartException(
-					"Unable to start the pushing of dynamic data from" + " the comoter component.", e);
+					"Unable to start the pushing of dynamic data from" + " the computer component.", e);
 		}
 	}
 
@@ -174,19 +140,19 @@ public class ComputerMonitor extends AbstractComponent implements ComputerStateD
 	@Override
 	public void acceptComputerStaticData(String computerURI, ComputerStaticStateI ss) throws Exception {
 		if (this.active) {
-			StringBuffer sb = new StringBuffer();
-			sb.append("Accepting static data from " + computerURI + "\n");
-			sb.append("  timestamp                      : " + ss.getTimeStamp() + "\n");
-			sb.append("  timestamper id                 : " + ss.getTimeStamperId() + "\n");
-			sb.append("  number of processors           : " + ss.getNumberOfProcessors() + "\n");
-			sb.append("  number of cores per processors : " + ss.getNumberOfCoresPerProcessor() + "\n");
+			StringBuilder sb = new StringBuilder();
+			sb.append("Accepting static data from ").append(computerURI).append("\n");
+			sb.append("  timestamp                      : ").append(ss.getTimeStamp()).append("\n");
+			sb.append("  timestamper id                 : ").append(ss.getTimeStamperId()).append("\n");
+			sb.append("  number of processors           : ").append(ss.getNumberOfProcessors()).append("\n");
+			sb.append("  number of cores per processors : ").append(ss.getNumberOfCoresPerProcessor()).append("\n");
 			for (int p = 0; p < ss.getNumberOfProcessors(); p++) {
 				if (p == 0) {
 					sb.append("  processor URIs                 : ");
 				} else {
 					sb.append("                                 : ");
 				}
-				sb.append(p + "  " + ss.getProcessorURIs().get(p) + "\n");
+				sb.append(p).append("  ").append(ss.getProcessorURIs().get(p)).append("\n");
 			}
 			sb.append("  processor port URIs            : " + "\n");
 			sb.append(Computer.printProcessorsInboundPortURI(10, ss.getNumberOfProcessors(), ss.getProcessorURIs(),
@@ -198,10 +164,10 @@ public class ComputerMonitor extends AbstractComponent implements ComputerStateD
 	@Override
 	public void acceptComputerDynamicData(String computerURI, ComputerDynamicStateI cds) throws Exception {
 		if (this.active) {
-			StringBuffer sb = new StringBuffer();
-			sb.append("Accepting dynamic data from " + computerURI + "\n");
-			sb.append("  timestamp                : " + cds.getTimeStamp() + "\n");
-			sb.append("  timestamper id           : " + cds.getTimeStamperId() + "\n");
+			StringBuilder sb = new StringBuilder();
+			sb.append("Accepting dynamic data from ").append(computerURI).append("\n");
+			sb.append("  timestamp                : ").append(cds.getTimeStamp()).append("\n");
+			sb.append("  timestamper id           : ").append(cds.getTimeStamperId()).append("\n");
 
 			boolean[][] reservedCores = cds.getCurrentCoreReservations();
 			for (int p = 0; p < reservedCores.length; p++) {

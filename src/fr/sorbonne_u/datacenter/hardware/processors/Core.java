@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenter.hardware.processors;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -79,9 +45,9 @@ import fr.sorbonne_u.datacenter.software.applicationvm.interfaces.TaskI;
  * <pre>
  * invariant		owner != null and admissibleFrequencies != null
  * invariant		admissibleFrequencies.contains(defaultFrequency)
- * invariant		forall i in admissibleFrequencies, i &gt; 0
+ * invariant		for all i in admissibleFrequencies, i &gt; 0
  * invariant		processingPower != null
- * invariant		forall i in processingPower.values(), i &gt; 0
+ * invariant		for all i in processingPower.values(), i &gt; 0
  * </pre>
  * 
  * <p>
@@ -99,7 +65,7 @@ public class Core {
 	 * shortest delay (in ms) before task termination to authorize a replanning of
 	 * its termination event after changing the frequency.
 	 */
-	protected static int SHORTEST_DELAY_FOR_REPLANNING = 20;
+	private static int SHORTEST_DELAY_FOR_REPLANNING = 20;
 
 	// ------------------------------------------------------------------------
 	// Instance variables
@@ -110,26 +76,24 @@ public class Core {
 	/** number of the core in the processor. */
 	protected final int coreNo;
 	/** possible frequencies in MHz. */
-	protected final Set<Integer> admissibleFrequencies;
-	/** default frequency at which the cores run. */
-	protected final int defaultFrequency;
+	private final Set<Integer> admissibleFrequencies;
 	/** Mips for the different possible frequencies. */
 	protected final HashMap<Integer, Integer> processingPower;
 	/** current frequency of the core. */
-	protected int currentFrequency;
+	private int currentFrequency;
 	/** true if the core is currently idle, false otherwise. */
-	protected boolean idle;
+	private boolean idle;
 	/** task currently running on the core, if any, null otherwise. */
-	protected TaskI currentTask;
+	private TaskI currentTask;
 	/** starting time or last restarting time of the current task. */
-	protected long lastTaskReStartTime;
+	private long lastTaskReStartTime;
 	/** projected time of ending of the current task. */
-	protected long currentTaskProjectedTermination;
+	private long currentTaskProjectedTermination;
 	/**
 	 * a future giving a handle on the end of task processing currently scheduled,
 	 * allowing to cancel it when a replanning of the end if necessary.
 	 */
-	protected Future<?> currentTaskEndFuture;
+	private Future<?> currentTaskEndFuture;
 
 	// ------------------------------------------------------------------------
 	// Constructors
@@ -145,9 +109,9 @@ public class Core {
 	 * <pre>
 	 * pre	owner != null
 	 * pre	coreNo &gt;= 0
-	 * pre	admissibleFrequencies != null and forall i in admissibleFrequencies, i &gt;= 0
-	 * pre	processingPower != null and forall i in processingPower.values(), i &gt;= 0
-	 * pre	forall i in admissibleFrequencies, processingPower.containsKey(i)
+	 * pre	admissibleFrequencies != null and for all i in admissibleFrequencies, i &gt;= 0
+	 * pre	processingPower != null and for all i in processingPower.values(), i &gt;= 0
+	 * pre	for all i in admissibleFrequencies, processingPower.containsKey(i)
 	 * pre	admissibleFrequencies.contains(defaultFrequency)
 	 * post	true			// no postcondition.
 	 * </pre>
@@ -185,15 +149,13 @@ public class Core {
 		// Setting the internal representation of the core object.
 		this.owner = owner;
 		this.coreNo = coreNo;
-		this.admissibleFrequencies = new HashSet<Integer>(admissibleFrequencies.size());
-		for (int f : admissibleFrequencies) {
-			this.admissibleFrequencies.add(f);
-		}
-		this.processingPower = new HashMap<Integer, Integer>(this.admissibleFrequencies.size());
+		this.admissibleFrequencies = new HashSet<>(admissibleFrequencies.size());
+		this.admissibleFrequencies.addAll(admissibleFrequencies);
+		this.processingPower = new HashMap<>(this.admissibleFrequencies.size());
 		for (int f : processingPower.keySet()) {
 			this.processingPower.put(f, processingPower.get(f));
 		}
-		this.defaultFrequency = defaultFrequency;
+		/* default frequency at which the cores run. */
 
 		this.currentFrequency = defaultFrequency;
 		this.idle = true;
@@ -226,7 +188,7 @@ public class Core {
 	 *
 	 * @return true if the core is currently idle, and false otherwise.
 	 */
-	public boolean isIdle() {
+	boolean isIdle() {
 		return this.idle;
 	}
 
@@ -244,7 +206,7 @@ public class Core {
 	 *
 	 * @return the current frequency of the core.
 	 */
-	public int getCurrentFrequency() {
+	int getCurrentFrequency() {
 		return this.currentFrequency;
 	}
 
@@ -264,7 +226,6 @@ public class Core {
 	 * </pre>
 	 *
 	 * @param newFrequency new frequency of the core.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public void setFrequency(int newFrequency) throws Exception {
 		assert newFrequency != this.currentFrequency;
@@ -345,11 +306,10 @@ public class Core {
 	 * pre	!this.isIdle() and this.currentTask != null and this.currentTaskEndFuture != null
 	 * post	this.isIdle() and this.currentTask == null and this.currentTaskEndFuture == null
 	 * </pre>
-	 * 
-	 * @throws Exception <i>todo.</i>
+	 *
 	 *
 	 */
-	public void endCurrentTask() throws Exception {
+	private void endCurrentTask() throws Exception {
 		assert !this.isIdle();
 		assert this.currentTask != null;
 		assert this.currentTaskEndFuture != null;
@@ -383,7 +343,7 @@ public class Core {
 	 *
 	 * @param task task to be started.
 	 */
-	public void startTask(TaskI task) {
+	void startTask(TaskI task) {
 		assert this.isIdle();
 
 		this.idle = false;
@@ -434,7 +394,7 @@ public class Core {
 	 * @param numberOfInstructions to be executed
 	 * @return number of milliseconds currently required to execute the instructions
 	 */
-	public long computeCurrentProcessingTime(long numberOfInstructions) {
+	private long computeCurrentProcessingTime(long numberOfInstructions) {
 		assert numberOfInstructions > 0;
 
 		int ret = (int) (numberOfInstructions / this.owner.processingPower.get(this.currentFrequency));
@@ -458,7 +418,7 @@ public class Core {
 	 * @param frequency frequency at which the core would execute (in MHz).
 	 * @return number of instructions that can be executed.
 	 */
-	public long computeNumberOfInstructionsForTime(long time, int frequency) {
+	private long computeNumberOfInstructionsForTime(long time, int frequency) {
 		assert time > 0 && this.admissibleFrequencies.contains(frequency);
 
 		return time * this.owner.processingPower.get(frequency);

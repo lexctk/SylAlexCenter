@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenter.hardware.tests;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -41,11 +7,12 @@ import java.util.Set;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
-import fr.sorbonne_u.datacenter.connectors.ControlledDataConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.connectors.ComputerServicesConnector;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.processors.Processor;
 import fr.sorbonne_u.datacenter.hardware.processors.Processor.ProcessorPortTypes;
 import fr.sorbonne_u.datacenter.hardware.processors.connectors.ProcessorManagementConnector;
@@ -58,13 +25,13 @@ import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 /**
  * The class <code>TestsComputer</code> deploys a <code>Computer</code>
  * component connected to a <code>ComputerMonitor</code> component and then
- * execute one of two test scenarii on the simulated computer.
+ * execute one of two test scenarios on the simulated computer.
  *
  * <p>
  * <strong>Description</strong>
  * </p>
  * 
- * The two scenarii create a computer with one processor having two cores with
+ * The two scenarios create a computer with one processor having two cores with
  * two levels of admissible frequencies. They then execute two tasks, one on
  * each core and respectively raise or lower the frequency of the first core to
  * test the dynamic adaptation of the task duration. In parallel, the computer
@@ -76,7 +43,7 @@ import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
  * </p>
  * 
  * <pre>
- * invariant	true
+ * invariant true
  * </pre>
  * 
  * <p>
@@ -86,17 +53,18 @@ import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
  * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
 public class TestsComputer extends AbstractCVM {
-	public static final String ComputerServicesInboundPortURI = "cs-ibp";
-	public static final String ComputerServicesOutboundPortURI = "cs-obp";
-	public static final String ComputerStaticStateDataInboundPortURI = "css-dip";
-	public static final String ComputerStaticStateDataOutboundPortURI = "css-dop";
-	public static final String ComputerDynamicStateDataInboundPortURI = "cds-dip";
-	public static final String ComputerDynamicStateDataOutboundPortURI = "cds-dop";
 
-	protected ComputerServicesOutboundPort csPort;
-	protected ComputerMonitor cm;
+	private static final String ComputerServicesInboundPortURI = "cs-ibp";
+	private static final String ComputerServicesOutboundPortURI = "cs-obp";
+	private static final String ComputerStaticStateDataInboundPortURI = "css-dip";
+	private static final String ComputerStaticStateDataOutboundPortURI = "css-dop";
+	private static final String ComputerDynamicStateDataInboundPortURI = "cds-dip";
+	private static final String ComputerDynamicStateDataOutboundPortURI = "cds-dop";
 
-	public TestsComputer() throws Exception {
+	private ComputerServicesOutboundPort csPort;
+	private ComputerMonitor cm;
+
+	private TestsComputer() throws Exception {
 		super();
 	}
 
@@ -107,22 +75,32 @@ public class TestsComputer extends AbstractCVM {
 		String computerURI = "computer0";
 		int numberOfProcessors = 1;
 		int numberOfCores = 2;
-		Set<Integer> admissibleFrequencies = new HashSet<Integer>();
+
+		Set<Integer> admissibleFrequencies = new HashSet<>();
 		admissibleFrequencies.add(1500);
 		admissibleFrequencies.add(3000);
-		Map<Integer, Integer> processingPower = new HashMap<Integer, Integer>();
+
+		Map<Integer, Integer> processingPower = new HashMap<>();
 		processingPower.put(1500, 1500000);
 		processingPower.put(3000, 3000000);
-		Computer c = new Computer(computerURI, admissibleFrequencies, processingPower, 1500, // Test scenario 1
-				// 3000, // Test scenario 2
-				1500, numberOfProcessors, numberOfCores, ComputerServicesInboundPortURI,
-				ComputerStaticStateDataInboundPortURI, ComputerDynamicStateDataInboundPortURI);
+
+		Computer c = new Computer(
+				computerURI,
+				admissibleFrequencies,
+				processingPower,
+				1500,
+				1500,
+				numberOfProcessors,
+				numberOfCores,
+				ComputerServicesInboundPortURI,
+				ComputerStaticStateDataInboundPortURI,
+				ComputerDynamicStateDataInboundPortURI
+		);
 		c.toggleTracing();
 		c.toggleLogging();
 		this.addDeployedComponent(c);
 
-		this.csPort = new ComputerServicesOutboundPort(ComputerServicesOutboundPortURI, new AbstractComponent(0, 0) {
-		});
+		this.csPort = new ComputerServicesOutboundPort(ComputerServicesOutboundPortURI, new AbstractComponent(0, 0) {});
 		this.csPort.publishPort();
 		this.csPort.doConnection(ComputerServicesInboundPortURI, ComputerServicesConnector.class.getCanonicalName());
 
@@ -130,12 +108,16 @@ public class TestsComputer extends AbstractCVM {
 				ComputerDynamicStateDataOutboundPortURI);
 		cm.toggleTracing();
 		cm.toggleLogging();
-		this.addDeployedComponent(cm);
-		this.cm.doPortConnection(ComputerStaticStateDataOutboundPortURI, ComputerStaticStateDataInboundPortURI,
-				DataConnector.class.getCanonicalName());
 
-		this.cm.doPortConnection(ComputerDynamicStateDataOutboundPortURI, ComputerDynamicStateDataInboundPortURI,
-				ControlledDataConnector.class.getCanonicalName());
+		this.addDeployedComponent(cm);
+
+		ComputerStaticStateDataOutboundPort cssdop = new ComputerStaticStateDataOutboundPort(ComputerStaticStateDataOutboundPortURI, c, computerURI);
+		cssdop.publishPort();
+		cssdop.doConnection(ComputerStaticStateDataInboundPortURI, DataConnector.class.getCanonicalName());
+
+		ComputerDynamicStateDataOutboundPort cdsdop = new ComputerDynamicStateDataOutboundPort(ComputerDynamicStateDataOutboundPortURI, c, computerURI);
+		cdsdop.publishPort();
+		cdsdop.doConnection(ComputerDynamicStateDataInboundPortURI, DataConnector.class.getCanonicalName());
 
 		super.deploy();
 	}
@@ -148,30 +130,26 @@ public class TestsComputer extends AbstractCVM {
 	@Override
 	public void shutdown() throws Exception {
 		this.csPort.doDisconnection();
-		this.cm.doPortDisconnection(ComputerStaticStateDataOutboundPortURI);
-		this.cm.doPortDisconnection(ComputerDynamicStateDataOutboundPortURI);
 
 		super.shutdown();
 	}
 
-	public void testScenario() throws Exception {
+	private void testScenario() throws Exception {
 		AllocatedCore[] ac = this.csPort.allocateCores(2);
 
 		final String processorServicesInboundPortURI = ac[0].processorInboundPortURI.get(ProcessorPortTypes.SERVICES);
 		final String processorManagementInboundPortURI = ac[0].processorInboundPortURI
 				.get(ProcessorPortTypes.MANAGEMENT);
 
-		ProcessorServicesOutboundPort psPort = new ProcessorServicesOutboundPort(new AbstractComponent(0, 0) {
-		});
+		ProcessorServicesOutboundPort psPort = new ProcessorServicesOutboundPort(new AbstractComponent(0, 0) {});
 		psPort.publishPort();
 		psPort.doConnection(processorServicesInboundPortURI, ProcessorServicesConnector.class.getCanonicalName());
 
-		ProcessorManagementOutboundPort pmPort = new ProcessorManagementOutboundPort(new AbstractComponent(0, 0) {
-		});
+		ProcessorManagementOutboundPort pmPort = new ProcessorManagementOutboundPort(new AbstractComponent(0, 0) {});
 		pmPort.publishPort();
 		pmPort.doConnection(processorManagementInboundPortURI, ProcessorManagementConnector.class.getCanonicalName());
 
-		System.out.println("starting mytask-001 on core 0");
+		System.out.println("starting task-001 on core 0");
 		psPort.executeTaskOnCore(new TaskI() {
 			private static final long serialVersionUID = 1L;
 
@@ -194,11 +172,11 @@ public class TestsComputer extends AbstractCVM {
 
 			@Override
 			public String getTaskURI() {
-				return "mytask-001";
+				return "task-001";
 			}
 		}, ac[0].coreNo);
 
-		System.out.println("starting mytask-002 on core 1");
+		System.out.println("starting task-002 on core 1");
 		psPort.executeTaskOnCore(new TaskI() {
 			private static final long serialVersionUID = 1L;
 
@@ -221,7 +199,7 @@ public class TestsComputer extends AbstractCVM {
 
 			@Override
 			public String getTaskURI() {
-				return "mytask-002";
+				return "task-002";
 			}
 		}, ac[1].coreNo);
 
@@ -245,14 +223,11 @@ public class TestsComputer extends AbstractCVM {
 			c.deploy();
 			System.out.println("starting...");
 			c.start();
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						c.testScenario();
-					} catch (Exception e) {
-						throw new RuntimeException(e);
-					}
+			new Thread(() -> {
+				try {
+					c.testScenario();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
 				}
 			}).start();
 			Thread.sleep(25000L);

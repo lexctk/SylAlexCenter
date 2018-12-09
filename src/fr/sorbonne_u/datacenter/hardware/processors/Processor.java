@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenter.hardware.processors;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -107,10 +73,10 @@ import fr.sorbonne_u.datacenter.software.applicationvm.interfaces.TaskI;
  * 
  * <pre>
  * invariant		processorURI != null
- * invariant		admissibleFrequencies != null and forall i in admissibleFrequencies, i &gt; 0
- * invariant		processingPower != null and forall i in processingPower.values(), i &gt; 0
+ * invariant		admissibleFrequencies != null and for all i in admissibleFrequencies, i &gt; 0
+ * invariant		processingPower != null and for all i in processingPower.values(), i &gt; 0
  * invariant		admissibleFrequencies.contains(defaultFrequency)
- * invariant		maxFrequencyGap &gt;= 0 and forall i in possibleFrequencies, maxFrequencyGap &lt;= i
+ * invariant		maxFrequencyGap &gt;= 0 and for all i in possibleFrequencies, maxFrequencyGap &lt;= i
  * invariant		numberOfCores &gt; 0
  * invariant		servicesInboundPortURI != null
  * invariant		introspectionInboundPortURI != null
@@ -128,7 +94,7 @@ import fr.sorbonne_u.datacenter.software.applicationvm.interfaces.TaskI;
 public class Processor extends AbstractComponent implements PushModeControllingI {
 	public static boolean DEBUG = true;
 
-	public static enum ProcessorPortTypes {
+	public enum ProcessorPortTypes {
 		SERVICES, INTROSPECTION, MANAGEMENT, STATIC_STATE, DYNAMIC_STATE
 	}
 
@@ -141,31 +107,31 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	/** Array of core objects. */
 	protected final Core[] cores;
 	/** Processor services inbound port. */
-	protected ProcessorServicesInboundPort servicesInboundPort;
+	private ProcessorServicesInboundPort servicesInboundPort;
 	/** Port offering introspection upon the properties of the processor. */
-	protected ProcessorIntrospectionInboundPort introspectionInboundPort;
+	private ProcessorIntrospectionInboundPort introspectionInboundPort;
 	/** Port offering management (actuation) services of the processor. */
-	protected ProcessorManagementInboundPort processorManagementInboundPort;
+	private ProcessorManagementInboundPort processorManagementInboundPort;
 
-	protected ProcessorDynamicStateDataInboundPort processorDynamicStateDataInboundPort;
-	protected ProcessorStaticStateDataInboundPort processorStaticStateDataInboundPort;
+	private ProcessorDynamicStateDataInboundPort processorDynamicStateDataInboundPort;
+	private ProcessorStaticStateDataInboundPort processorStaticStateDataInboundPort;
 	/** Possible frequencies in MHz. */
-	protected final Set<Integer> admissibleFrequencies;
+	private final Set<Integer> admissibleFrequencies;
 	/** Default frequency of the cores, when powering up the processor. */
-	protected final int defaultFrequency;
+	private final int defaultFrequency;
 	/** Maximum gap between the current frequencies of the cores. */
-	protected final int maxFrequencyGap;
+	private final int maxFrequencyGap;
 	/**
 	 * Map providing the processing power of the cores in number of instructions
 	 * that they can execute at each of their admissible frequencies in MHz.
 	 */
 	protected final HashMap<Integer, Integer> processingPower;
 	/** Future of the dynamic data pushing task. */
-	protected ScheduledFuture<?> pushingFuture;
+	private ScheduledFuture<?> pushingFuture;
 	/**
 	 * URI of the port where to notify the end of currently executing tasks.
 	 */
-	protected Map<TaskI, String> notificationInboundPortURIs;
+	private Map<TaskI, String> notificationInboundPortURIs;
 
 	// ------------------------------------------------------------------------
 	// Component constructor
@@ -180,10 +146,10 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * 
 	 * <pre>
 	 * pre	processorURI != null
-	 * pre	admissibleFrequencies != null and forall i in admissibleFrequencies, i &gt; 0
-	 * pre	processingPower != null and forall i in processingPower.values(), i &gt; 0
+	 * pre	admissibleFrequencies != null and for all i in admissibleFrequencies, i &gt; 0
+	 * pre	processingPower != null and for all i in processingPower.values(), i &gt; 0
 	 * pre	admissibleFrequencies.contains(defaultFrequency)
-	 * pre	maxFrequencyGap &gt;= 0 and forall i in possibleFrequencies, maxFrequencyGap &lt;= i
+	 * pre	maxFrequencyGap &gt;= 0 and for all i in possibleFrequencies, maxFrequencyGap &lt;= i
 	 * pre	numberOfCores &gt; 0
 	 * pre	servicesInboundPortURI != null
 	 * pre	introspectionInboundPortURI != null
@@ -217,13 +183,13 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * @param processorDynamicStateDataInboundPortURI URI of the dynamic state
 	 *                                                notification inbound port of
 	 *                                                the processor.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public Processor(String processorURI, Set<Integer> admissibleFrequencies, Map<Integer, Integer> processingPower,
 			int defaultFrequency, int maxFrequencyGap, int numberOfCores, String servicesInboundPortURI,
 			String introspectionInboundPortURI, String managementInboundPortURI,
 			String processorStaticStateDataInboundPortURI, String processorDynamicStateDataInboundPortURI)
 			throws Exception {
+
 		// The normal thread pool is used to process component services, while
 		// the scheduled one is used to schedule the pushes of dynamic state
 		// when requested.
@@ -247,11 +213,9 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 		assert numberOfCores > 0;
 
 		this.processorURI = processorURI;
-		this.admissibleFrequencies = new HashSet<Integer>(admissibleFrequencies.size());
-		for (int f : admissibleFrequencies) {
-			this.admissibleFrequencies.add(f);
-		}
-		this.processingPower = new HashMap<Integer, Integer>(this.admissibleFrequencies.size());
+		this.admissibleFrequencies = new HashSet<>(admissibleFrequencies.size());
+		this.admissibleFrequencies.addAll(admissibleFrequencies);
+		this.processingPower = new HashMap<>(this.admissibleFrequencies.size());
 		for (int f : processingPower.keySet()) {
 			this.processingPower.put(f, processingPower.get(f));
 		}
@@ -294,7 +258,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 		this.processorDynamicStateDataInboundPort.publishPort();
 
 		this.pushingFuture = null;
-		this.notificationInboundPortURIs = new HashMap<TaskI, String>();
+		this.notificationInboundPortURIs = new HashMap<>();
 	}
 
 	// ------------------------------------------------------------------------
@@ -351,7 +315,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * </pre>
 	 *
 	 * @return the number of cores in this processor.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public int getNumberOfCores() throws Exception {
 		return this.cores.length;
@@ -370,7 +333,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * </pre>
 	 *
 	 * @return the default frequency for the cores of this processor.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public int getDefaultFrequency() throws Exception {
 		return this.defaultFrequency;
@@ -391,7 +353,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 *
 	 * @return the maximum gap tolerated between any two cores of this processor at
 	 *         any time.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public int getMaxFrequencyGap() throws Exception {
 		return this.maxFrequencyGap;
@@ -411,7 +372,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 *
 	 * @param coreNo number of a core to be tested.
 	 * @return true if coreNo is a valid number for a core.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public boolean isValidCoreNo(int coreNo) throws Exception {
 		return coreNo >= 0 && coreNo < this.cores.length;
@@ -432,7 +392,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 *
 	 * @param frequency frequency to be tested.
 	 * @return true if frequency is admissible for cores.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public boolean isAdmissibleFrequency(int frequency) throws Exception {
 		return this.admissibleFrequencies.contains(frequency);
@@ -454,7 +413,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * @param coreNo    number of the core to be tested.
 	 * @param frequency frequency to be tested.
 	 * @return true if frequency is possible on coreNo.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public boolean isCurrentlyPossibleFrequencyForCore(int coreNo, int frequency) throws Exception {
 		assert this.isValidCoreNo(coreNo);
@@ -487,7 +445,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * </pre>
 	 *
 	 * @return the static state of the processor.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public ProcessorStaticStateI getStaticState() throws Exception {
 		return new ProcessorStaticState(this.getNumberOfCores(), this.defaultFrequency, this.maxFrequencyGap,
@@ -506,9 +463,8 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void sendStaticState() throws Exception {
+	private void sendStaticState() throws Exception {
 		if (this.processorStaticStateDataInboundPort.connected()) {
 			ProcessorStaticStateI pss = this.getStaticState();
 			this.processorStaticStateDataInboundPort.send(pss);
@@ -533,7 +489,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * </pre>
 	 *
 	 * @return the dynamic state of the processor.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public ProcessorDynamicStateI getDynamicState() throws Exception {
 		int numberOfCores = this.getNumberOfCores();
@@ -559,9 +514,8 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void sendDynamicState() throws Exception {
+	private void sendDynamicState() throws Exception {
 		ProcessorDynamicStateI pds = this.getDynamicState();
 		this.processorDynamicStateDataInboundPort.send(pds);
 	}
@@ -582,9 +536,8 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 *
 	 * @param interval                delay between pushes.
 	 * @param numberOfRemainingPushes number of pushes remaining to be done.
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
+	private void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
 		if (Processor.DEBUG) {
 			this.logMessage("Processor>>sendDynamicState(" + interval + ", " + numberOfRemainingPushes + ")");
 		}
@@ -687,7 +640,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 *
 	 * @param task   task to be executed.
 	 * @param coreNo core number on which the task is to be executed.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public void executeTaskOnCore(TaskI task, int coreNo) throws Exception {
 		assert this.isValidCoreNo(coreNo);
@@ -720,7 +672,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * @param coreNo                     core number on which the task is to be
 	 *                                   executed.
 	 * @param notificationInboundPortURI URI of the inbound port to notify.
-	 * @throws Exception <i>todo.</i>
+	 *
 	 */
 	public void executeTaskOnCoreAndNotify(TaskI task, int coreNo, String notificationInboundPortURI) throws Exception {
 		assert task != null;
@@ -748,15 +700,14 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * </pre>
 	 *
 	 * @param t task which just ended.
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void endOfTask(final TaskI t) throws Exception {
+	void endOfTask(final TaskI t) throws Exception {
 		assert t != null;
 
 		String notificationInboundPortURI = this.notificationInboundPortURIs.remove(t);
 
 		if (Processor.DEBUG) {
-			this.logMessage("processor ends task " + t.getTaskURI() + " with notificaiton port URI "
+			this.logMessage("processor ends task " + t.getTaskURI() + " with notification port URI "
 					+ notificationInboundPortURI);
 		}
 
@@ -799,9 +750,6 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 *
 	 * @param coreNo    number of the core to be modified.
 	 * @param frequency new frequency for the given core.
-	 * @throws UnavailableFrequencyException  <i>todo.</i>
-	 * @throws UnacceptableFrequencyException <i>todo.</i>
-	 * @throws Exception                      <i>todo.</i>
 	 */
 	public void setCoreFrequency(int coreNo, int frequency)
 			throws UnavailableFrequencyException, UnacceptableFrequencyException, Exception {

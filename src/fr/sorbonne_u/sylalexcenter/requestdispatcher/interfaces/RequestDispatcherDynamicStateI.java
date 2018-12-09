@@ -5,9 +5,15 @@ import fr.sorbonne_u.components.interfaces.DataRequiredI;
 
 public interface RequestDispatcherDynamicStateI extends DataOfferedI.DataI, DataRequiredI.DataI {
 
-	public String getRequestDispatcherURI();
+	String getRequestDispatcherURI();
 
-	public double getExponentialAverageExecutionTime();
+	double getExponentialAverageExecutionTime();
 
-	public int getAvailableAVMsCount();
+	int getAvailableAVMsCount();
+
+	int getTotalRequestSubmitted();
+
+	int getTotalRequestTerminated();
+
+	int getQueueSize();
 }

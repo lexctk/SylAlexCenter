@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenter.hardware.tests;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -42,12 +8,13 @@ import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
-import fr.sorbonne_u.datacenter.connectors.ControlledDataConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.connectors.ComputerServicesConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerServicesI;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.processors.Processor;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
 import fr.sorbonne_u.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
@@ -75,18 +42,6 @@ import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionOutboundPort;
  * monitor starts the notification of the dynamic state of the computer by
  * requesting 25 pushes at the rate of one each second.
  * 
- * <p>
- * <strong>Invariant</strong>
- * </p>
- * 
- * <pre>
- * invariant	true
- * </pre>
- * 
- * <p>
- * Created on : May 4, 2015
- * </p>
- * 
  * @author <a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
  */
 public class TestApplicationVM extends AbstractCVM {
@@ -96,16 +51,10 @@ public class TestApplicationVM extends AbstractCVM {
 
 	public static class Request implements RequestI {
 		private static final long serialVersionUID = 1L;
-		protected final long numberOfInstructions;
-		protected final String requestURI;
+		final long numberOfInstructions;
+		final String requestURI;
 
-		public Request(long numberOfInstructions) {
-			super();
-			this.numberOfInstructions = numberOfInstructions;
-			this.requestURI = java.util.UUID.randomUUID().toString();
-		}
-
-		public Request(String uri, long numberOfInstructions) {
+		Request(String uri, long numberOfInstructions) {
 			super();
 			this.numberOfInstructions = numberOfInstructions;
 			this.requestURI = uri;
@@ -122,17 +71,17 @@ public class TestApplicationVM extends AbstractCVM {
 		}
 	}
 
-	public static class RequestionNotificationConsumer extends AbstractComponent
+	public static class RequestNotificationConsumer extends AbstractComponent
 			implements RequestNotificationHandlerI {
-		public static boolean ACTIVE = true;
+		static boolean ACTIVE = true;
 
-		public RequestionNotificationConsumer() {
+		RequestNotificationConsumer() {
 			super(1, 0);
 		}
 
 		@Override
-		public void acceptRequestTerminationNotification(RequestI r) throws Exception {
-			if (RequestionNotificationConsumer.ACTIVE) {
+		public void acceptRequestTerminationNotification(RequestI r) {
+			if (RequestNotificationConsumer.ACTIVE) {
 				this.logMessage(" Request " + r.getRequestURI() + " has ended.");
 			}
 		}
@@ -142,32 +91,28 @@ public class TestApplicationVM extends AbstractCVM {
 	// Constants and instance variables
 	// ------------------------------------------------------------------------
 
-	public static final String ComputerServicesInboundPortURI = "cs-ibp";
-	public static final String ComputerServicesOutboundPortURI = "cs-obp";
-	public static final String ComputerStaticStateDataInboundPortURI = "css-dip";
-	public static final String ComputerStaticStateDataOutboundPortURI = "css-dop";
-	public static final String ComputerDynamicStateDataInboundPortURI = "cds-dip";
-	public static final String ComputerDynamicStateDataOutboundPortURI = "cds-dop";
-	public static final String ApplicationVMManagementInboundPortURI = "avm-ibp";
-	public static final String ApplicationVMManagementOutboundPortURI = "avm-obp";
-	public static final String RequestSubmissionInboundPortURI = "rsibp";
-	public static final String RequestSubmissionOutboundPortURI = "rsobp";
-	public static final String RequestNotificationInboundPortURI = "rnibp";
-	public static final String RequestNotificationOutboundPortURI = "rnobp";
+	private static final String ComputerServicesInboundPortURI = "csip";
+	private static final String ComputerServicesOutboundPortURI = "csop";
+	private static final String ComputerStaticStateDataInboundPortURI = "cssdip";
+	private static final String ComputerStaticStateDataOutboundPortURI = "cssdop";
+	private static final String ComputerDynamicStateDataInboundPortURI = "cdsdip";
+	private static final String ComputerDynamicStateDataOutboundPortURI = "cdsdop";
+	private static final String ApplicationVMManagementInboundPortURI = "avmip";
+	private static final String ApplicationVMManagementOutboundPortURI = "avmop";
+	private static final String RequestSubmissionInboundPortURI = "rsip";
+	private static final String RequestSubmissionOutboundPortURI = "rsop";
+	private static final String RequestNotificationInboundPortURI = "rnip";
+	private static final String RequestNotificationOutboundPortURI = "rnop";
 
-	protected ComputerServicesOutboundPort csPort;
-	protected ComputerMonitor cm;
+	private ComputerServicesOutboundPort csop;
+	private ComputerMonitor cm;
 
 	// ------------------------------------------------------------------------
 	// Constructors
 	// ------------------------------------------------------------------------
 
-	public TestApplicationVM() throws Exception {
+	private TestApplicationVM() throws Exception {
 		super();
-	}
-
-	public TestApplicationVM(boolean isDistributed) throws Exception {
-		super(isDistributed);
 	}
 
 	// ------------------------------------------------------------------------
@@ -181,37 +126,53 @@ public class TestApplicationVM extends AbstractCVM {
 		String computerURI = "computer0";
 		int numberOfProcessors = 2;
 		int numberOfCores = 2;
-		Set<Integer> admissibleFrequencies = new HashSet<Integer>();
+
+		Set<Integer> admissibleFrequencies = new HashSet<>();
 		admissibleFrequencies.add(1500);
 		admissibleFrequencies.add(3000);
-		Map<Integer, Integer> processingPower = new HashMap<Integer, Integer>();
+
+		Map<Integer, Integer> processingPower = new HashMap<>();
 		processingPower.put(1500, 1500000);
 		processingPower.put(3000, 3000000);
-		Computer c = new Computer(computerURI, admissibleFrequencies, processingPower, 1500, // Test scenario 1
-				// 3000, // Test scenario 2
-				1500, numberOfProcessors, numberOfCores, ComputerServicesInboundPortURI,
-				ComputerStaticStateDataInboundPortURI, ComputerDynamicStateDataInboundPortURI);
+
+		Computer c = new Computer(
+				computerURI,
+				admissibleFrequencies,
+				processingPower,
+				1500,
+				1500,
+				numberOfProcessors,
+				numberOfCores,
+				ComputerServicesInboundPortURI,
+				ComputerStaticStateDataInboundPortURI,
+				ComputerDynamicStateDataInboundPortURI
+		);
+
 		c.toggleTracing();
 		c.toggleLogging();
 		this.addDeployedComponent(c);
 
-		ComponentI fake = new AbstractComponent(0, 0) {
-		};
+		ComponentI fake = new AbstractComponent(0, 0) {};
+
 		fake.addRequiredInterface(ComputerServicesI.class);
-		this.csPort = new ComputerServicesOutboundPort(ComputerServicesOutboundPortURI, fake);
-		this.csPort.publishPort();
-		this.csPort.doConnection(ComputerServicesInboundPortURI, ComputerServicesConnector.class.getCanonicalName());
+
+		this.csop = new ComputerServicesOutboundPort(ComputerServicesOutboundPortURI, fake);
+		this.csop.publishPort();
+		this.csop.doConnection(ComputerServicesInboundPortURI, ComputerServicesConnector.class.getCanonicalName());
 
 		this.cm = new ComputerMonitor(computerURI, true, ComputerStaticStateDataOutboundPortURI,
 				ComputerDynamicStateDataOutboundPortURI);
 		this.cm.toggleLogging();
 		this.cm.toggleTracing();
 		this.addDeployedComponent(this.cm);
-		this.cm.doPortConnection(ComputerStaticStateDataOutboundPortURI, ComputerStaticStateDataInboundPortURI,
-				DataConnector.class.getCanonicalName());
 
-		this.cm.doPortConnection(ComputerDynamicStateDataOutboundPortURI, ComputerDynamicStateDataInboundPortURI,
-				ControlledDataConnector.class.getCanonicalName());
+		ComputerStaticStateDataOutboundPort cssdop = new ComputerStaticStateDataOutboundPort(ComputerStaticStateDataOutboundPortURI, fake, computerURI);
+		cssdop.publishPort();
+		cssdop.doConnection(ComputerStaticStateDataInboundPortURI, DataConnector.class.getCanonicalName());
+
+		ComputerDynamicStateDataOutboundPort cdsdop = new ComputerDynamicStateDataOutboundPort(ComputerDynamicStateDataOutboundPortURI, fake, computerURI);
+		cdsdop.publishPort();
+		cdsdop.doConnection(ComputerDynamicStateDataInboundPortURI, DataConnector.class.getCanonicalName());
 
 		super.deploy();
 	}
@@ -223,79 +184,83 @@ public class TestApplicationVM extends AbstractCVM {
 
 	@Override
 	public void shutdown() throws Exception {
-		this.csPort.doDisconnection();
-		this.cm.doPortDisconnection(ComputerStaticStateDataOutboundPortURI);
-		this.cm.doPortDisconnection(ComputerDynamicStateDataOutboundPortURI);
+		this.csop.doDisconnection();
 
 		super.shutdown();
 	}
 
-	public void testScenario() throws Exception {
-		AllocatedCore[] ac = this.csPort.allocateCores(4);
+	private void testScenario() throws Exception {
+		AllocatedCore[] ac = this.csop.allocateCores(4);
 
-		ApplicationVM vm = new ApplicationVM("vm0", ApplicationVMManagementInboundPortURI,
-				RequestSubmissionInboundPortURI, RequestNotificationInboundPortURI, RequestNotificationOutboundPortURI);
+		ApplicationVM vm = new ApplicationVM(
+				"vm0",
+				ApplicationVMManagementInboundPortURI,
+				RequestSubmissionInboundPortURI,
+				RequestNotificationInboundPortURI,
+				RequestNotificationOutboundPortURI
+		);
+
 		this.addDeployedComponent(vm);
-		vm.toggleTracing();
-		vm.toggleLogging();
 		vm.start();
 
 		ApplicationVMManagementOutboundPort avmPort = new ApplicationVMManagementOutboundPort(
-				ApplicationVMManagementOutboundPortURI, new AbstractComponent(0, 0) {
-				});
+				ApplicationVMManagementOutboundPortURI,
+				new AbstractComponent(0, 0) {});
+
 		avmPort.publishPort();
+
 		avmPort.doConnection(ApplicationVMManagementInboundPortURI,
 				ApplicationVMManagementConnector.class.getCanonicalName());
+
 		avmPort.allocateCores(ac);
 
-		ComponentI fake = new AbstractComponent(0, 0) {
-		};
-		fake.addRequiredInterface(RequestSubmissionI.class);
-		RequestSubmissionOutboundPort rsobp = new RequestSubmissionOutboundPort(RequestSubmissionOutboundPortURI, fake);
-		rsobp.publishPort();
-		rsobp.doConnection(RequestSubmissionInboundPortURI, RequestSubmissionConnector.class.getCanonicalName());
+		ComponentI fake = new AbstractComponent(0, 0) {};
 
-		RequestionNotificationConsumer rnc = new RequestionNotificationConsumer();
+		fake.addRequiredInterface(RequestSubmissionI.class);
+
+		RequestSubmissionOutboundPort rsop = new RequestSubmissionOutboundPort(RequestSubmissionOutboundPortURI, fake);
+		rsop.publishPort();
+		rsop.doConnection(RequestSubmissionInboundPortURI, RequestSubmissionConnector.class.getCanonicalName());
+
+		RequestNotificationConsumer rnc = new RequestNotificationConsumer();
 		rnc.toggleLogging();
 		rnc.toggleTracing();
+
 		this.addDeployedComponent(rnc);
 		rnc.start();
-		RequestNotificationInboundPort nibp = new RequestNotificationInboundPort(RequestNotificationInboundPortURI,
-				rnc);
-		nibp.publishPort();
+		RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(RequestNotificationInboundPortURI, rnc);
+		rnip.publishPort();
 
 		vm.doPortConnection(RequestNotificationOutboundPortURI, RequestNotificationInboundPortURI,
 				RequestNotificationConnector.class.getCanonicalName());
 
 		for (int i = 0; i < 10; i++) {
-			rsobp.submitRequestAndNotify(new Request("r" + i, 6000000000L));
+			rsop.submitRequestAndNotify(new Request("r" + i, 6000000000L));
 			Thread.sleep(500L);
 		}
+
 		Thread.sleep(40000L);
-		rsobp.doDisconnection();
-		rsobp.unpublishPort();
+		rsop.doDisconnection();
+		rsop.unpublishPort();
 	}
 
 	public static void main(String[] args) {
 		// AbstractCVM.toggleDebugMode() ;
 		try {
-			final TestApplicationVM tappvm = new TestApplicationVM();
-			tappvm.deploy();
+			final TestApplicationVM testApplicationVM = new TestApplicationVM();
+			testApplicationVM.deploy();
 			System.out.println("starting...");
-			tappvm.start();
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						tappvm.testScenario();
-					} catch (Exception e) {
-						throw new RuntimeException(e);
-					}
+			testApplicationVM.start();
+			new Thread(() -> {
+				try {
+					testApplicationVM.testScenario();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
 				}
 			}).start();
 			Thread.sleep(60000L);
 			System.out.println("shutting down...");
-			tappvm.shutdown();
+			testApplicationVM.shutdown();
 			System.out.println("ending...");
 			System.exit(0);
 		} catch (Exception e) {

@@ -8,8 +8,10 @@ import java.util.concurrent.TimeUnit;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
+import fr.sorbonne_u.components.interfaces.DataRequiredI;
 import fr.sorbonne_u.datacenter.TimeManagement;
 import fr.sorbonne_u.datacenter.interfaces.ControlledDataOfferedI;
+import fr.sorbonne_u.datacenter.interfaces.ControlledDataRequiredI;
 import fr.sorbonne_u.datacenter.interfaces.PushModeControllingI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestI;
 import fr.sorbonne_u.datacenter.software.interfaces.RequestNotificationHandlerI;
@@ -49,7 +51,7 @@ import fr.sorbonne_u.sylalexcenter.utils.ExponentialMovingAverage;
 public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI,
 		RequestSubmissionHandlerI, RequestNotificationHandlerI, PushModeControllingI {
 
-	private static int DEBUG_LEVEL = 2;
+	private static final int timer = 4000;
 
 	private String rdURI;
 	
@@ -58,19 +60,22 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	private RequestDispatcherManagementInboundPort rdmip;
 
 	private RequestSubmissionInboundPort rsip;
-	private ArrayList<RequestSubmissionOutboundPort> rsopList;
-	private ArrayList<RequestNotificationInboundPort> rnipList;
+	private HashMap<String, RequestSubmissionOutboundPort> rsopList = new HashMap<>();
+	private HashMap<String, RequestNotificationInboundPort> rnipList = new HashMap<>();
 	private RequestNotificationOutboundPort rnop;
 
 	private RequestDispatcherDynamicStateDataInboundPort rddsdip;
 	
 	// List of available avm
 	private ArrayList<String> vmURIList;
-	private ArrayList<Long> vmPriority;
+
+	private HashMap<String, Long> vmPriority = new HashMap<>();
 
 	// Statistics
 	private double currentAverage;
 	private ExponentialMovingAverage exponentialMovingAverage;
+	private int totalRequestSubmitted;
+	private int totalRequestTerminated;
 
 	private HashMap<String, Long> vmStartTime = new HashMap<>();
 	private HashMap<String, Long> vmExecutionTime = new HashMap<>();
@@ -106,11 +111,8 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		// initialization
 		this.rdURI = rdURI;
 		this.vmURIList = new ArrayList<>(vmURIList);
-
-		this.vmPriority = new ArrayList<>();
-		for (int i = 0; i < this.vmURIList.size(); i++ ) {
-			this.vmPriority.add(System.nanoTime());
-		}
+		this.totalRequestSubmitted = 0;
+		this.totalRequestTerminated = 0;
 
 		this.exponentialMovingAverage = new ExponentialMovingAverage();
 
@@ -127,22 +129,24 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.rnop = new RequestNotificationOutboundPort(requestDispatcherNotificationOutboundPortURI, this);
 		this.addPort(this.rnop);
 		this.rnop.publishPort();
-		
-		this.rnipList = new ArrayList<>();
-		this.rsopList = new ArrayList<>();
-		
+
+		this.addRequiredInterface(DataRequiredI.PullI.class);
+		this.addRequiredInterface(ControlledDataRequiredI.ControlledPullI.class);
+
 		for (int i = 0; i < vmURIList.size(); i++ ) {
+			this.vmPriority.put(vmURIList.get(i), System.nanoTime());
+
 			this.addOfferedInterface(RequestNotificationI.class);
 			RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(requestDispatcherNotificationInboundPortURIList.get(i), this);
-			this.rnipList.add(rnip);
+			this.rnipList.put(vmURIList.get(i), rnip);
 			this.addPort(rnip);
-			this.rnipList.get(i).publishPort();
+			this.rnipList.get(vmURIList.get(i)).publishPort();
 			
 			this.addRequiredInterface(RequestSubmissionI.class);
 			RequestSubmissionOutboundPort rsop = new RequestSubmissionOutboundPort(requestDispatcherSubmissionOutboundPortURIList.get(i), this);
-			this.rsopList.add(rsop);
+			this.rsopList.put(vmURIList.get(i), rsop);
 			this.addPort(rsop);
-			this.rsopList.get(i).publishPort();
+			this.rsopList.get(vmURIList.get(i)).publishPort();
 		}
 
 		this.addOfferedInterface(ControlledDataOfferedI.ControlledPullI.class);
@@ -169,8 +173,8 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 	@Override
 	public void finalise() throws Exception {
-		for (int i = 0; i < this.vmURIList.size(); i++ ) {
-			if (this.rsopList.get(i).connected()) this.doPortDisconnection(this.rsopList.get(i).getPortURI());
+		for (String vmURI : this.vmURIList) {
+			if (this.rsopList.get(vmURI).connected()) this.doPortDisconnection(this.rsopList.get(vmURI).getPortURI());
 		}
 		if (this.rnop.connected()) this.doPortDisconnection(this.rnop.getPortURI());
 		if (this.rddsdip.connected()) this.doPortDisconnection(this.rddsdip.getPortURI());
@@ -184,9 +188,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		try {
 			if (this.rdmip.isPublished()) this.rdmip.unpublishPort();
 			if (this.rsip.isPublished()) this.rsip.unpublishPort();
-			for (int i = 0; i < this.vmURIList.size(); i++ ) { 
-				if (this.rsopList.get(i).isPublished()) this.rsopList.get(i).unpublishPort();
-				if (this.rnipList.get(i).isPublished()) this.rnipList.get(i).unpublishPort();
+			for (String vmURI : this.vmURIList) {
+				if (this.rsopList.get(vmURI).isPublished()) this.rsopList.get(vmURI).unpublishPort();
+				if (this.rnipList.get(vmURI).isPublished()) this.rnipList.get(vmURI).unpublishPort();
 			}
 			if (this.rnop.isPublished()) this.rnop.unpublishPort();
 			if (this.rddsdip.isPublished()) this.rddsdip.unpublishPort();
@@ -198,17 +202,17 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		super.shutdown();
 	}	
 	
-	private int leastUsedVM() {
-		int index = -1;
+	private String leastUsedVM() {
+		String leastUsedVM = "";
 		long time = System.nanoTime();
 
-		for (int i = 0; i < this.vmURIList.size(); i++ ) { 
-			if (this.vmPriority.get(i) < time) {
-				index = i;
-				time = this.vmPriority.get(i);
+		for (String vmURI : this.vmURIList) {
+			if (this.vmPriority.get(vmURI) < time) {
+				leastUsedVM = vmURI;
+				time = this.vmPriority.get(vmURI);
 			}
 		}
-		return index;
+		return leastUsedVM;
 	}
 
 
@@ -219,27 +223,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	 * least recently used AVM
 	 *
 	 * @param r request that just terminated.
-	 * @throws Exception <i>todo.</i>
 	 */
 	@Override
 	public void acceptRequestSubmission(RequestI r) throws Exception {
-		assert r != null;
-		
-		int vmIndex = leastUsedVM();
-		if (vmIndex >= 0) {
-			this.vmPriority.set(vmIndex, System.nanoTime());
-
-			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
-			
-			if (RequestDispatcher.DEBUG_LEVEL == 2) {
-				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI());
-			}
-			this.rsopList.get(vmIndex).submitRequest(r);
-		} else {
-			if (RequestDispatcher.DEBUG_LEVEL == 2) {
-				this.logMessage ("ERROR: Request dispatcher " + this.rdURI + " refused submission request " + r.getRequestURI());
-			}			
-		}
+		acceptRequestSubmissionAndNotify(r);
 	}
 
 	/**
@@ -247,27 +234,23 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	 * least recently used AVM and and require notifications of request execution progress.
 	 *
 	 * @param r request that just terminated.
-	 * @throws Exception <i>todo.</i>
 	 */
 	@Override
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
-		int vmIndex = leastUsedVM();
-		if (vmIndex >= 0) {
-			this.vmPriority.set(vmIndex, System.nanoTime());
+		String leastUsedVM = leastUsedVM();
+		if (leastUsedVM.length() > 0) {
+			this.vmPriority.put(leastUsedVM, System.nanoTime());
 
 			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
 
-			if (RequestDispatcher.DEBUG_LEVEL == 2) {
-				this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
+			this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
 						" and required notification of request execution progress");
-			}
-			this.rsopList.get(vmIndex).submitRequestAndNotify(r);
+			this.totalRequestSubmitted++;
+			this.rsopList.get(leastUsedVM).submitRequestAndNotify(r);
 			
 		} else {
-			if (RequestDispatcher.DEBUG_LEVEL == 2) {
-				this.logMessage ("ERROR: Request dispatcher " + this.rdURI + " refused submission and notify request " + r.getRequestURI());
-			}			
+			this.logMessage ("Request dispatcher " + this.rdURI + " refused submission and notify request " + r.getRequestURI());
 		}
 	}
 
@@ -275,7 +258,6 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	 * notify request generator that a request was terminated
 	 *
 	 * @param r request that just terminated.
-	 * @throws Exception <i>todo.</i>
 	 */
 	@Override
 	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
@@ -286,10 +268,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		synchronized (this) {
 			currentAverage = exponentialMovingAverage.getNextAverage(this.vmExecutionTime.get(r.getRequestURI()));
 		}
-		if (RequestDispatcher.DEBUG_LEVEL == 2) {
-			this.logMessage ("Request dispatcher " + this.rdURI + " notified request generator that request " + 
+		this.totalRequestTerminated++;
+		this.logMessage ("Request dispatcher " + this.rdURI + " notified request generator that request " +
 					r.getRequestURI() + " has terminated");
-		}
 		this.rnop.notifyRequestTermination(r);
 	}
 
@@ -298,13 +279,17 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	// -------------------------------------------------------------------------
 
 	public RequestDispatcherDynamicStateI getDynamicState() throws Exception {
-		return new RequestDispatcherDynamicState(this.rdURI, this.currentAverage, this.vmURIList.size());
+		return new RequestDispatcherDynamicState(
+				this.rdURI,
+				this.currentAverage,
+				this.vmURIList.size(),
+				this.totalRequestSubmitted,
+				this.totalRequestTerminated);
 	}
 
 	private void sendDynamicState() throws Exception {
 		if (this.rddsdip.connected()) {
-			RequestDispatcherDynamicStateI requestDispatcherDynamicState = this.getDynamicState();
-			this.rddsdip.send(requestDispatcherDynamicState);
+			this.rddsdip.send(this.getDynamicState());
 		}
 	}
 

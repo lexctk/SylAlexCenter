@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenterclient.requestgenerator;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.math3.random.RandomDataGenerator;
@@ -100,41 +66,38 @@ import fr.sorbonne_u.datacenterclient.utils.TimeProcessing;
  */
 // Modified: remove connector from start()
 public class RequestGenerator extends AbstractComponent implements RequestNotificationHandlerI {
-	public static int DEBUG_LEVEL = 2;
+	private static int DEBUG_LEVEL = 2;
 
 	// -------------------------------------------------------------------------
 	// Constants and instance variables
 	// -------------------------------------------------------------------------
 
 	/** the URI of the component. */
-	protected final String rgURI;
+	private final String rgURI;
 	
 	/** a random number generator used to generate processing times. */
-	protected RandomDataGenerator rng;
+	private RandomDataGenerator rng;
 	
 	/** a counter used to generate request URI. */
-	protected int counter;
+	private int counter;
 	
 	/** the mean inter-arrival time of requests in ms. */
-	protected double meanInterArrivalTime;
+	private double meanInterArrivalTime;
 	
 	/** the mean processing time of requests in ms. */
-	protected long meanNumberOfInstructions;
+	private long meanNumberOfInstructions;
 
 	/** the inbound port provided to manage the component. */
-	protected RequestGeneratorManagementInboundPort rgmip;
+	private RequestGeneratorManagementInboundPort rgmip;
 	
 	/** the output port used to send requests to the service provider. */
-	protected RequestSubmissionOutboundPort rsop;
-	
-	protected String requestSubmissionInboundPortURI;
-	protected String requestSubmissionOutboundPortURI;
-	
+	private RequestSubmissionOutboundPort rsop;
+
 	/** the inbound port receiving end of execution notifications. */
-	protected RequestNotificationInboundPort rnip;
+	private RequestNotificationInboundPort rnip;
 	
 	/** a future pointing to the next request generation task. */
-	protected Future<?> nextRequestTaskFuture;
+	private Future<?> nextRequestTaskFuture;
 
 	// -------------------------------------------------------------------------
 	// Constructors
@@ -165,7 +128,6 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * @param requestNotificationInboundPortURI URI of the inbound port to receive
 	 *                                          notifications of the request
 	 *                                          execution progress.
-	 * @throws Exception <i>todo.</i>
 	 */
 	public RequestGenerator(
 			String rgURI, 
@@ -192,8 +154,6 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 		this.rng = new RandomDataGenerator();
 		this.rng.reSeed();
 		this.nextRequestTaskFuture = null;
-		this.requestSubmissionInboundPortURI = requestSubmissionInboundPortURI;
-		this.requestSubmissionOutboundPortURI = requestSubmissionOutboundPortURI;
 
 		this.addOfferedInterface(RequestGeneratorManagementI.class);
 		this.rgmip = new RequestGeneratorManagementInboundPort(managementInboundPortURI, this);
@@ -218,7 +178,6 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 		assert this.rng != null && this.counter >= 0;
 		assert this.meanInterArrivalTime > 0.0;
 		assert this.meanNumberOfInstructions > 0;
-		assert this.rsop != null && this.rsop instanceof RequestSubmissionI;
 	}
 
 	// -------------------------------------------------------------------------
@@ -294,7 +253,6 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
 	public void startGeneration() throws Exception {
 		if (RequestGenerator.DEBUG_LEVEL == 2) {
@@ -315,9 +273,8 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void stopGeneration() throws Exception {
+	public void stopGeneration() {
 		if (RequestGenerator.DEBUG_LEVEL == 2) {
 			this.logMessage("Request generator " + this.rgURI + " stopping.");
 		}
@@ -358,11 +315,11 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @param miat new value for the mean inter-arrival time.
+	 * @param meanIntervalArrivalTime new value for the mean inter-arrival time.
 	 */
-	public void setMeanInterArrivalTime(double miat) {
-		assert miat > 0.0;
-		this.meanInterArrivalTime = miat;
+	public void setMeanInterArrivalTime(double meanIntervalArrivalTime) {
+		assert meanIntervalArrivalTime > 0.0;
+		this.meanInterArrivalTime = meanIntervalArrivalTime;
 	}
 
 	/**
@@ -379,9 +336,8 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void generateNextRequest() throws Exception {
+	private void generateNextRequest() throws Exception {
 		// generate a random number of instructions for the request.
 		long noi = (long) this.rng.nextExponential(this.meanNumberOfInstructions);
 		Request r = new Request(this.rgURI + "-" + this.counter++, noi);
@@ -422,10 +378,9 @@ public class RequestGenerator extends AbstractComponent implements RequestNotifi
 	 * </pre>
 	 *
 	 * @param r request that just terminated.
-	 * @throws Exception <i>todo.</i>
 	 */
 	@Override
-	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
+	public void acceptRequestTerminationNotification(RequestI r) {
 		assert r != null;
 
 		if (RequestGenerator.DEBUG_LEVEL == 2) {

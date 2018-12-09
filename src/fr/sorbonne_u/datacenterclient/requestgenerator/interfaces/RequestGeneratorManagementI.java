@@ -1,39 +1,5 @@
 package fr.sorbonne_u.datacenterclient.requestgenerator.interfaces;
 
-//Copyright Jacques Malenfant, Sorbonne Universite.
-//
-//Jacques.Malenfant@lip6.fr
-//
-//This software is a computer program whose purpose is to provide a
-//basic component programming model to program with components
-//distributed applications in the Java programming language.
-//
-//This software is governed by the CeCILL-C license under French law and
-//abiding by the rules of distribution of free software.  You can use,
-//modify and/ or redistribute the software under the terms of the
-//CeCILL-C license as circulated by CEA, CNRS and INRIA at the following
-//URL "http://www.cecill.info".
-//
-//As a counterpart to the access to the source code and  rights to copy,
-//modify and redistribute granted by the license, users are provided only
-//with a limited warranty  and the software's author,  the holder of the
-//economic rights,  and the successive licensors  have only  limited
-//liability. 
-//
-//In this respect, the user's attention is drawn to the risks associated
-//with loading,  using,  modifying and/or developing or reproducing the
-//software by the user in light of its specific status of free software,
-//that may mean  that it is complicated to manipulate,  and  that  also
-//therefore means  that it is reserved for developers  and  experienced
-//professionals having in-depth computer knowledge. Users are therefore
-//encouraged to load and test the software's suitability as regards their
-//requirements in conditions enabling the security of their systems and/or 
-//data to be ensured and,  more generally, to use and operate it in the 
-//same conditions as regards security. 
-//
-//The fact that you are presently reading this means that you have had
-//knowledge of the CeCILL-C license and that you accept its terms.
-
 import fr.sorbonne_u.components.interfaces.OfferedI;
 import fr.sorbonne_u.components.interfaces.RequiredI;
 
@@ -50,7 +16,7 @@ import fr.sorbonne_u.components.interfaces.RequiredI;
  * </p>
  * 
  * <pre>
- * invariant	true
+ * invariant true
  * </pre>
  * 
  * <p>
@@ -68,13 +34,12 @@ public interface RequestGeneratorManagementI extends OfferedI, RequiredI {
 	 * </p>
 	 * 
 	 * <pre>
-	 * pre	true			// no precondition.
-	 * post	true			// no postcondition.
+	 * pre	true // no precondition.
+	 * post	true // no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void startGeneration() throws Exception;
+	void startGeneration() throws Exception;
 
 	/**
 	 * stop the generation of the requests.
@@ -88,9 +53,8 @@ public interface RequestGeneratorManagementI extends OfferedI, RequiredI {
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @throws Exception <i>todo.</i>
 	 */
-	public void stopGeneration() throws Exception;
+	void stopGeneration() throws Exception;
 
 	/**
 	 * get the current value of the mean inter-arrival time used to generate
@@ -106,9 +70,8 @@ public interface RequestGeneratorManagementI extends OfferedI, RequiredI {
 	 * </pre>
 	 *
 	 * @return the current value of the mean inter-arrival time.
-	 * @throws Exception <i>todo.</i>
 	 */
-	public double getMeanInterArrivalTime() throws Exception;
+	double getMeanInterArrivalTime() throws Exception;
 
 	/**
 	 * set the value of the mean inter-arrival time used to generate requests.
@@ -118,12 +81,11 @@ public interface RequestGeneratorManagementI extends OfferedI, RequiredI {
 	 * </p>
 	 * 
 	 * <pre>
-	 * pre	miat &gt; 0.0
+	 * pre	meanInterArrivalTime &gt; 0.0
 	 * post	true			// no postcondition.
 	 * </pre>
 	 *
-	 * @param miat new value for the mean inter-arrival time.
-	 * @throws Exception <i>todo.</i>
+	 * @param meanInterArrivalTime new value for the mean inter-arrival time.
 	 */
-	public void setMeanInterArrivalTime(double miat) throws Exception;
+	void setMeanInterArrivalTime(double meanInterArrivalTime) throws Exception;
 }
