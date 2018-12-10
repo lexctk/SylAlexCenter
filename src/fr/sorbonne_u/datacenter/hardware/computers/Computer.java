@@ -1,14 +1,12 @@
 package fr.sorbonne_u.datacenter.hardware.computers;
 
 import java.io.Serializable;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
@@ -227,6 +225,10 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	/** future of the task scheduled to push dynamic data. */
 	private ScheduledFuture<?> pushingFuture;
 
+	private ArrayList<Integer> possibleFrequencies;
+
+	private int[][] coreFrequencies;
+
 	// ------------------------------------------------------------------------
 	// Component constructor
 	// ------------------------------------------------------------------------
@@ -324,6 +326,10 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		this.processorDynamicDataOutboundPorts = new ProcessorDynamicStateDataOutboundPort[numberOfProcessors];
 		this.processorsURI = new HashMap<>();
 		this.processorsInboundPortURI = new HashMap<>();
+
+		this.possibleFrequencies = new ArrayList<>();
+		this.possibleFrequencies.addAll(possibleFrequencies);
+
 		// Create the different processors
 		for (int i = 0; i < numberOfProcessors; i++) {
 			// generate URI for the processor and its different ports
@@ -378,6 +384,13 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 			}
 		}
 
+		this.coreFrequencies = new int[this.numberOfProcessors][this.numberOfCores];
+		for (int np = 0; np < this.numberOfProcessors; np++) {
+			for (int nc = 0; nc < this.numberOfCores; nc++) {
+				this.coreFrequencies[np][nc] = defaultFrequency;
+			}
+		}
+
 		// Adding computer interfaces, creating and publishing the related ports
 		this.addOfferedInterface(ComputerServicesI.class);
 		this.computerServicesInboundPort = new ComputerServicesInboundPort(computerServicesInboundPortURI, this);
@@ -397,6 +410,8 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				computerDynamicStateDataInboundPortURI, this);
 		this.addPort(computerDynamicStateDataInboundPort);
 		this.computerDynamicStateDataInboundPort.publishPort();
+
+		this.tracer.setTitle(this.computerURI);
 	}
 
 	// ------------------------------------------------------------------------
@@ -583,7 +598,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * @throws Exception exception
 	 */
 	public ComputerDynamicStateI getDynamicState() throws Exception {
-		return new ComputerDynamicState(this.computerURI, this.reservedCores);
+		return new ComputerDynamicState(this.computerURI, this.reservedCores, this.coreFrequencies);
 	}
 
 	/**
@@ -827,6 +842,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				if (!this.reservedCores[p][c]) {
 					notFound = false;
 					this.reservedCores[p][c] = true;
+					this.coreFrequencies[p][c] = this.processors[p].getCoreFrequency(c);
 					processorNo = p;
 					coreNo = c;
 				}
@@ -891,7 +907,6 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		assert this.isReserved(ac.processorNo, ac.coreNo);
 
 		this.reservedCores[ac.processorNo][ac.coreNo] = false;
-
 		assert !this.isReserved(ac.processorNo, ac.coreNo);
 	}
 
@@ -1012,5 +1027,68 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 			}
 		}
 		return sb.toString();
+	}
+
+	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
+
+		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
+
+		if (currentFrequency == -1) return false;
+
+		for (int possibleFrequency : this.possibleFrequencies) {
+			if (possibleFrequency > currentFrequency) { //stop at the first one
+				return setCurrentFrequency(possibleFrequency, coreNo, processorURI);
+			}
+		}
+		return false;
+	}
+
+	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
+
+		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
+
+		if (currentFrequency == -1) return false;
+
+		for (int i = this.possibleFrequencies.size()-1; i >= 0; i--) {
+			if (this.possibleFrequencies.get(i) < currentFrequency) { //stop at the first one
+				return setCurrentFrequency(possibleFrequencies.get(i), coreNo, processorURI);
+			}
+		}
+		return false;
+	}
+
+	private boolean setCurrentFrequency(int possibleFrequency, int coreNo, String processorURI) throws Exception {
+
+		int processorNo = -1;
+		for (Entry<Integer, String> entry : this.processorsURI.entrySet()) {
+			if (Objects.equals(entry.getValue(), processorURI)) {
+				processorNo = entry.getKey();
+				break;
+			}
+		}
+
+		if (this.processors[processorNo].isValidCoreNo(coreNo)) {
+			if (this.processors[processorNo].isAdmissibleFrequency(possibleFrequency) &&
+					this.processors[processorNo].isCurrentlyPossibleFrequencyForCore(coreNo, possibleFrequency)) {
+
+				this.processors[processorNo].setCoreFrequency(coreNo, possibleFrequency);
+				this.coreFrequencies[processorNo][coreNo] = possibleFrequency;
+				return true;
+			}
+
+		}
+
+		return false;
+	}
+
+	private int getCurrentFrequency(int coreNo, String processorURI) {
+		for (Entry<Integer, String> entry : this.processorsURI.entrySet()) {
+			if (Objects.equals(entry.getValue(), processorURI)) {
+				int processorNo = entry.getKey();
+				return this.processors[processorNo].getCoreFrequency(coreNo);
+			}
+		}
+
+		return -1;
 	}
 }

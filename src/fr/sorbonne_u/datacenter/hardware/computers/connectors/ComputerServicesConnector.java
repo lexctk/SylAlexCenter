@@ -34,4 +34,15 @@ public class ComputerServicesConnector extends AbstractConnector implements Comp
 	public AllocatedCore[] allocateCores(int numberRequested) throws Exception {
 		return ((ComputerServicesI) this.offering).allocateCores(numberRequested);
 	}
+
+	@Override
+	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
+		return ((ComputerServicesI) this.offering).increaseFrequency(coreNo, processorURI);
+	}
+
+	@Override
+	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
+		return ((ComputerServicesI) this.offering).decreaseFrequency(coreNo, processorURI);
+	}
+
 }

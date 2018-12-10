@@ -44,4 +44,6 @@ public interface ComputerDynamicStateI extends DataOfferedI.DataI, DataRequiredI
 	 * @return a boolean 2D array where true cells indicate reserved cores.
 	 */
 	boolean[][] getCurrentCoreReservations();
+
+	int[][] getCurrentCoreFrequencies();
 }

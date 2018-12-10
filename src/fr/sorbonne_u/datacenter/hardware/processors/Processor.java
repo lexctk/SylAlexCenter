@@ -94,6 +94,8 @@ import fr.sorbonne_u.datacenter.software.applicationvm.interfaces.TaskI;
 public class Processor extends AbstractComponent implements PushModeControllingI {
 	public static boolean DEBUG = true;
 
+	public static final int debugLevel = 1;
+
 	public enum ProcessorPortTypes {
 		SERVICES, INTROSPECTION, MANAGEMENT, STATIC_STATE, DYNAMIC_STATE
 	}
@@ -259,6 +261,9 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 
 		this.pushingFuture = null;
 		this.notificationInboundPortURIs = new HashMap<>();
+
+		this.tracer.setTitle(processorURI);
+		this.tracer.setRelativePosition(3,3);
 	}
 
 	// ------------------------------------------------------------------------
@@ -538,8 +543,8 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	 * @param numberOfRemainingPushes number of pushes remaining to be done.
 	 */
 	private void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
-		if (Processor.DEBUG) {
-			this.logMessage("Processor>>sendDynamicState(" + interval + ", " + numberOfRemainingPushes + ")");
+		if (debugLevel > 0) {
+			this.logMessage("Processor >> sendDynamicState(" + interval + ", " + numberOfRemainingPushes + ")");
 		}
 
 		assert interval > 0 && numberOfRemainingPushes > 0;
@@ -589,7 +594,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 	public void startLimitedPushing(final int interval, final int n) throws Exception {
 		assert n > 0;
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 0) {
 			this.logMessage("startLimitedPushing with interval " + interval + " ms for " + n + " times.");
 		}
 
@@ -645,7 +650,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 		assert this.isValidCoreNo(coreNo);
 		assert this.cores[coreNo].isIdle();
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 1) {
 			this.logMessage("processor execute task on core " + coreNo);
 		}
 		this.cores[coreNo].startTask(task);
@@ -679,7 +684,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 		assert this.isValidCoreNo(coreNo);
 		assert this.cores[coreNo].isIdle();
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 1) {
 			this.logMessage("processor execute task " + task.getTaskURI() + " on core " + coreNo
 					+ " with notification port URI " + notificationInboundPortURI);
 		}
@@ -706,7 +711,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 
 		String notificationInboundPortURI = this.notificationInboundPortURIs.remove(t);
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 1) {
 			this.logMessage("processor ends task " + t.getTaskURI() + " with notification port URI "
 					+ notificationInboundPortURI);
 		}
@@ -755,8 +760,8 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 			throws UnavailableFrequencyException, UnacceptableFrequencyException, Exception {
 		assert this.isValidCoreNo(coreNo);
 
-		if (Processor.DEBUG) {
-			this.logMessage("Processor>>setCoreFrequency(" + coreNo + ", " + frequency + ")");
+		if (debugLevel > 0) {
+			this.logMessage("Processor >> setCoreFrequency(" + coreNo + ", " + frequency + ")");
 		}
 
 		if (!this.isAdmissibleFrequency(frequency)) {
@@ -767,5 +772,9 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 		}
 
 		this.cores[coreNo].setFrequency(frequency);
+	}
+
+	public int getCoreFrequency (int coreNo) {
+		return this.cores[coreNo].getCurrentFrequency();
 	}
 }

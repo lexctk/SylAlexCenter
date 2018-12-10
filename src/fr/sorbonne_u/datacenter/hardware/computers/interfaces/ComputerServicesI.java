@@ -50,4 +50,8 @@ public interface ComputerServicesI extends OfferedI, RequiredI {
 	 * @throws Exception exception
 	 */
 	AllocatedCore[] allocateCores(final int numberRequested) throws Exception;
+
+	boolean increaseFrequency(int coreNo, String processorURI) throws Exception;
+
+	boolean decreaseFrequency(int coreNo, String processorURI) throws Exception;
 }

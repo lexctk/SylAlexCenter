@@ -30,9 +30,9 @@ public class TestAdmissionController extends AbstractCVM {
 
 	// Setup
 	// -----------------------------------------------------------------
-	private static final Integer numberOfComputers = 4;
-	private static final Integer numberOfProcessors = 4;
-	private static final Integer numberOfCores = 8;
+	private static final Integer numberOfComputers = 2;
+	private static final Integer numberOfProcessors = 2;
+	private static final Integer numberOfCores = 6;
 	private static final Integer numberOfApplications = 4;
 	
 	private static final Integer coresPerAVM = 2;
@@ -65,6 +65,8 @@ public class TestAdmissionController extends AbstractCVM {
 		// -----------------------------------------------------------------
 		ArrayList<String> computerURIsList = new ArrayList<>();
 		ArrayList<String> computerServicesInboundPortURIList = new ArrayList<>();
+		ArrayList<String> computerStaticStateDataInboundPortURIList = new ArrayList<>();
+		ArrayList<String> computerDynamicStateDataInboundPortURIList = new ArrayList<>();
 		
 		for(int i = 0 ; i < numberOfComputers; i++) {
 			String computerServicesInboundPortURI = "csip_" +i;
@@ -73,14 +75,18 @@ public class TestAdmissionController extends AbstractCVM {
 			String computerURI = "computer" + i;
 			
 			Set<Integer> possibleFrequencies = new HashSet<>();
-			possibleFrequencies.add(1500); 
+			possibleFrequencies.add(1500);
+			possibleFrequencies.add(2000);
+			possibleFrequencies.add(2500);
 			possibleFrequencies.add(3000); 
 			
 			Map<Integer, Integer> processingPower = new HashMap<>();
-			processingPower.put(1500, 1500000); 
+			processingPower.put(1500, 1500000);
+			processingPower.put(2000, 2000000);
+			processingPower.put(2500, 2500000);
 			processingPower.put(3000, 3000000); 
 			
-			int defaultFrequency = 1500;
+			int defaultFrequency = 2000;
 			int maxFrequencyGap = 500;
 			
 			Computer computer = new Computer (
@@ -98,7 +104,7 @@ public class TestAdmissionController extends AbstractCVM {
 			
 			this.addDeployedComponent(computer);
 			computer.toggleLogging();
-			computer.toggleTracing();	
+			computer.toggleTracing();
 			
 			// Deploy a computer monitor 
 			// --------------------------------------------------------------------
@@ -113,6 +119,8 @@ public class TestAdmissionController extends AbstractCVM {
 			
 			computerURIsList.add(computerURI);
 			computerServicesInboundPortURIList.add(computerServicesInboundPortURI);
+			computerStaticStateDataInboundPortURIList.add(computerStaticStateDataInboundPortURI);
+			computerDynamicStateDataInboundPortURIList.add(computerDynamicStateDataInboundPortURI);
 			System.out.println(computerURI + " deployed.");
 		}
 		
@@ -161,6 +169,8 @@ public class TestAdmissionController extends AbstractCVM {
 		AdmissionController admissionController = new AdmissionController(
 				computerURIsList,
 				computerServicesInboundPortURIList,
+				computerStaticStateDataInboundPortURIList,
+				computerDynamicStateDataInboundPortURIList,
 				applicationURIsList,
 				applicationManagementInboundPortURIList,
 				applicationSubmissionInboundPortURIList,

@@ -55,6 +55,8 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 	private static final String applicationNotificationInboundPortURI = "appnip";
 	
 	private ArrayList<String> computerServicesInboundPortURIList;
+	private ArrayList<String> computerStaticStateDataInboundPortURIList;
+	private ArrayList<String> computerDynamicStateDataInboundPortURIList;
 
 	// Component URIs
 	// -----------------------------------------------------------------	
@@ -82,6 +84,9 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 			// -----------------------------------------------------------------
 			computerURIsList = new ArrayList<>();
 			computerServicesInboundPortURIList = new ArrayList<>();
+			computerStaticStateDataInboundPortURIList = new ArrayList<>();
+			computerDynamicStateDataInboundPortURIList = new ArrayList<>();
+
 			
 			for(int i = 0 ; i < numberOfComputers; i++) {
 				String computerServicesInboundPortURI = "csip_" +i;
@@ -130,6 +135,8 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 				
 				computerURIsList.add(computerURI);
 				computerServicesInboundPortURIList.add(computerServicesInboundPortURI);
+				computerStaticStateDataInboundPortURIList.add(computerStaticStateDataInboundPortURI);
+				computerDynamicStateDataInboundPortURIList.add(computerDynamicStateDataInboundPortURI);
 				System.out.println(computerURI + " deployed.");
 			}
 		} else if (thisJVMURI.equals(jvmURI.get(1))) {
@@ -179,6 +186,8 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 			AdmissionController admissionController = new AdmissionController(
 					computerURIsList,
 					computerServicesInboundPortURIList,
+					computerStaticStateDataInboundPortURIList,
+					computerDynamicStateDataInboundPortURIList,
 					applicationURIsList,
 					applicationManagementInboundPortURIList,
 					applicationSubmissionInboundPortURIList,

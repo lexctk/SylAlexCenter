@@ -14,6 +14,4 @@ public interface RequestDispatcherDynamicStateI extends DataOfferedI.DataI, Data
 	int getTotalRequestSubmitted();
 
 	int getTotalRequestTerminated();
-
-	int getQueueSize();
 }

@@ -110,7 +110,7 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 		super.execute();
 
 		for (ApplicationVMManagementOutboundPort anAvmopList : this.avmopList) {
-			AllocatedCore[] ac = this.csop.allocateCores(2);
+			AllocatedCore[] ac = this.csop.allocateCores(4);
 			anAvmopList.allocateCores(ac);
 		}
 		

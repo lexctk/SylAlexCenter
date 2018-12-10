@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
 import fr.sorbonne_u.components.exceptions.ComponentStartException;
-import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
 import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 
@@ -22,12 +21,12 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 	
 	private ArrayList<String> applicationVMManagementInboundPortURIList;
 	
-	private ArrayList<AllocatedCore[]> allocatedCores;
+	private ArrayList<AllocationMap> allocatedMap;
 	
 	public AdmissionControllerIntegrator (
 			String integratorURI, 
 			ArrayList<String> applicationVMManagementInboundPortURIList,
-			ArrayList<AllocatedCore[]> allocatedCores
+			ArrayList<AllocationMap> allocatedMap
 		) throws Exception {
 		
 		super(integratorURI, 1, 0);
@@ -44,7 +43,7 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 			this.avmopList.get(i).publishPort();			
 		}	
 		
-		this.allocatedCores = allocatedCores;
+		this.allocatedMap = allocatedMap;
 	}
 
 	/**
@@ -76,7 +75,7 @@ public class AdmissionControllerIntegrator extends AbstractComponent {
 		
 		for (int i = 0; i< this.avmopList.size(); i++) {
 			try {
-				this.avmopList.get(i).allocateCores(this.allocatedCores.get(i));
+				this.avmopList.get(i).allocateCores(this.allocatedMap.get(i).getAllocatedCores());
 			} catch (Exception e) {
 				throw new ComponentStartException("Couldn't allocate to AVM out port" + e);
 			}

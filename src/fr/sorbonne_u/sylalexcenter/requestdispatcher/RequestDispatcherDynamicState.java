@@ -6,8 +6,8 @@ public class RequestDispatcherDynamicState implements RequestDispatcherDynamicSt
 
 	private final String rdURI;
 
-	private final double exponentialAverageExecutionTime;
 	private final int availableAVMsCount;
+	private final double exponentialAverageExecutionTime;
 	private final int totalRequestSubmitted;
 	private final int totalRequestTerminated;
 
@@ -49,10 +49,5 @@ public class RequestDispatcherDynamicState implements RequestDispatcherDynamicSt
 	@Override
 	public int getTotalRequestTerminated() {
 		return this.totalRequestTerminated;
-	}
-
-	@Override
-	public int getQueueSize() {
-		return (this.totalRequestSubmitted - this.totalRequestTerminated);
 	}
 }

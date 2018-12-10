@@ -66,6 +66,7 @@ public class Core {
 	 * its termination event after changing the frequency.
 	 */
 	private static int SHORTEST_DELAY_FOR_REPLANNING = 20;
+	private static final int debugLevel = 1;
 
 	// ------------------------------------------------------------------------
 	// Instance variables
@@ -231,16 +232,16 @@ public class Core {
 		assert newFrequency != this.currentFrequency;
 		assert this.admissibleFrequencies.contains(newFrequency);
 
-		if (Processor.DEBUG) {
-			this.owner.logMessage("Core>>setCoreFrequency(" + newFrequency + ")");
+		if (debugLevel > 0) {
+			this.owner.logMessage("Core >> setCoreFrequency(" + newFrequency + ")");
 		}
 
 		boolean raising = (newFrequency > this.currentFrequency);
 		int oldFrequency = this.currentFrequency;
 		this.currentFrequency = newFrequency;
 
-		if (Processor.DEBUG) {
-			this.owner.logMessage("Core>>setCoreFrequency\n" + "    oldFrequency = " + oldFrequency + "\n"
+		if (debugLevel > 0) {
+			this.owner.logMessage("Core >> setCoreFrequency\n" + "    oldFrequency = " + oldFrequency + "\n"
 					+ "    raising      = " + raising + "\n" + "    isIdle       = " + this.isIdle());
 		}
 
@@ -252,8 +253,8 @@ public class Core {
 			long elapsedTime = currentTime - this.lastTaskReStartTime;
 			long executedInstructions = this.computeNumberOfInstructionsForTime(elapsedTime, oldFrequency);
 
-			if (Processor.DEBUG) {
-				this.owner.logMessage("Core>>setCoreFrequency 4\n" + "    numberOfInstructions = "
+			if (debugLevel > 1) {
+				this.owner.logMessage("Core >> setCoreFrequency 4\n" + "    numberOfInstructions = "
 						+ this.currentTask.getRequest().getPredictedNumberOfInstructions() + "\n"
 						+ "    executedInstructions = " + executedInstructions);
 			}
@@ -262,8 +263,8 @@ public class Core {
 					- executedInstructions;
 			long remainingTime = this.computeCurrentProcessingTime(remainingInstructions);
 
-			if (Processor.DEBUG) {
-				this.owner.logMessage("Core>>setCoreFrequency\n" + "    shortest delay = "
+			if (debugLevel > 1) {
+				this.owner.logMessage("Core >> setCoreFrequency\n" + "    shortest delay = "
 						+ Core.SHORTEST_DELAY_FOR_REPLANNING + "\n" + "    remainingTime  = " + remainingTime);
 			}
 
@@ -274,7 +275,7 @@ public class Core {
 				this.lastTaskReStartTime = currentTime;
 				this.currentTaskProjectedTermination = this.lastTaskReStartTime + remainingTime;
 
-				if (Processor.DEBUG) {
+				if (debugLevel > 1) {
 					this.owner.logMessage("core " + this.coreNo + " replans task end in " + remainingTime
 							+ " milliseconds (termination at " + this.currentTaskProjectedTermination + ").");
 				}
@@ -314,7 +315,7 @@ public class Core {
 		assert this.currentTask != null;
 		assert this.currentTaskEndFuture != null;
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 1) {
 			this.owner.logMessage("core " + this.coreNo + " of " + this.owner.processorURI + " ends the task "
 					+ this.currentTask.getTaskURI() + ".");
 		}
@@ -350,7 +351,7 @@ public class Core {
 		this.currentTask = task;
 		long delay = this.computeCurrentProcessingTime(task.getRequest().getPredictedNumberOfInstructions());
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 1) {
 			this.owner.logMessage(
 					"core " + this.coreNo + " of " + this.owner.processorURI + " starts a task for " + delay + " ms.");
 		}
@@ -358,7 +359,7 @@ public class Core {
 		this.lastTaskReStartTime = TimeManagement.currentTime();
 		this.currentTaskProjectedTermination = this.lastTaskReStartTime + delay;
 
-		if (Processor.DEBUG) {
+		if (debugLevel > 1) {
 			this.owner.logMessage("core " + this.coreNo + " starts task, scheduling end in " + delay
 					+ " milliseconds (termination at " + this.currentTaskProjectedTermination + ").");
 		}

@@ -66,7 +66,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 		// Deploy a Computer with 2 Processors and 2 Cores each
 		// -----------------------------------------------------------------
 		String computerURI = "computer0";
-		int numberOfProcessors = 2;
+		int numberOfProcessors = 4;
 		int numberOfCores = 2;
 		
 		Set<Integer> possibleFrequencies = new HashSet<>();
@@ -94,8 +94,8 @@ public class TestRequestDispatcher extends AbstractCVM {
 		);
 		
 		this.addDeployedComponent(computer);
-		computer.toggleLogging();
 		computer.toggleTracing();
+		computer.toggleLogging();
 		
 		
 		// Deploy a computer monitor 

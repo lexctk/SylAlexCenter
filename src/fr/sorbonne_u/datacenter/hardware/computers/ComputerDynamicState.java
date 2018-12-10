@@ -40,6 +40,9 @@ public class ComputerDynamicState extends AbstractTimeStampedData implements Com
 	/** reservation status of the cores of all computer's processors. */
 	private final boolean[][] reservedCores;
 
+	private final int[][] coreFrequencies;
+
+
 	// ------------------------------------------------------------------------
 	// Constructors
 	// ------------------------------------------------------------------------
@@ -62,13 +65,21 @@ public class ComputerDynamicState extends AbstractTimeStampedData implements Com
 	 *                      processors.
 	 * @throws Exception exception
 	 */
-	public ComputerDynamicState(String computerURI, boolean[][] reservedCores) throws Exception {
+	ComputerDynamicState(String computerURI,
+	                     boolean[][] reservedCores,
+	                     int[][] coreFrequencies) throws Exception {
 		super();
 
 		this.computerURI = computerURI;
+
 		this.reservedCores = new boolean[reservedCores.length][reservedCores[0].length];
 		for (int p = 0; p < reservedCores.length; p++) {
 			System.arraycopy(reservedCores[p], 0, this.reservedCores[p], 0, reservedCores[0].length);
+		}
+
+		this.coreFrequencies = new int[coreFrequencies.length][coreFrequencies[0].length];
+		for (int p = 0; p < coreFrequencies.length; p++) {
+			System.arraycopy(coreFrequencies[p], 0, this.coreFrequencies[p], 0, coreFrequencies[0].length);
 		}
 	}
 
@@ -94,6 +105,17 @@ public class ComputerDynamicState extends AbstractTimeStampedData implements Com
 		for (int i = 0; i < this.reservedCores.length; i++) {
 			if (this.reservedCores[i].length >= 0)
 				System.arraycopy(this.reservedCores[i], 0, ret[i], 0, this.reservedCores[i].length);
+		}
+		return ret;
+	}
+
+	@Override
+	public int[][] getCurrentCoreFrequencies() {
+		// copy not to provide direct access to internal data structures.
+		int[][] ret = new int[this.coreFrequencies.length][this.coreFrequencies[0].length];
+		for (int i = 0; i < this.coreFrequencies.length; i++) {
+			if (this.coreFrequencies[i].length >= 0)
+				System.arraycopy(this.coreFrequencies[i], 0, ret[i], 0, this.coreFrequencies[i].length);
 		}
 		return ret;
 	}

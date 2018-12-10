@@ -61,4 +61,14 @@ public class ComputerServicesOutboundPort extends AbstractOutboundPort implement
 	public AllocatedCore[] allocateCores(final int numberRequested) throws Exception {
 		return ((ComputerServicesI) this.connector).allocateCores(numberRequested);
 	}
+
+	@Override
+	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception{
+		return ((ComputerServicesI) this.connector).increaseFrequency(coreNo, processorURI);
+	}
+
+	@Override
+	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
+		return ((ComputerServicesI) this.connector).decreaseFrequency(coreNo, processorURI);
+	}
 }
