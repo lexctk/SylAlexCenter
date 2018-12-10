@@ -6,6 +6,8 @@ import fr.sorbonne_u.components.ports.AbstractInboundPort;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.PerformanceController;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerManagementI;
 
+import java.util.ArrayList;
+
 public class PerformanceControllerManagementInboundPort extends AbstractInboundPort implements PerformanceControllerManagementI {
 
 	public PerformanceControllerManagementInboundPort(ComponentI owner) throws Exception {
@@ -34,5 +36,19 @@ public class PerformanceControllerManagementInboundPort extends AbstractInboundP
 					return null;
 				}
 			});
+	}
+
+	@Override
+	public void doConnectionWithComputerForDynamicState(ArrayList<String> computerDynamicStateInboundPortUri) throws Exception {
+		final PerformanceController performanceController = (PerformanceController) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						performanceController.doConnectionWithComputerForDynamicState(computerDynamicStateInboundPortUri);
+						return null;
+					}
+				});
 	}
 }

@@ -8,6 +8,7 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerDynamicStateI;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStaticStateI;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.interfaces.ControlledDataRequiredI;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerManagementI;
@@ -15,6 +16,8 @@ import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceContro
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherDynamicStateI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherStateDataConsumerI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataOutboundPort;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +35,6 @@ public class PerformanceController extends AbstractComponent implements
 	private static final int queueThresholdMin = 5;
 	private static final double executionTimeThresholdMin = 5E9;
 
-	private String performanceControllerURI;
 	private String requestDispatcherURI;
 	private String appURI;
 
@@ -43,19 +45,17 @@ public class PerformanceController extends AbstractComponent implements
 
 	private HashMap<String, AllocationMap> allocationMap;
 
-	private String requestDispatcherDynamicStateDataInboundPortURI;
-
-	private PerformanceControllerManagementInboundPort pcmip;
-
 	private RequestDispatcherDynamicStateDataOutboundPort rddsdop;
+	private ArrayList<ComputerDynamicStateDataOutboundPort> cdsdopList;
 
-	public PerformanceController(
+	public PerformanceController (
 			String performanceControllerURI,
-			String performanceControllerManagementInboundPortURI,
 			String appURI,
 			String requestDispatcherURI,
-			String requestDispatcherDynamicStateDataInboundPortURI,
-			HashMap<String, AllocationMap> allocationMap) throws Exception {
+			String performanceControllerManagementInboundPortURI,
+			ArrayList<String> computersURIList,
+			HashMap<String, AllocationMap> allocationMap
+	) throws Exception {
 		super(performanceControllerURI, 1, 1);
 
 		this.availableAVMsCount = 0;
@@ -63,17 +63,16 @@ public class PerformanceController extends AbstractComponent implements
 		this.totalRequestSubmitted = 0;
 		this.totalRequestTerminated = 0;
 
-		this.performanceControllerURI = performanceControllerURI;
 		this.appURI = appURI;
-		this.requestDispatcherURI = requestDispatcherURI;
-		this.requestDispatcherDynamicStateDataInboundPortURI = requestDispatcherDynamicStateDataInboundPortURI;
 
-		this.allocationMap = allocationMap;
+		this.requestDispatcherURI = requestDispatcherURI;
+
+		this.allocationMap = new HashMap<>(allocationMap);
 
 		this.addOfferedInterface(PerformanceControllerManagementI.class);
-		this.pcmip = new PerformanceControllerManagementInboundPort(performanceControllerManagementInboundPortURI, this);
-		this.addPort(this.pcmip);
-		this.pcmip.publishPort();
+		PerformanceControllerManagementInboundPort pcmip = new PerformanceControllerManagementInboundPort(performanceControllerManagementInboundPortURI, this);
+		this.addPort(pcmip);
+		pcmip.publishPort();
 
 		this.addRequiredInterface(DataRequiredI.PullI.class);
 		this.addRequiredInterface(ControlledDataRequiredI.ControlledPullI.class);
@@ -82,7 +81,14 @@ public class PerformanceController extends AbstractComponent implements
 		this.addPort(this.rddsdop);
 		this.rddsdop.publishPort();
 
-		this.tracer.setTitle("pc-" + requestDispatcherURI);
+		this.cdsdopList = new ArrayList<>();
+		for (int i = 0; i < computersURIList.size(); i++) {
+			this.cdsdopList.add(new ComputerDynamicStateDataOutboundPort(this, computersURIList.get(i)));
+			this.addPort(this.cdsdopList.get(i));
+			this.cdsdopList.get(i).publishPort();
+		}
+
+		this.tracer.setTitle(performanceControllerURI);
 		this.tracer.setRelativePosition(3, 0);
 	}
 
@@ -111,6 +117,23 @@ public class PerformanceController extends AbstractComponent implements
 
 		} catch (Exception e) {
 			throw new ComponentStartException("Unable to start pushing dynamic data from the request dispatcher " + e);
+		}
+	}
+
+	@Override
+	public void doConnectionWithComputerForDynamicState (ArrayList<String> computerDynamicStateDataInboundPortURIList) throws Exception {
+
+		for (int i = 0; i < cdsdopList.size(); i++) {
+			this.doPortConnection(
+					this.cdsdopList.get(i).getPortURI(),
+					computerDynamicStateDataInboundPortURIList.get(i),
+					ControlledDataConnector.class.getCanonicalName());
+			try {
+				this.cdsdopList.get(i).startUnlimitedPushing(timer);
+
+			} catch (Exception e) {
+				throw new ComponentStartException("Unable to start pushing dynamic data from the computer " + e);
+			}
 		}
 	}
 
@@ -144,17 +167,7 @@ public class PerformanceController extends AbstractComponent implements
 
 	@Override
 	public void acceptComputerDynamicData(String computerURI, ComputerDynamicStateI currentDynamicState) {
-		//reservedCores = currentDynamicState.getCurrentCoreReservations();
-		this.logMessage("----> Frequencies for computer " + computerURI);
-
-		int[] [] coreFrequencies = currentDynamicState.getCurrentCoreFrequencies();
-		for (int np = 0; np < coreFrequencies.length; np++) {
-			StringBuilder sb = new StringBuilder();
-			for (int nc = 0; nc < coreFrequencies[0].length; nc++) {
-				sb.append(coreFrequencies[np][nc]).append(" ");
-			}
-			this.logMessage("-----> processor " + np + ": " + sb);
-		}
+		//currentDynamicState.getCurrentCoreFrequencies();
 	}
 
 	private void checkUsage() {
@@ -173,7 +186,7 @@ public class PerformanceController extends AbstractComponent implements
 						}
 					}
 
-				}, timer*5, TimeUnit.MILLISECONDS);
+				}, timer*7, TimeUnit.MILLISECONDS);
 	}
 
 	private boolean isUsageHigh() {

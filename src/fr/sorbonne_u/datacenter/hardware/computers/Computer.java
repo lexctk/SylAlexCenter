@@ -329,6 +329,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 
 		this.possibleFrequencies = new ArrayList<>();
 		this.possibleFrequencies.addAll(possibleFrequencies);
+		Collections.sort(this.possibleFrequencies);
 
 		// Create the different processors
 		for (int i = 0; i < numberOfProcessors; i++) {
@@ -1030,30 +1031,38 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	}
 
 	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
+		printCurrentFrequencies ();
+		this.logMessage("Increasing processor " + processorURI + " and core " + coreNo);
 
 		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
-
 		if (currentFrequency == -1) return false;
 
-		for (int possibleFrequency : this.possibleFrequencies) {
+		for (Integer possibleFrequency : this.possibleFrequencies) {
 			if (possibleFrequency > currentFrequency) { //stop at the first one
-				return setCurrentFrequency(possibleFrequency, coreNo, processorURI);
+				boolean res = setCurrentFrequency(possibleFrequency, coreNo, processorURI);
+				printCurrentFrequencies();
+				return res;
 			}
 		}
+		this.logMessage("Increase not possible");
 		return false;
 	}
 
 	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
+		printCurrentFrequencies ();
+		this.logMessage("Decreasing processor " + processorURI + " and core " + coreNo);
 
 		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
-
 		if (currentFrequency == -1) return false;
 
 		for (int i = this.possibleFrequencies.size()-1; i >= 0; i--) {
 			if (this.possibleFrequencies.get(i) < currentFrequency) { //stop at the first one
-				return setCurrentFrequency(possibleFrequencies.get(i), coreNo, processorURI);
+				boolean res =  setCurrentFrequency(possibleFrequencies.get(i), coreNo, processorURI);
+				printCurrentFrequencies ();
+				return res;
 			}
 		}
+		this.logMessage("Decrease not possible");
 		return false;
 	}
 
@@ -1088,7 +1097,19 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				return this.processors[processorNo].getCoreFrequency(coreNo);
 			}
 		}
-
 		return -1;
+	}
+
+
+	private void printCurrentFrequencies () {
+		this.logMessage("--> Current frequencies");
+
+		for (int np = 0; np < this.numberOfProcessors; np++) {
+			StringBuilder sb = new StringBuilder();
+			for (int nc = 0; nc < this.numberOfCores; nc++) {
+				sb.append(this.processors[np].getCoreFrequency(nc)).append(" ");
+			}
+			this.logMessage("-----> processor " + np + ": " + sb);
+		}
 	}
 }

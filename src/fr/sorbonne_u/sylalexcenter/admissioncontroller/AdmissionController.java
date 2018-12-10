@@ -1,7 +1,5 @@
 package fr.sorbonne_u.sylalexcenter.admissioncontroller;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
@@ -13,12 +11,10 @@ import fr.sorbonne_u.components.pre.dcc.interfaces.DynamicComponentCreationI;
 import fr.sorbonne_u.components.pre.dcc.ports.DynamicComponentCreationOutboundPort;
 import fr.sorbonne_u.components.reflection.connectors.ReflectionConnector;
 import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
-import fr.sorbonne_u.datacenter.connectors.ControlledDataConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.datacenter.hardware.computers.connectors.ComputerServicesConnector;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerServicesI;
-import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.interfaces.ControlledDataRequiredI;
@@ -42,6 +38,9 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatcherManagementConnector;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public class AdmissionController extends AbstractComponent 
 	implements ApplicationSubmissionHandlerI {
 	
@@ -60,7 +59,6 @@ public class AdmissionController extends AbstractComponent
 	
 	private ArrayList<ComputerServicesOutboundPort> csopList;
 	private ArrayList<ComputerStaticStateDataOutboundPort> cssdopList;
-	private ArrayList<ComputerDynamicStateDataOutboundPort> cdsdopList;
 
 	private HashMap<String,String> applicationManagementInboundPortURIMap;
 	private HashMap<String,String> applicationNotificationInboundPortURIMap;
@@ -75,7 +73,7 @@ public class AdmissionController extends AbstractComponent
 	private DynamicComponentCreationOutboundPort dccop;
 		
 	public AdmissionController(
-			ArrayList<String> computersURIList,			
+			ArrayList<String> computersURIList,
 			ArrayList<String> computerServicesInboundPortURIList,
 			ArrayList<String> computerStaticStateDataInboundPortURIList,
 			ArrayList<String> computerDynamicStateDataInboundPortURIList,
@@ -110,7 +108,6 @@ public class AdmissionController extends AbstractComponent
 		// Computer Ports
 		this.csopList = new ArrayList<>();
 		this.cssdopList = new ArrayList<>();
-		this.cdsdopList = new ArrayList<>();
 
 		this.addRequiredInterface(ComputerServicesI.class);
 		this.addOfferedInterface(DataRequiredI.PushI.class);
@@ -129,11 +126,7 @@ public class AdmissionController extends AbstractComponent
 			this.cssdopList.add(new ComputerStaticStateDataOutboundPort(this, computersURIList.get(i)));
 			this.addPort(this.cssdopList.get(i));
 			this.cssdopList.get(i).publishPort();
-			
-			this.cdsdopList.add(new ComputerDynamicStateDataOutboundPort(this, computersURIList.get(i)));
-			this.addPort(this.cdsdopList.get(i));
-			this.cdsdopList.get(i).publishPort();
-			
+
 			this.computersURIList.add(computersURIList.get(i));
 		}		
 		
@@ -183,8 +176,6 @@ public class AdmissionController extends AbstractComponent
 
 		assert this.csopList !=null;
 		assert this.cssdopList !=null;
-		assert this.cdsdopList !=null;
-		
 		assert this.asipMap != null;
 		assert this.anopMap != null;
 	}
@@ -210,9 +201,6 @@ public class AdmissionController extends AbstractComponent
 
 				this.doPortConnection(this.cssdopList.get(i).getPortURI(), this.computerStaticStateDataInboundPortURIList.get(i),
 						DataConnector.class.getCanonicalName());
-
-				this.doPortConnection(this.cdsdopList.get(i).getPortURI(), this.computerDynamicStateDataInboundPortURIList.get(i),
-						ControlledDataConnector.class.getCanonicalName());
 			}
 			
 			for (HashMap.Entry<String, ApplicationManagementOutboundPort> entry : amopMap.entrySet()) {
@@ -282,11 +270,13 @@ public class AdmissionController extends AbstractComponent
 			
 			AllocatedCore[] allocatedCoresAVM;
 
-			for (ComputerServicesOutboundPort csop : this.csopList) {
+			for (int j = 0; j < this.csopList.size(); j++) {
+				ComputerServicesOutboundPort csop = this.csopList.get(j);
 				allocatedCoresAVM = csop.allocateCores(this.numberOfCoresPerAVM);
 
 				if (allocatedCoresAVM.length == this.numberOfCoresPerAVM) {
 					allocatedMap.add(new AllocationMap(
+							this.computersURIList.get(j),
 							csop,
 							this.numberOfCoresPerAVM,
 							allocatedCoresAVM));
@@ -491,10 +481,10 @@ public class AdmissionController extends AbstractComponent
 		try {
 			this.dccop.createComponent(PerformanceController.class.getCanonicalName(), new Object[] {
 					performanceControllerURI,
-					performanceControllerManagementInboundPortURI,
 					appUri,
 					rdURI,
-					requestDispatcherDynamicStateDataInboundPortURI,
+					performanceControllerManagementInboundPortURI,
+					computersURIList,
 					allocationMap
 			});
 		} catch (Exception e) {
@@ -520,6 +510,7 @@ public class AdmissionController extends AbstractComponent
 		}
 
 		this.pcmopMap.get(performanceControllerURI).doConnectionWithRequestDispatcherForDynamicState(requestDispatcherDynamicStateDataInboundPortURI);
+		this.pcmopMap.get(performanceControllerURI).doConnectionWithComputerForDynamicState(computerDynamicStateDataInboundPortURIList);
 
 		// Deploy the integrator
 		// --------------------------------------------------------------------

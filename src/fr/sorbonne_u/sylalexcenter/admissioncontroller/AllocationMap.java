@@ -5,13 +5,16 @@ import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboun
 
 public class AllocationMap {
 
+	private String computerURI;
 	private ComputerServicesOutboundPort csop;
 	private Integer numberOfCoresPerAVM;
 	private AllocatedCore[] allocatedCores;
 
-	AllocationMap(ComputerServicesOutboundPort csop,
+	AllocationMap(String computerURI,
+	              ComputerServicesOutboundPort csop,
 	              Integer numberOfCoresPerAVM,
 	              AllocatedCore[] allocatedCores) {
+		this.computerURI = computerURI;
 		this.csop = csop;
 		this.numberOfCoresPerAVM = numberOfCoresPerAVM;
 		this.allocatedCores = allocatedCores;
@@ -29,5 +32,7 @@ public class AllocationMap {
 		return allocatedCores;
 	}
 
-
+	public String getComputerURI() {
+		return computerURI;
+	}
 }
