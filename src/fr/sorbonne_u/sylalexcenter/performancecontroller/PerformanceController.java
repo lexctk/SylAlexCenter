@@ -9,10 +9,14 @@ import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerDynamicSta
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI;
 import fr.sorbonne_u.datacenter.hardware.computers.interfaces.ComputerStaticStateI;
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
 import fr.sorbonne_u.datacenter.interfaces.ControlledDataRequiredI;
-import fr.sorbonne_u.sylalexcenter.admissioncontroller.AllocationMap;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.connectors.PerformanceControllerServicesConnector;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerManagementI;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerServicesI;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerManagementInboundPort;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerServicesOutboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherDynamicStateI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherStateDataConsumerI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataOutboundPort;
@@ -27,22 +31,29 @@ public class PerformanceController extends AbstractComponent implements
 		RequestDispatcherStateDataConsumerI,
 		ComputerStateDataConsumerI {
 
+	private final int numberOfCoresToChange = 2;
+
 	private static final int timer = 4000;
 
-	private static final int queueThresholdMax = 15;
-	private static final double executionTimeThresholdMax = 1.7E10;
+	private static final int queueThresholdMax = 25;
+	private static final double executionTimeThresholdMax = 2E10;
 
 	private static final int queueThresholdMin = 5;
-	private static final double executionTimeThresholdMin = 5E9;
+	private static final double executionTimeThresholdMin = 1.2E10;
 
 	private String requestDispatcherURI;
 	private String appURI;
+
+	private PerformanceControllerServicesOutboundPort pcsop;
+	private String performanceControllerServicesInboundPortURI;
 
 	private int availableAVMsCount;
 	private double exponentialAverageExecutionTime;
 	private int totalRequestSubmitted;
 	private int totalRequestTerminated;
 
+	// allocation map for the AVMs.
+	// for each avmURI -> we know (computerURI, csop, numberOfCoresPerAVM, allocatedCores)
 	private HashMap<String, AllocationMap> allocationMap;
 
 	private RequestDispatcherDynamicStateDataOutboundPort rddsdop;
@@ -50,9 +61,10 @@ public class PerformanceController extends AbstractComponent implements
 
 	public PerformanceController (
 			String performanceControllerURI,
+			String performanceControllerManagementInboundPortURI,
+			String performanceControllerServicesInboundPortURI,
 			String appURI,
 			String requestDispatcherURI,
-			String performanceControllerManagementInboundPortURI,
 			ArrayList<String> computersURIList,
 			HashMap<String, AllocationMap> allocationMap
 	) throws Exception {
@@ -73,6 +85,13 @@ public class PerformanceController extends AbstractComponent implements
 		PerformanceControllerManagementInboundPort pcmip = new PerformanceControllerManagementInboundPort(performanceControllerManagementInboundPortURI, this);
 		this.addPort(pcmip);
 		pcmip.publishPort();
+
+		this.performanceControllerServicesInboundPortURI = performanceControllerServicesInboundPortURI;
+
+		this.addRequiredInterface(PerformanceControllerServicesI.class);
+		this.pcsop = new PerformanceControllerServicesOutboundPort(this);
+		this.addPort(this.pcsop);
+		pcsop.publishPort();
 
 		this.addRequiredInterface(DataRequiredI.PullI.class);
 		this.addRequiredInterface(ControlledDataRequiredI.ControlledPullI.class);
@@ -97,13 +116,20 @@ public class PerformanceController extends AbstractComponent implements
 		this.toggleTracing();
 		this.toggleLogging();
 
-		super.start();
+		try {
+			this.doPortConnection(this.pcsop.getPortURI(),
+					this.performanceControllerServicesInboundPortURI,
+					PerformanceControllerServicesConnector.class.getCanonicalName());
+		} catch (Exception e) {
+			throw new ComponentStartException ("Error connecting performance controller service ports " + e);
+		}
 
 		try {
 			checkUsage();
 		} catch (Exception e) {
 			throw new RuntimeException (e);
 		}
+		super.start();
 	}
 
 	@Override
@@ -203,29 +229,48 @@ public class PerformanceController extends AbstractComponent implements
 				(queue < queueThresholdMin);
 	}
 
-	private void applyUpgrades() {
-		this.logMessage("Will apply upgrades");
+	private void applyUpgrades() throws Exception {
+		this.logMessage("Upgrading resources");
 
+		// Frequency change
+		this.logMessage("---> Trying to increase frequency ");
 		int frequency = increaseFrequency();
-
 		if (frequency > 0) {
 			this.logMessage("---> Increased frequency of " + frequency + " cores");
-		} else {
-			this.logMessage("---> Couldn't increase frequency ");
+			return;
 		}
+		this.logMessage("---> Couldn't increase frequency ");
 
+		// Core Change
+		this.logMessage("---> Trying to add cores ");
+		int cores = addCores();
+		if (cores > 0) {
+			this.logMessage("---> Added " + cores + " cores to AVM");
+			return;
+		}
+		this.logMessage("---> Couldn't add cores to any AVM ");
 	}
 
-	private void applyDowngrades() {
-		this.logMessage("Will apply downgrades");
+	private void applyDowngrades() throws Exception {
+		this.logMessage("Downgrading resources");
 
+		// Frequency change
+		this.logMessage("---> Trying to decrease frequency ");
 		int frequency = decreaseFrequency();
-
 		if (frequency > 0) {
 			this.logMessage("---> Decreased frequency of " + frequency + " cores");
-		} else {
-			this.logMessage("---> Couldn't decrease frequency ");
+			return;
 		}
+		this.logMessage("---> Couldn't decrease frequency ");
+
+		// Core Change
+		this.logMessage("---> Trying to remove cores ");
+		int cores = removeCores();
+		if (cores > 0) {
+			this.logMessage("---> Removed " + cores + " cores from AVM");
+			return;
+		}
+		this.logMessage("---> Couldn't remove cores from any AVM ");
 	}
 
 	private int increaseFrequency() {
@@ -271,4 +316,48 @@ public class PerformanceController extends AbstractComponent implements
 		}
 		return num;
 	}
+
+	private int addCores() throws Exception {
+		int num = 0;
+
+		for (Map.Entry<String, AllocationMap> entry : allocationMap.entrySet()) {
+			AllocationMap value = entry.getValue();
+
+			ComputerServicesOutboundPort csop = value.getCsop();
+			AllocatedCore[] allocatedNewCores = csop.allocateCores(this.numberOfCoresToChange);
+			num = allocatedNewCores.length;
+
+			if (num > 0) {
+				// Allocate cores to AVM
+				this.pcsop.requestAddCores(entry.getKey(), allocatedNewCores);
+
+				entry.getValue().addNewCores(allocatedNewCores);
+				entry.getValue().setNumberOfCoresPerAVM(entry.getValue().getNumberOfCoresPerAVM() + num);
+			}
+		}
+		return num;
+	}
+
+	private int removeCores() throws Exception {
+		int num = 0;
+
+		for (Map.Entry<String, AllocationMap> entry : allocationMap.entrySet()) {
+			AllocationMap value = entry.getValue();
+
+			ComputerServicesOutboundPort csop = value.getCsop();
+			AllocatedCore[] allocatedNewCores = csop.allocateCores(this.numberOfCoresToChange);
+			num = allocatedNewCores.length;
+
+			if (num > 0) {
+				// Allocate cores to AVM
+				this.pcsop.requestAddCores(entry.getKey(), allocatedNewCores);
+
+				entry.getValue().addNewCores(allocatedNewCores);
+				entry.getValue().setNumberOfCoresPerAVM(entry.getValue().getNumberOfCoresPerAVM() + num);
+			}
+		}
+		return num;
+	}
+
+
 }

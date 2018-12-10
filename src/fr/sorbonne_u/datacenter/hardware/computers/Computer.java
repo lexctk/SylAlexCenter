@@ -876,6 +876,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * @throws Exception exception
 	 */
 	public AllocatedCore[] allocateCores(int numberRequested) throws Exception {
+		printCurrentOccupancy();
 		Vector<AllocatedCore> allocated = new Vector<>(numberRequested);
 		boolean notExhausted = true;
 		for (int i = 0; notExhausted && i < numberRequested; i++) {
@@ -886,6 +887,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				notExhausted = false;
 			}
 		}
+		printCurrentOccupancy();
 		return allocated.toArray(new AllocatedCore[0]);
 	}
 
@@ -1108,6 +1110,18 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 			StringBuilder sb = new StringBuilder();
 			for (int nc = 0; nc < this.numberOfCores; nc++) {
 				sb.append(this.processors[np].getCoreFrequency(nc)).append(" ");
+			}
+			this.logMessage("-----> processor " + np + ": " + sb);
+		}
+	}
+
+	private void printCurrentOccupancy () {
+		this.logMessage("--> Current occupancy");
+
+		for (int np = 0; np < this.numberOfProcessors; np++) {
+			StringBuilder sb = new StringBuilder();
+			for (int nc = 0; nc < this.numberOfCores; nc++) {
+				sb.append(this.reservedCores[np][nc]).append(" ");
 			}
 			this.logMessage("-----> processor " + np + ": " + sb);
 		}

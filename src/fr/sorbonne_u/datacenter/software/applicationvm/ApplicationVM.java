@@ -572,8 +572,8 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 	public void allocateCores(AllocatedCore[] allocatedCores) throws Exception {
 		assert allocatedCores != null && allocatedCores.length != 0;
 
-		for (AllocatedCore allocatedCore1 : allocatedCores) {
-			this.allocatedCoresIdleStatus.put(allocatedCore1, true);
+		for (AllocatedCore allocatedCore : allocatedCores) {
+			this.allocatedCoresIdleStatus.put(allocatedCore, true);
 		}
 
 		// Link the VM with the newly allocated cores' processors if they are
@@ -593,5 +593,6 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 				this.processorNotificationInboundPorts.put(allocatedCore.processorURI, np);
 			}
 		}
+		this.logMessage("---> Received " + allocatedCores.length + " new cores");
 	}
 }

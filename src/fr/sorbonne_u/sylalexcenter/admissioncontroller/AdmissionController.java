@@ -19,8 +19,11 @@ import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboun
 import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
 import fr.sorbonne_u.datacenter.interfaces.ControlledDataRequiredI;
 import fr.sorbonne_u.datacenter.software.applicationvm.ApplicationVM;
+import fr.sorbonne_u.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
+import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector;
 import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationManagementConnector;
 import fr.sorbonne_u.sylalexcenter.application.connectors.ApplicationNotificationConnector;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
@@ -32,8 +35,12 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationNotificationOutb
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionInboundPort;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.PerformanceController;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.connectors.PerformanceControllerManagementConnector;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.connectors.PerformanceControllerServicesConnector;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerManagementI;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerServicesHandlerI;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerManagementOutboundPort;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerServicesInboundPort;
+import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceControllerServicesOutboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatcherManagementConnector;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
@@ -42,7 +49,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class AdmissionController extends AbstractComponent 
-	implements ApplicationSubmissionHandlerI {
+	implements ApplicationSubmissionHandlerI, PerformanceControllerServicesHandlerI {
 	
 	private static final String dynamicComponentCreationInboundPortURI = "";
 	
@@ -64,11 +71,11 @@ public class AdmissionController extends AbstractComponent
 	private HashMap<String,String> applicationNotificationInboundPortURIMap;
 	
 	private HashMap<String,ApplicationManagementOutboundPort> amopMap;
-	private HashMap<String,ApplicationSubmissionInboundPort> asipMap;
 	private HashMap<String,ApplicationNotificationOutboundPort> anopMap;
 
 	private HashMap<String, PerformanceControllerManagementOutboundPort> pcmopMap;
 	private HashMap<String, RequestDispatcherManagementOutboundPort> rdmopMap;
+	private HashMap<String, ApplicationVMManagementOutboundPort> avmopMap;
 
 	private DynamicComponentCreationOutboundPort dccop;
 		
@@ -134,7 +141,7 @@ public class AdmissionController extends AbstractComponent
 		this.applicationManagementInboundPortURIMap = new HashMap<>();
 		this.amopMap = new HashMap<>();
 
-		this.asipMap = new HashMap<>();
+		HashMap<String, ApplicationSubmissionInboundPort> asipMap = new HashMap<>();
 		
 		this.applicationNotificationInboundPortURIMap = new HashMap<>();
 		this.anopMap = new HashMap<>();
@@ -150,9 +157,9 @@ public class AdmissionController extends AbstractComponent
 			this.addPort(this.amopMap.get(appsURIList.get(i)));
 			this.amopMap.get(appsURIList.get(i)).publishPort();	
 			
-			this.asipMap.put(appsURIList.get(i), new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURIList.get(i), this));
-			this.addPort(this.asipMap.get(appsURIList.get(i)));
-			this.asipMap.get(appsURIList.get(i)).publishPort();
+			asipMap.put(appsURIList.get(i), new ApplicationSubmissionInboundPort(applicationSubmissionInboundPortURIList.get(i), this));
+			this.addPort(asipMap.get(appsURIList.get(i)));
+			asipMap.get(appsURIList.get(i)).publishPort();
 			
 			this.applicationNotificationInboundPortURIMap.put(appsURIList.get(i), applicationNotificationInboundPortURIList.get(i));
 			
@@ -170,13 +177,13 @@ public class AdmissionController extends AbstractComponent
 		this.addRequiredInterface(PerformanceControllerManagementI.class);
 		this.pcmopMap = new HashMap<>();
 		this.rdmopMap = new HashMap<>();
+		this.avmopMap = new HashMap<>();
 		
 		this.tracer.setTitle("Admission Controller");
 		this.tracer.setRelativePosition(2, 0);
 
 		assert this.csopList !=null;
 		assert this.cssdopList !=null;
-		assert this.asipMap != null;
 		assert this.anopMap != null;
 	}
 	
@@ -225,7 +232,7 @@ public class AdmissionController extends AbstractComponent
 		 catch (Exception e) {
 				throw new ComponentStartException(e);
 			}
-
+		this.logMessage("Admission Controller starting with " + this.numberOfApps + " apps.");
 		super.start();
 	}
 	
@@ -275,7 +282,7 @@ public class AdmissionController extends AbstractComponent
 				allocatedCoresAVM = csop.allocateCores(this.numberOfCoresPerAVM);
 
 				if (allocatedCoresAVM.length == this.numberOfCoresPerAVM) {
-					allocatedMap.add(new AllocationMap(
+					allocatedMap.add(new AllocationMap (
 							this.computersURIList.get(j),
 							csop,
 							this.numberOfCoresPerAVM,
@@ -439,7 +446,18 @@ public class AdmissionController extends AbstractComponent
 			} catch (Exception e) {
 				throw new Exception("Error creating AVM " + i + " " + e);
 			}
-			
+
+			this.avmopMap.put(avmURIList.get(i), new ApplicationVMManagementOutboundPort(this));
+			this.addPort(avmopMap.get(avmURIList.get(i)));
+			avmopMap.get(avmURIList.get(i)).publishPort();
+
+			try {
+				this.doPortConnection(this.avmopMap.get(avmURIList.get(i)).getPortURI(), avmManagementInboundPortURIList.get(i),
+						ApplicationVMManagementConnector.class.getCanonicalName());
+			} catch (Exception e) {
+				throw new Exception ("Error connecting avm management ports " + e);
+			}
+
 			try {
 				rop.doConnection(avmURIList.get(i), ReflectionConnector.class.getCanonicalName());
 
@@ -478,12 +496,19 @@ public class AdmissionController extends AbstractComponent
 		// --------------------------------------------------------------------
 		String performanceControllerURI = appUri + "-pc";
 		String performanceControllerManagementInboundPortURI = appUri + "-pcmip";
+		String performanceControllerServicesInboundPortURI = appUri + "-pcsip";
+
+		PerformanceControllerServicesInboundPort pcsip = new PerformanceControllerServicesInboundPort(performanceControllerServicesInboundPortURI, this);
+		this.addPort(pcsip);
+		pcsip.publishPort();
+
 		try {
 			this.dccop.createComponent(PerformanceController.class.getCanonicalName(), new Object[] {
 					performanceControllerURI,
+					performanceControllerManagementInboundPortURI,
+					performanceControllerServicesInboundPortURI,
 					appUri,
 					rdURI,
-					performanceControllerManagementInboundPortURI,
 					computersURIList,
 					allocationMap
 			});
@@ -496,35 +521,37 @@ public class AdmissionController extends AbstractComponent
 		this.pcmopMap.get(performanceControllerURI).publishPort();
 
 		try {
-			this.doPortConnection(this.pcmopMap.get(performanceControllerURI).getPortURI(),
-					performanceControllerManagementInboundPortURI,
-					PerformanceControllerManagementConnector.class.getCanonicalName());
-		} catch (Exception e) {
-			throw new Exception ("Error connecting performance controller management ports " + e);
-		}
-
-		try {
 			rop.doConnection(performanceControllerURI, ReflectionConnector.class.getCanonicalName());
 		} catch (Exception e) {
 			throw new Exception("Error connecting Reflection Outbound Port for Performance Controller " + e);
 		}
 
+		try {
+			this.doPortConnection(this.pcmopMap.get(performanceControllerURI).getPortURI(),
+					performanceControllerManagementInboundPortURI,
+					PerformanceControllerManagementConnector.class.getCanonicalName());
+
+		} catch (Exception e) {
+			throw new Exception ("Error connecting performance controller ports " + e);
+		}
+
 		this.pcmopMap.get(performanceControllerURI).doConnectionWithRequestDispatcherForDynamicState(requestDispatcherDynamicStateDataInboundPortURI);
 		this.pcmopMap.get(performanceControllerURI).doConnectionWithComputerForDynamicState(computerDynamicStateDataInboundPortURIList);
 
-		// Deploy the integrator
-		// --------------------------------------------------------------------
-		String integratorURI = appUri + "-integrator";
-		try {
-			this.dccop.createComponent(AdmissionControllerIntegrator.class.getCanonicalName(), new Object[] {
-					integratorURI,
-					avmManagementInboundPortURIList,
-					allocatedMap
-			});
-		} catch (Exception e) {
-			throw new Exception("Error creating Integrator " + e);
+		for (int i = 0; i < applicationVMCount; i++) {
+			try {
+				this.avmopMap.get(avmURIList.get(i)).allocateCores(allocatedMap.get(i).getAllocatedCores());
+			} catch (Exception e) {
+				throw new ComponentStartException("Couldn't allocate cores to AVM out port" + e);
+			}
 		}
 
 		this.logMessage("Admission controller deployed components for " + appUri + ".");
+	}
+
+	@Override
+	public void acceptRequestAddCores(String appUri, AllocatedCore[] allocatedCore) throws Exception {
+		this.avmopMap.get(appUri).allocateCores(allocatedCore);
+		this.logMessage("Admission controller added " + allocatedCore.length + " cores for " + appUri);
 	}
 }

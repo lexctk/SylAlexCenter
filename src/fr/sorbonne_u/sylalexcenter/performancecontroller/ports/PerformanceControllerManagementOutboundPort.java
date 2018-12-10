@@ -21,11 +21,13 @@ public class PerformanceControllerManagementOutboundPort extends AbstractOutboun
 
 	@Override
 	public void doConnectionWithRequestDispatcherForDynamicState (String requestDispatcherDynamicStateInboundPortUri) throws Exception {
-		((PerformanceControllerManagementI)this.connector).doConnectionWithRequestDispatcherForDynamicState (requestDispatcherDynamicStateInboundPortUri);
+		((PerformanceControllerManagementI)this.connector).
+				doConnectionWithRequestDispatcherForDynamicState (requestDispatcherDynamicStateInboundPortUri);
 	}
 
 	@Override
 	public void doConnectionWithComputerForDynamicState(ArrayList<String> computerDynamicStateInboundPortUri) throws Exception {
-		((PerformanceControllerManagementI)this.connector).doConnectionWithComputerForDynamicState (computerDynamicStateInboundPortUri);
+		((PerformanceControllerManagementI)this.connector).
+				doConnectionWithComputerForDynamicState (computerDynamicStateInboundPortUri);
 	}
 }

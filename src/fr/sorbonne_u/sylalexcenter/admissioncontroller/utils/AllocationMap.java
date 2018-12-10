@@ -1,52 +1,53 @@
 package fr.sorbonne_u.sylalexcenter.admissioncontroller.utils;
 
-import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
+import fr.sorbonne_u.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
 
-/**
- *
- * Sorbonne University 2018-2019
- *
- * @author Alexandra Tudor
- * @author Sylia Righi
- *
- */
+import java.util.Arrays;
+
 public class AllocationMap {
-	private Computer computer;
-	private AllocatedCore[] cores;
-	private String avmURI;
 
-	public AllocationMap(Computer computer, AllocatedCore[] cores, String avmURI) {
-		this.computer = computer;
-		this.cores = cores;
-		this.avmURI = avmURI;
+	private String computerURI;
+	private ComputerServicesOutboundPort csop;
+	private Integer numberOfCoresPerAVM;
+	private AllocatedCore[] allocatedCores;
+
+	public AllocationMap(String computerURI,
+	              ComputerServicesOutboundPort csop,
+	              Integer numberOfCoresPerAVM,
+	              AllocatedCore[] allocatedCores) {
+		this.computerURI = computerURI;
+		this.csop = csop;
+		this.numberOfCoresPerAVM = numberOfCoresPerAVM;
+		this.allocatedCores = allocatedCores;
 	}
 
-	public String getVMUri() {
-		return avmURI;
+	public ComputerServicesOutboundPort getCsop() {
+		return csop;
 	}
 
-	public void setVMUri(String vMUri) {
-		avmURI = vMUri;
+	public Integer getNumberOfCoresPerAVM() {
+		return numberOfCoresPerAVM;
 	}
 
-	public Computer getComputer() {
-		return computer;
+	public AllocatedCore[] getAllocatedCores() {
+		return allocatedCores;
 	}
 
-	public void setComputer(Computer computer) {
-		this.computer = computer;
+	public String getComputerURI() {
+		return computerURI;
 	}
 
-	public AllocatedCore[] getCores() {
-		return cores;
+	public void addNewCores (AllocatedCore[] allocatedNewCores) {
+
+		AllocatedCore[] result = Arrays.copyOf(this.allocatedCores, this.allocatedCores.length + allocatedNewCores.length);
+		System.arraycopy(allocatedNewCores, 0, result, this.allocatedCores.length, allocatedNewCores.length);
+
+		this.allocatedCores = new AllocatedCore[result.length];
+		System.arraycopy(result, 0, this.allocatedCores, 0, result.length);
 	}
 
-	public void setCores(AllocatedCore[] cores) {
-		this.cores = cores;
-	}
-	
-	public void freeCores() throws Exception {
-		computer.releaseCores(cores);
+	public void setNumberOfCoresPerAVM(Integer numberOfCoresPerAVM) {
+		this.numberOfCoresPerAVM = numberOfCoresPerAVM;
 	}
 }

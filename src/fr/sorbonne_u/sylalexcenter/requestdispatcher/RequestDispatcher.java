@@ -244,13 +244,12 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
 
-			this.logMessage ("Request dispatcher " + this.rdURI + " accepted submission request " + r.getRequestURI() +
-						" and required notification of request execution progress");
+			this.logMessage ("Request dispatcher " + this.rdURI + " accepted request " + r.getRequestURI());
 			this.totalRequestSubmitted++;
 			this.rsopList.get(leastUsedVM).submitRequestAndNotify(r);
 			
 		} else {
-			this.logMessage ("Request dispatcher " + this.rdURI + " refused submission and notify request " + r.getRequestURI());
+			this.logMessage ("Request dispatcher " + this.rdURI + " refused request " + r.getRequestURI());
 		}
 	}
 
@@ -269,9 +268,8 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			currentAverage = exponentialMovingAverage.getNextAverage(this.vmExecutionTime.get(r.getRequestURI()));
 		}
 		this.totalRequestTerminated++;
-		this.logMessage ("Request dispatcher " + this.rdURI + " notified request generator that request " +
-					r.getRequestURI() + " has terminated");
-		this.rnop.notifyRequestTermination(r);
+		this.logMessage ("Request dispatcher " + this.rdURI + " notified that request "
+				+ r.getRequestURI() + " has terminated");
 	}
 
 
