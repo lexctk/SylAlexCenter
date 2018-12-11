@@ -45,4 +45,9 @@ public class ComputerServicesConnector extends AbstractConnector implements Comp
 		return ((ComputerServicesI) this.offering).decreaseFrequency(coreNo, processorURI);
 	}
 
+	@Override
+	public void releaseCores(AllocatedCore[] allocateCores) throws Exception {
+		((ComputerServicesI) this.offering).releaseCores(allocateCores);
+	}
+
 }

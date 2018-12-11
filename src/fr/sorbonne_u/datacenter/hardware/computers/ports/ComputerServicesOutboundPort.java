@@ -71,4 +71,9 @@ public class ComputerServicesOutboundPort extends AbstractOutboundPort implement
 	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
 		return ((ComputerServicesI) this.connector).decreaseFrequency(coreNo, processorURI);
 	}
+
+	@Override
+	public void releaseCores(AllocatedCore[] allocateCores) throws Exception {
+		((ComputerServicesI) this.connector).releaseCores(allocateCores);
+	}
 }

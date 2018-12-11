@@ -105,4 +105,17 @@ public class ComputerServicesInboundPort extends AbstractInboundPort implements 
 				});
 
 	}
+
+	@Override
+	public void releaseCores(AllocatedCore[] allocateCores) throws Exception {
+		final Computer computer = (Computer) this.getOwner();
+		this.getOwner().handleRequestSync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						computer.releaseCores(allocateCores);
+						return null;
+					}
+				});
+	}
 }

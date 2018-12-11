@@ -20,4 +20,9 @@ public class PerformanceControllerServicesOutboundPort extends AbstractOutboundP
 	public void requestAddCores(String appUri, Computer.AllocatedCore[] allocatedCore) throws Exception {
 		((PerformanceControllerServicesI) this.connector).requestAddCores(appUri, allocatedCore);
 	}
+
+	@Override
+	public void requestRemoveCores(String appUri, Computer.AllocatedCore[] removeCores) throws Exception {
+		((PerformanceControllerServicesI) this.connector).requestRemoveCores(appUri, removeCores);
+	}
 }

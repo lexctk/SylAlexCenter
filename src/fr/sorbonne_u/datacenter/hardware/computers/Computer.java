@@ -853,6 +853,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 			ret = new AllocatedCore(processorNo, this.processorsURI.get(processorNo), coreNo,
 					this.processorsInboundPortURI.get(this.processorsURI.get(processorNo)));
 		}
+		printCurrentOccupancy();
 		return ret;
 	}
 
@@ -906,10 +907,11 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	 * @param ac previously allocated core data.
 	 * @throws Exception exception
 	 */
-	public void releaseCore(AllocatedCore ac) throws Exception {
+	private void releaseCore(AllocatedCore ac) throws Exception {
 		assert this.isReserved(ac.processorNo, ac.coreNo);
 
 		this.reservedCores[ac.processorNo][ac.coreNo] = false;
+		printCurrentOccupancy();
 		assert !this.isReserved(ac.processorNo, ac.coreNo);
 	}
 
@@ -1034,7 +1036,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 
 	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
 		printCurrentFrequencies ();
-		this.logMessage("Increasing processor " + processorURI + " and core " + coreNo);
+		this.logMessage("Increasing frequency processor " + processorURI + " and core " + coreNo);
 
 		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
 		if (currentFrequency == -1) return false;
@@ -1046,13 +1048,13 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				return res;
 			}
 		}
-		this.logMessage("Increase not possible");
+		this.logMessage("Frequency increase not possible");
 		return false;
 	}
 
 	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
 		printCurrentFrequencies ();
-		this.logMessage("Decreasing processor " + processorURI + " and core " + coreNo);
+		this.logMessage("Decreasing frequency processor " + processorURI + " and core " + coreNo);
 
 		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
 		if (currentFrequency == -1) return false;
@@ -1064,7 +1066,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				return res;
 			}
 		}
-		this.logMessage("Decrease not possible");
+		this.logMessage("Frequency decrease not possible");
 		return false;
 	}
 

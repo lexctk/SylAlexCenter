@@ -22,6 +22,7 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatche
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataOutboundPort;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -178,7 +179,7 @@ public class PerformanceController extends AbstractComponent implements
 		for (Map.Entry<String, AllocationMap> entry : allocationMap.entrySet()) {
 			sum += entry.getValue().getNumberOfCoresPerAVM();
 		}
-		this.logMessage("Average execution time " + this.appURI + " with "
+		this.logMessage("Avg exec time " + this.appURI + " with "
 				+ sum + " cores and "
 				+ this.availableAVMsCount +  " AVMs: "
 				+ this.exponentialAverageExecutionTime + " "
@@ -212,7 +213,7 @@ public class PerformanceController extends AbstractComponent implements
 						}
 					}
 
-				}, timer*7, TimeUnit.MILLISECONDS);
+				}, timer*4, TimeUnit.MILLISECONDS);
 	}
 
 	private boolean isUsageHigh() {
@@ -339,24 +340,32 @@ public class PerformanceController extends AbstractComponent implements
 	}
 
 	private int removeCores() throws Exception {
-		int num = 0;
 
 		for (Map.Entry<String, AllocationMap> entry : allocationMap.entrySet()) {
 			AllocationMap value = entry.getValue();
 
-			ComputerServicesOutboundPort csop = value.getCsop();
-			AllocatedCore[] allocatedNewCores = csop.allocateCores(this.numberOfCoresToChange);
-			num = allocatedNewCores.length;
 
-			if (num > 0) {
-				// Allocate cores to AVM
-				this.pcsop.requestAddCores(entry.getKey(), allocatedNewCores);
+			AllocatedCore[] allocatedCores = value.getAllocatedCores();
+			if (allocatedCores.length - this.numberOfCoresToChange > 0) {
 
-				entry.getValue().addNewCores(allocatedNewCores);
-				entry.getValue().setNumberOfCoresPerAVM(entry.getValue().getNumberOfCoresPerAVM() + num);
+				AllocatedCore[] removeCores = new AllocatedCore[this.numberOfCoresToChange];
+
+				for (int i = 0; i<this.numberOfCoresToChange; i++) {
+					removeCores[i] = allocatedCores[allocatedCores.length-1-i];
+				}
+				ComputerServicesOutboundPort csop = value.getCsop();
+				csop.releaseCores(removeCores);
+
+				// Notify admission controller
+				this.pcsop.requestRemoveCores(entry.getKey(), removeCores);
+
+				entry.getValue().removeCores(this.numberOfCoresToChange);
+				entry.getValue().setNumberOfCoresPerAVM(entry.getValue().getNumberOfCoresPerAVM() - this.numberOfCoresToChange);
+
+				return this.numberOfCoresToChange;
 			}
 		}
-		return num;
+		return 0;
 	}
 
 

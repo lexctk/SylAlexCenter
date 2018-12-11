@@ -11,4 +11,10 @@ public class PerformanceControllerServicesConnector extends AbstractConnector im
 
 		((PerformanceControllerServicesI) this.offering).requestAddCores(appUri, allocatedCore);
 	}
+
+	@Override
+	public void requestRemoveCores(String appUri, AllocatedCore[] removeCores) throws Exception {
+
+		((PerformanceControllerServicesI) this.offering).requestRemoveCores(appUri, removeCores);
+	}
 }

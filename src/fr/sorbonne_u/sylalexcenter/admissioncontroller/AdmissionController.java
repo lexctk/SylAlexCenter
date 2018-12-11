@@ -1,6 +1,7 @@
 package fr.sorbonne_u.sylalexcenter.admissioncontroller;
 
 import fr.sorbonne_u.components.AbstractComponent;
+import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.connectors.DataConnector;
 import fr.sorbonne_u.components.cvm.AbstractCVM;
 import fr.sorbonne_u.components.exceptions.ComponentShutdownException;
@@ -290,16 +291,18 @@ public class AdmissionController extends AbstractComponent
 					break;
 				}
 
-				for (AllocatedCore allocatedCore : allocatedCoresAVM) {
-					Computer computer = (Computer) csop.getOwner();
-					computer.releaseCore(allocatedCore);
-				}
+				csop.releaseCores(allocatedCoresAVM);
 			}			
 		}
 		
 		// if enough cores for each AVM
 		if (allocatedMap.size() == numberOfAVMs) {
 			return allocatedMap;
+		}
+
+		for (AllocationMap allocated : allocatedMap) {
+			ComputerServicesOutboundPort csop = allocated.getCsop();
+			csop.releaseCores(allocated.getAllocatedCores());
 		}
 
 		return null;
@@ -552,6 +555,13 @@ public class AdmissionController extends AbstractComponent
 	@Override
 	public void acceptRequestAddCores(String appUri, AllocatedCore[] allocatedCore) throws Exception {
 		this.avmopMap.get(appUri).allocateCores(allocatedCore);
+
 		this.logMessage("Admission controller added " + allocatedCore.length + " cores for " + appUri);
+	}
+
+	@Override
+	public void acceptRequestRemoveCores(String appUri, AllocatedCore[] removeCores) throws Exception {
+
+		this.logMessage("Admission controller removed " + removeCores.length + " cores for " + appUri);
 	}
 }

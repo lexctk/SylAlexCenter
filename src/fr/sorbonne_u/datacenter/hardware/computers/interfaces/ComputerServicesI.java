@@ -54,4 +54,6 @@ public interface ComputerServicesI extends OfferedI, RequiredI {
 	boolean increaseFrequency(int coreNo, String processorURI) throws Exception;
 
 	boolean decreaseFrequency(int coreNo, String processorURI) throws Exception;
+
+	void releaseCores (AllocatedCore[] allocateCores) throws Exception;
 }
