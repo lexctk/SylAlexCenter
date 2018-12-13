@@ -263,7 +263,7 @@ public class Processor extends AbstractComponent implements PushModeControllingI
 		this.notificationInboundPortURIs = new HashMap<>();
 
 		this.tracer.setTitle(processorURI);
-		this.tracer.setRelativePosition(3,3);
+		this.tracer.setRelativePosition(0,3);
 	}
 
 	// ------------------------------------------------------------------------

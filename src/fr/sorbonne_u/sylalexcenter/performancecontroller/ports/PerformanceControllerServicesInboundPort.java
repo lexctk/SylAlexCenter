@@ -47,4 +47,18 @@ public class PerformanceControllerServicesInboundPort extends AbstractInboundPor
 					}
 				});
 	}
+
+	@Override
+	public void requestAddAVM(String appURI, String performanceControllerURI) throws Exception {
+		final PerformanceControllerServicesHandlerI performanceControllerServicesHandlerI = (PerformanceControllerServicesHandlerI) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						performanceControllerServicesHandlerI.acceptRequestAddAVM(appURI, performanceControllerURI);
+						return null;
+					}
+				});
+	}
 }

@@ -192,7 +192,6 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 		// when requested.
 		
 		super(vmURI, 1, 1);
-
 		// Preconditions
 		assert vmURI != null;
 		assert applicationVMManagementInboundPortURI != null;

@@ -14,7 +14,6 @@ import fr.sorbonne_u.datacenter.software.connectors.RequestNotificationConnector
 import fr.sorbonne_u.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.sorbonne_u.datacenterclient.requestgenerator.RequestGenerator;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
-import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcherIntegrator;
 
 /**
  * The class <code>TestRequestDispatcher</code> deploys a single AVM, with a 
@@ -46,6 +45,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 	private static final String requestGeneratorNotificationInboundPortURI = "rgnip";
 	
 	private static final String requestDispatcherManagementInboundPortURI = "rdmip";
+	private static final String requestDispatcherServicesInboundPortURI = "rdsvip";
 	private static final String requestDispatcherSubmissionInboundPortURI = "rdsip";
 	private static final String requestDispatcherNotificationOutboundPortURI = "rdnop";
 	private static final String requestDispatcherDynamicStateDataInboundPortURI = "rddsdip";
@@ -155,6 +155,7 @@ public class TestRequestDispatcher extends AbstractCVM {
 				rdURI,
 				vmURIList,
 				requestDispatcherManagementInboundPortURI,
+				requestDispatcherServicesInboundPortURI,
 				requestDispatcherSubmissionInboundPortURI,
 				requestDispatcherSubmissionOutboundPortURIList,
 				requestDispatcherNotificationInboundPortURIList,

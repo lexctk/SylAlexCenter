@@ -1,7 +1,9 @@
 package fr.sorbonne_u.sylalexcenter.requestdispatcher;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -22,11 +24,17 @@ import fr.sorbonne_u.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.sorbonne_u.datacenter.software.ports.RequestSubmissionOutboundPort;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatcherServicesConnector;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherDynamicStateI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherServicesI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataInboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
+import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherServicesOutboundPort;
 import fr.sorbonne_u.sylalexcenter.utils.ExponentialMovingAverage;
+
+import static java.util.Comparator.comparingInt;
 
 /**
  * The class <code>RequestDispatcher</code> implements a request dispatcher.
@@ -51,13 +59,13 @@ import fr.sorbonne_u.sylalexcenter.utils.ExponentialMovingAverage;
 public class RequestDispatcher extends AbstractComponent implements RequestDispatcherManagementI,
 		RequestSubmissionHandlerI, RequestNotificationHandlerI, PushModeControllingI {
 
-	private static final int timer = 4000;
-
 	private String rdURI;
 	
 	// RequestDispatcher Ports
 	// -------------------------------------------------------------------------
 	private RequestDispatcherManagementInboundPort rdmip;
+	private RequestDispatcherServicesOutboundPort rdsvop;
+	private String requestDispatcherServicesInboundPortURI;
 
 	private RequestSubmissionInboundPort rsip;
 	private HashMap<String, RequestSubmissionOutboundPort> rsopList = new HashMap<>();
@@ -69,16 +77,15 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	// List of available avm
 	private ArrayList<String> vmURIList;
 
-	private HashMap<String, Long> vmPriority = new HashMap<>();
+	private HashMap<String, Integer> vmPriority = new HashMap<>(); //vmURI -> number of requests in queue
+	private HashMap<String, String> vmAllocation = new HashMap<>(); //request URI -> vmURI
+	private HashMap<String, Long> vmStartTime = new HashMap<>(); //request URI -> request start time
 
 	// Statistics
 	private double currentAverage;
 	private ExponentialMovingAverage exponentialMovingAverage;
 	private int totalRequestSubmitted;
 	private int totalRequestTerminated;
-
-	private HashMap<String, Long> vmStartTime = new HashMap<>();
-	private HashMap<String, Long> vmExecutionTime = new HashMap<>();
 
 	// Data Pushing
 	private ScheduledFuture<?> pushingFuture;
@@ -89,6 +96,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			String rdURI,
 			ArrayList<String> vmURIList,
 			String requestDispatcherManagementInboundPortURI,
+			String requestDispatcherServicesInboundPortURI,
 			String requestDispatcherSubmissionInboundPortURI,
 			ArrayList<String> requestDispatcherSubmissionOutboundPortURIList,
 			ArrayList<String> requestDispatcherNotificationInboundPortURIList,
@@ -119,6 +127,12 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.rdmip = new RequestDispatcherManagementInboundPort(requestDispatcherManagementInboundPortURI, this);
 		this.addPort(rdmip);
 		this.rdmip.publishPort();
+
+		this.requestDispatcherServicesInboundPortURI = requestDispatcherServicesInboundPortURI;
+		this.addRequiredInterface(RequestDispatcherServicesI.class);
+		this.rdsvop = new RequestDispatcherServicesOutboundPort(this);
+		this.addPort(rdsvop);
+		this.rdsvop.publishPort();
 		
 		this.addOfferedInterface(RequestSubmissionI.class);
 		this.rsip = new RequestSubmissionInboundPort(requestDispatcherSubmissionInboundPortURI, this);
@@ -134,7 +148,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.addRequiredInterface(ControlledDataRequiredI.ControlledPullI.class);
 
 		for (int i = 0; i < vmURIList.size(); i++ ) {
-			this.vmPriority.put(vmURIList.get(i), System.nanoTime());
+			this.vmPriority.put(vmURIList.get(i), 0);
 
 			this.addOfferedInterface(RequestNotificationI.class);
 			RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(requestDispatcherNotificationInboundPortURIList.get(i), this);
@@ -168,7 +182,15 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	public void start() throws ComponentStartException {
 		this.toggleTracing();
 		this.toggleLogging();
-		super.start();		
+
+		try {
+			this.doPortConnection(this.rdsvop.getPortURI(),
+					this.requestDispatcherServicesInboundPortURI,
+					RequestDispatcherServicesConnector.class.getCanonicalName());
+		} catch (Exception e) {
+			throw new ComponentStartException ("Error connecting request dispatcher service ports " + e);
+		}
+		super.start();
 	}
 
 	@Override
@@ -200,21 +222,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		}
 
 		super.shutdown();
-	}	
-	
-	private String leastUsedVM() {
-		String leastUsedVM = "";
-		long time = System.nanoTime();
-
-		for (String vmURI : this.vmURIList) {
-			if (this.vmPriority.get(vmURI) < time) {
-				leastUsedVM = vmURI;
-				time = this.vmPriority.get(vmURI);
-			}
-		}
-		return leastUsedVM;
 	}
-
 
 	// Component internal services
 	// -------------------------------------------------------------------------
@@ -238,10 +246,13 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	@Override
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
-		String leastUsedVM = leastUsedVM();
-		if (leastUsedVM.length() > 0) {
-			this.vmPriority.put(leastUsedVM, System.nanoTime());
 
+		String leastUsedVM = Collections.min(this.vmPriority.entrySet(), comparingInt(Map.Entry::getValue)).getKey();
+
+		if (leastUsedVM.length() > 0) {
+			int requests = this.vmPriority.get(leastUsedVM) + 1;
+			this.vmPriority.replace(leastUsedVM, requests);
+			this.vmAllocation.put(r.getRequestURI(), leastUsedVM);
 			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
 
 			this.logMessage ("Request dispatcher " + this.rdURI + " accepted request " + r.getRequestURI());
@@ -259,14 +270,20 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	 * @param r request that just terminated.
 	 */
 	@Override
-	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
+	public void acceptRequestTerminationNotification(RequestI r) {
 		assert r != null;
 
-		this.vmExecutionTime.put(r.getRequestURI(),System.nanoTime() - this.vmStartTime.get(r.getRequestURI()));
+		Long executionTime = System.nanoTime() - this.vmStartTime.get(r.getRequestURI());
 
 		synchronized (this) {
-			currentAverage = exponentialMovingAverage.getNextAverage(this.vmExecutionTime.get(r.getRequestURI()));
+			currentAverage = exponentialMovingAverage.getNextAverage(executionTime);
 		}
+		int requests = this.vmPriority.get(this.vmAllocation.get(r.getRequestURI())) - 1;
+		this.vmPriority.replace(this.vmAllocation.get(r.getRequestURI()), requests);
+
+		this.vmStartTime.remove(r.getRequestURI());
+		this.vmAllocation.remove(r.getRequestURI());
+
 		this.totalRequestTerminated++;
 		this.logMessage ("Request dispatcher " + this.rdURI + " notified that request "
 				+ r.getRequestURI() + " has terminated");
@@ -276,7 +293,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	// Component dynamic state services
 	// -------------------------------------------------------------------------
 
-	public RequestDispatcherDynamicStateI getDynamicState() throws Exception {
+	public RequestDispatcherDynamicStateI getDynamicState() {
 		return new RequestDispatcherDynamicState(
 				this.rdURI,
 				this.currentAverage,
@@ -363,5 +380,43 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		} catch (Exception e) {
 			throw new Exception("Error stop pushing " + e);
 		}
+	}
+
+	@Override
+	public void notifyDispatcherOfNewAVM (
+			String appURI,
+			String performanceControllerURI,
+			ArrayList<AllocationMap> allocatedMap,
+			String avmURI,
+			String requestDispatcherSubmissionOutboundPortURI,
+			String requestDispatcherNotificationInboundPortURI) throws Exception {
+
+		this.addOfferedInterface(RequestNotificationI.class);
+		RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(requestDispatcherNotificationInboundPortURI, this);
+		this.rnipList.put(avmURI, rnip);
+		this.addPort(rnip);
+		this.rnipList.get(avmURI).publishPort();
+
+		this.addRequiredInterface(RequestSubmissionI.class);
+		RequestSubmissionOutboundPort rsop = new RequestSubmissionOutboundPort(requestDispatcherSubmissionOutboundPortURI, this);
+		this.rsopList.put(avmURI, rsop);
+		this.addPort(rsop);
+		this.rsopList.get(avmURI).publishPort();
+
+		// Notify Admission Controller that new ports are ready!
+		this.rdsvop.notifyNewAVMPortsReady(appURI,
+				performanceControllerURI,
+				allocatedMap,
+				avmURI,
+				requestDispatcherSubmissionOutboundPortURI,
+				requestDispatcherNotificationInboundPortURI);
+
+		this.logMessage("---> Created ports for new AVM");
+	}
+
+	@Override
+	public void notifyDispatcherNewAVMDeployed(String avmURI) throws Exception {
+		this.vmURIList.add(avmURI);
+		this.vmPriority.put(avmURI, 0);
 	}
 }

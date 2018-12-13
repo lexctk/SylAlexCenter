@@ -22,7 +22,6 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatche
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataOutboundPort;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -36,14 +35,15 @@ public class PerformanceController extends AbstractComponent implements
 
 	private static final int timer = 4000;
 
-	private static final int queueThresholdMax = 25;
-	private static final double executionTimeThresholdMax = 2E10;
+	private static final int queueThresholdMax = 5;
+	private static final double executionTimeThresholdMax = 1E5;
 
-	private static final int queueThresholdMin = 5;
-	private static final double executionTimeThresholdMin = 1.2E10;
+	private static final int queueThresholdMin = 0;
+	private static final double executionTimeThresholdMin = 0;
 
 	private String requestDispatcherURI;
 	private String appURI;
+	private String performanceControllerURI;
 
 	private PerformanceControllerServicesOutboundPort pcsop;
 	private String performanceControllerServicesInboundPortURI;
@@ -80,6 +80,8 @@ public class PerformanceController extends AbstractComponent implements
 
 		this.requestDispatcherURI = requestDispatcherURI;
 
+		this.performanceControllerURI = performanceControllerURI;
+
 		this.allocationMap = new HashMap<>(allocationMap);
 
 		this.addOfferedInterface(PerformanceControllerManagementI.class);
@@ -109,7 +111,7 @@ public class PerformanceController extends AbstractComponent implements
 		}
 
 		this.tracer.setTitle(performanceControllerURI);
-		this.tracer.setRelativePosition(3, 0);
+		this.tracer.setRelativePosition(2, 1);
 	}
 
 	@Override
@@ -162,6 +164,17 @@ public class PerformanceController extends AbstractComponent implements
 				throw new ComponentStartException("Unable to start pushing dynamic data from the computer " + e);
 			}
 		}
+	}
+
+	@Override
+	public void notifyAVMAdded(String avmURI, AllocationMap allocationMap) throws Exception {
+		this.availableAVMsCount++;
+		this.allocationMap.put(avmURI, allocationMap);
+	}
+
+	@Override
+	public void notifyAVMRefused(String appURI) throws Exception {
+		this.logMessage("---> Request to add a new AVM was refused ");
 	}
 
 	@Override
@@ -233,23 +246,27 @@ public class PerformanceController extends AbstractComponent implements
 	private void applyUpgrades() throws Exception {
 		this.logMessage("Upgrading resources");
 
-		// Frequency change
-		this.logMessage("---> Trying to increase frequency ");
-		int frequency = increaseFrequency();
-		if (frequency > 0) {
-			this.logMessage("---> Increased frequency of " + frequency + " cores");
-			return;
-		}
-		this.logMessage("---> Couldn't increase frequency ");
+//		// Frequency change
+//		this.logMessage("---> Trying to increase frequency ");
+//		int frequency = increaseFrequency();
+//		if (frequency > 0) {
+//			this.logMessage("---> Increased frequency of " + frequency + " cores");
+//			return;
+//		}
+//		this.logMessage("---> Couldn't increase frequency ");
+//
+//		// Core Change
+//		this.logMessage("---> Trying to add cores ");
+//		int cores = addCores();
+//		if (cores > 0) {
+//			this.logMessage("---> Added " + cores + " cores to AVM");
+//			return;
+//		}
+//		this.logMessage("---> Couldn't add cores to any AVM ");
 
-		// Core Change
-		this.logMessage("---> Trying to add cores ");
-		int cores = addCores();
-		if (cores > 0) {
-			this.logMessage("---> Added " + cores + " cores to AVM");
-			return;
-		}
-		this.logMessage("---> Couldn't add cores to any AVM ");
+		// Add AVM
+		this.logMessage("---> Trying to add an AVM ");
+		addAVM();
 	}
 
 	private void applyDowngrades() throws Exception {
@@ -333,7 +350,6 @@ public class PerformanceController extends AbstractComponent implements
 				this.pcsop.requestAddCores(entry.getKey(), allocatedNewCores);
 
 				entry.getValue().addNewCores(allocatedNewCores);
-				entry.getValue().setNumberOfCoresPerAVM(entry.getValue().getNumberOfCoresPerAVM() + num);
 			}
 		}
 		return num;
@@ -360,7 +376,6 @@ public class PerformanceController extends AbstractComponent implements
 				this.pcsop.requestRemoveCores(entry.getKey(), removeCores);
 
 				entry.getValue().removeCores(this.numberOfCoresToChange);
-				entry.getValue().setNumberOfCoresPerAVM(entry.getValue().getNumberOfCoresPerAVM() - this.numberOfCoresToChange);
 
 				return this.numberOfCoresToChange;
 			}
@@ -368,5 +383,8 @@ public class PerformanceController extends AbstractComponent implements
 		return 0;
 	}
 
+	private void addAVM() throws Exception {
+		this.pcsop.requestAddAVM(this.appURI, this.performanceControllerURI);
+	}
 
 }

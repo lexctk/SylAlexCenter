@@ -2,8 +2,11 @@ package fr.sorbonne_u.sylalexcenter.requestdispatcher.ports;
 
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.ports.AbstractOutboundPort;
+import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
+
+import java.util.ArrayList;
 
 /**
  *
@@ -20,5 +23,29 @@ public class RequestDispatcherManagementOutboundPort extends AbstractOutboundPor
 		super(RequestDispatcherManagementI.class, owner);
 		
 		assert owner instanceof RequestDispatcher;
+	}
+
+	@Override
+	public void notifyDispatcherOfNewAVM(
+			String appURI,
+			String performanceControllerURI,
+			ArrayList<AllocationMap> allocatedMap,
+			String avmURI,
+			String requestDispatcherSubmissionOutboundPortURI,
+			String requestDispatcherNotificationInboundPortURI) throws Exception {
+
+		((RequestDispatcherManagementI)this.connector).
+				notifyDispatcherOfNewAVM(
+						appURI,
+						performanceControllerURI,
+						allocatedMap,
+						avmURI,
+						requestDispatcherSubmissionOutboundPortURI,
+						requestDispatcherNotificationInboundPortURI);
+	}
+
+	@Override
+	public void notifyDispatcherNewAVMDeployed(String avmURI) throws Exception {
+		((RequestDispatcherManagementI)this.connector).notifyDispatcherNewAVMDeployed(avmURI);
 	}
 }

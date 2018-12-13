@@ -9,16 +9,13 @@ public class AllocationMap {
 
 	private String computerURI;
 	private ComputerServicesOutboundPort csop;
-	private Integer numberOfCoresPerAVM;
 	private AllocatedCore[] allocatedCores;
 
 	public AllocationMap(String computerURI,
 	              ComputerServicesOutboundPort csop,
-	              Integer numberOfCoresPerAVM,
 	              AllocatedCore[] allocatedCores) {
 		this.computerURI = computerURI;
 		this.csop = csop;
-		this.numberOfCoresPerAVM = numberOfCoresPerAVM;
 		this.allocatedCores = allocatedCores;
 	}
 
@@ -27,7 +24,7 @@ public class AllocationMap {
 	}
 
 	public Integer getNumberOfCoresPerAVM() {
-		return numberOfCoresPerAVM;
+		return allocatedCores.length;
 	}
 
 	public AllocatedCore[] getAllocatedCores() {
@@ -51,9 +48,5 @@ public class AllocationMap {
 
 		this.allocatedCores = new AllocatedCore[result.length];
 		System.arraycopy(result, 0, this.allocatedCores, 0, result.length);
-	}
-
-	public void setNumberOfCoresPerAVM(Integer numberOfCoresPerAVM) {
-		this.numberOfCoresPerAVM = numberOfCoresPerAVM;
 	}
 }

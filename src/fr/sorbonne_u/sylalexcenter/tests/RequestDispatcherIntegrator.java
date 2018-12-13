@@ -1,4 +1,4 @@
-package fr.sorbonne_u.sylalexcenter.requestdispatcher;
+package fr.sorbonne_u.sylalexcenter.tests;
 
 import java.util.ArrayList;
 
@@ -35,12 +35,12 @@ public class RequestDispatcherIntegrator extends AbstractComponent {
 	private String requestGeneratorManagementInboundPortURI;
 	private String requestDispatcherManagementInboundPortURI;
 	
-	public RequestDispatcherIntegrator (
+	RequestDispatcherIntegrator(
 			String computerServicesInboundPortURI,
 			ArrayList<String> applicationVMManagementInboundPortURIList,
-			String requestGeneratorManagementInboundPortURI, 
+			String requestGeneratorManagementInboundPortURI,
 			String requestDispatcherManagementInboundPortURI
-		) throws Exception {
+	) throws Exception {
 		
 		super(1, 0);
 		

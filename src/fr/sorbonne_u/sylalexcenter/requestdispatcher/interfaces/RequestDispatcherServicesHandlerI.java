@@ -4,16 +4,9 @@ import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 
 import java.util.ArrayList;
 
-/**
- *
- * Sorbonne University 2018-2019
- * @author Alexandra Tudor
- * @author Sylia Righi
- *
- */
-public interface RequestDispatcherManagementI {
+public interface RequestDispatcherServicesHandlerI {
 
-	void notifyDispatcherOfNewAVM (
+	void acceptNotificationNewAVMPortsReady (
 			String appURI,
 			String performanceControllerURI,
 			ArrayList<AllocationMap> allocatedMap,
@@ -21,6 +14,4 @@ public interface RequestDispatcherManagementI {
 			String requestDispatcherSubmissionOutboundPortURI,
 			String requestDispatcherNotificationInboundPortURI
 	) throws Exception;
-
-	void notifyDispatcherNewAVMDeployed(String avmURI) throws Exception;
 }

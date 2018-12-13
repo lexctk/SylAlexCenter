@@ -17,4 +17,9 @@ public class PerformanceControllerServicesConnector extends AbstractConnector im
 
 		((PerformanceControllerServicesI) this.offering).requestRemoveCores(appUri, removeCores);
 	}
+
+	@Override
+	public void requestAddAVM(String appURI, String performanceControllerURI) throws Exception {
+		((PerformanceControllerServicesI) this.offering).requestAddAVM(appURI, performanceControllerURI);
+	}
 }
