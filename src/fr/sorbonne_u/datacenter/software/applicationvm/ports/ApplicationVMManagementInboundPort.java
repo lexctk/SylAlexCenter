@@ -71,4 +71,15 @@ public class ApplicationVMManagementInboundPort extends AbstractInboundPort impl
 			}
 		});
 	}
+
+	@Override
+	public void destroyComponent() throws Exception {
+		this.getOwner().handleRequestSync(new AbstractComponent.AbstractService<Void>() {
+			@Override
+			public Void call() throws Exception {
+				((ApplicationVMManagementI) this.getOwner()).destroyComponent();
+				return null;
+			}
+		});
+	}
 }

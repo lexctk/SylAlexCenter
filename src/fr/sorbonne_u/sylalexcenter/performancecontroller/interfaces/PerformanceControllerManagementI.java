@@ -12,5 +12,9 @@ public interface PerformanceControllerManagementI {
 
 	void notifyAVMAdded(String avmURI, AllocationMap allocationMap) throws Exception;
 
-	void notifyAVMRefused(String appURI) throws Exception;
+	void notifyAVMAddRefused(String appURI) throws Exception;
+
+	void notifyAVMRemoveRefused(String appURI) throws Exception;
+
+	void notifyAVMRemoveComplete(String vmURI, String appURI) throws Exception;
 }

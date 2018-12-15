@@ -81,6 +81,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	private HashMap<String, String> vmAllocation = new HashMap<>(); //request URI -> vmURI
 	private HashMap<String, Long> vmStartTime = new HashMap<>(); //request URI -> request start time
 
+	private String appURIRemoval;
+	private String performanceControllerURIRemoval;
+	private String markedForRemoval;
+
 	// Statistics
 	private double currentAverage;
 	private ExponentialMovingAverage exponentialMovingAverage;
@@ -168,6 +172,8 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.addPort(rddsdip);
 		this.rddsdip.publishPort();
 
+		this.markedForRemoval = null;
+
 		this.tracer.setRelativePosition(1, 0);
 		
 		// post-conditions check
@@ -247,11 +253,14 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {
 		assert r != null;
 
-		String leastUsedVM = Collections.min(this.vmPriority.entrySet(), comparingInt(Map.Entry::getValue)).getKey();
+		HashMap<String, Integer> vmPriorityCopy = new HashMap<>(this.vmPriority);
+		vmPriorityCopy.remove(this.markedForRemoval);
+		String leastUsedVM = Collections.min(vmPriorityCopy.entrySet(), comparingInt(Map.Entry::getValue)).getKey();
 
 		if (leastUsedVM.length() > 0) {
 			int requests = this.vmPriority.get(leastUsedVM) + 1;
 			this.vmPriority.replace(leastUsedVM, requests);
+
 			this.vmAllocation.put(r.getRequestURI(), leastUsedVM);
 			this.vmStartTime.put(r.getRequestURI(), System.nanoTime());
 
@@ -270,7 +279,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	 * @param r request that just terminated.
 	 */
 	@Override
-	public void acceptRequestTerminationNotification(RequestI r) {
+	public void acceptRequestTerminationNotification(RequestI r) throws Exception {
 		assert r != null;
 
 		Long executionTime = System.nanoTime() - this.vmStartTime.get(r.getRequestURI());
@@ -278,8 +287,20 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		synchronized (this) {
 			currentAverage = exponentialMovingAverage.getNextAverage(executionTime);
 		}
-		int requests = this.vmPriority.get(this.vmAllocation.get(r.getRequestURI())) - 1;
-		this.vmPriority.replace(this.vmAllocation.get(r.getRequestURI()), requests);
+		String vmURI = this.vmAllocation.get(r.getRequestURI());
+
+		if (this.vmPriority.containsKey(vmURI)) {
+			int requests = this.vmPriority.get(vmURI) - 1;
+			this.vmPriority.replace(vmURI, requests);
+		}
+
+		if (this.markedForRemoval != null && this.vmPriority.get(this.markedForRemoval) <= 0) {
+			// this avm was marked for removal and completed all its requests
+			this.rdsvop.notifyAVMRemovalComplete (this.markedForRemoval, this.appURIRemoval, this.performanceControllerURIRemoval);
+			this.vmURIList.remove(this.markedForRemoval);
+			this.vmPriority.remove(this.markedForRemoval);
+			this.markedForRemoval = null;
+		}
 
 		this.vmStartTime.remove(r.getRequestURI());
 		this.vmAllocation.remove(r.getRequestURI());
@@ -415,8 +436,24 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	}
 
 	@Override
-	public void notifyDispatcherNewAVMDeployed(String avmURI) throws Exception {
+	public void notifyDispatcherNewAVMDeployed(String avmURI) {
 		this.vmURIList.add(avmURI);
 		this.vmPriority.put(avmURI, 0);
+	}
+
+	@Override
+	public void notifyDispatcherToRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+		if (this.markedForRemoval == null) {
+			this.markedForRemoval = Collections.min(this.vmPriority.entrySet(), comparingInt(Map.Entry::getValue)).getKey();
+			this.appURIRemoval = appURI;
+			this.performanceControllerURIRemoval = performanceControllerURI;
+
+			this.logMessage("---> AVM " + markedForRemoval + " will be removed.");
+		} else {
+			this.logMessage("---> AVM removal already in progress " + this.markedForRemoval);
+			// refuse new removal:
+			this.rdsvop.notifyAVMRemovalRefused (appURI, performanceControllerURI);
+		}
+
 	}
 }

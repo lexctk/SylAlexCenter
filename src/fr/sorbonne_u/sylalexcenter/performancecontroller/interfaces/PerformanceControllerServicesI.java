@@ -10,4 +10,6 @@ public interface PerformanceControllerServicesI extends OfferedI, RequiredI {
 	void requestRemoveCores (String appUri, AllocatedCore[] removeCores) throws Exception;
 
 	void requestAddAVM (String appURI, String performanceControllerURI) throws Exception;
+
+	void requestRemoveAVM(String appURI, String performanceControllerURI) throws Exception;
 }

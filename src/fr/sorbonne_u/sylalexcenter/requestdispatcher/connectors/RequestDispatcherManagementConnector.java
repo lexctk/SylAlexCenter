@@ -1,6 +1,7 @@
 package fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors;
 
 import fr.sorbonne_u.components.connectors.AbstractConnector;
+import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
 
@@ -37,5 +38,10 @@ public class RequestDispatcherManagementConnector extends AbstractConnector impl
 	@Override
 	public void notifyDispatcherNewAVMDeployed(String avmURI) throws Exception {
 		((RequestDispatcherManagementI)this.offering).notifyDispatcherNewAVMDeployed(avmURI);
+	}
+
+	@Override
+	public void notifyDispatcherToRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+		((RequestDispatcherManagementI)this.offering).notifyDispatcherToRemoveAVM(appURI, performanceControllerURI);
 	}
 }

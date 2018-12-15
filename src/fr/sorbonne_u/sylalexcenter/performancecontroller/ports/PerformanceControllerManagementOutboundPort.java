@@ -22,24 +22,34 @@ public class PerformanceControllerManagementOutboundPort extends AbstractOutboun
 
 	@Override
 	public void doConnectionWithRequestDispatcherForDynamicState (String requestDispatcherDynamicStateInboundPortUri) throws Exception {
-		((PerformanceControllerManagementI)this.connector).
+		((PerformanceControllerManagementI) this.connector).
 				doConnectionWithRequestDispatcherForDynamicState (requestDispatcherDynamicStateInboundPortUri);
 	}
 
 	@Override
 	public void doConnectionWithComputerForDynamicState(ArrayList<String> computerDynamicStateInboundPortUri) throws Exception {
-		((PerformanceControllerManagementI)this.connector).
+		((PerformanceControllerManagementI) this.connector).
 				doConnectionWithComputerForDynamicState (computerDynamicStateInboundPortUri);
 	}
 
 	@Override
 	public void notifyAVMAdded(String avmURI, AllocationMap allocationMap) throws Exception {
-		((PerformanceControllerManagementI)this.connector).
+		((PerformanceControllerManagementI) this.connector).
 				notifyAVMAdded (avmURI, allocationMap);
 	}
 
 	@Override
-	public void notifyAVMRefused(String appURI) throws Exception {
-		((PerformanceControllerManagementI)this.connector).notifyAVMRefused(appURI);
+	public void notifyAVMAddRefused(String appURI) throws Exception {
+		((PerformanceControllerManagementI) this.connector).notifyAVMAddRefused(appURI);
+	}
+
+	@Override
+	public void notifyAVMRemoveRefused(String appURI) throws Exception {
+		((PerformanceControllerManagementI) this.connector).notifyAVMRemoveRefused(appURI);
+	}
+
+	@Override
+	public void notifyAVMRemoveComplete(String vmURI, String appURI) throws Exception {
+		((PerformanceControllerManagementI) this.connector).notifyAVMRemoveComplete(vmURI, appURI);
 	}
 }

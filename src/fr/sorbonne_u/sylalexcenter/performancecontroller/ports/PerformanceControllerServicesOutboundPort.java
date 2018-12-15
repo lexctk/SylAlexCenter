@@ -31,4 +31,9 @@ public class PerformanceControllerServicesOutboundPort extends AbstractOutboundP
 		((PerformanceControllerServicesI) this.connector).requestAddAVM(appURI, performanceControllerURI);
 	}
 
+	@Override
+	public void requestRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+		((PerformanceControllerServicesI) this.connector).requestRemoveAVM(appURI, performanceControllerURI);
+	}
+
 }

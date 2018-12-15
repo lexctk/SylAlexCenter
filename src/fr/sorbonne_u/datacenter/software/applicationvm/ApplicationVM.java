@@ -594,4 +594,10 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 		}
 		this.logMessage("---> Received " + allocatedCores.length + " new cores");
 	}
+
+	@Override
+	public void destroyComponent() throws Exception {
+		finalise();
+		shutdown();
+	}
 }

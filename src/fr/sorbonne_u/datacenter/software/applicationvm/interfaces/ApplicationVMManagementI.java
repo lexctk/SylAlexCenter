@@ -16,4 +16,6 @@ public interface ApplicationVMManagementI extends OfferedI, RequiredI {
 	 * @param allocatedCores array of cores already reserved provided to the VM.
 	 */
 	void allocateCores(AllocatedCore[] allocatedCores) throws Exception;
+
+	void destroyComponent () throws Exception;
 }

@@ -8,4 +8,6 @@ public interface PerformanceControllerServicesHandlerI {
 	void acceptRequestRemoveCores (String appUri, AllocatedCore[] removeCores) throws Exception;
 
 	void acceptRequestAddAVM (String appURI, String performanceControllerURI) throws Exception;
+
+	void acceptRequestRemoveAVM(String appURI, String performanceControllerURI) throws Exception;
 }

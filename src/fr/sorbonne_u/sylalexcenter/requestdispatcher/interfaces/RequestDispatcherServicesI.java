@@ -14,4 +14,8 @@ public interface RequestDispatcherServicesI {
 			String requestDispatcherSubmissionOutboundPortURI,
 			String requestDispatcherNotificationInboundPortURI
 	) throws Exception;
+
+	void notifyAVMRemovalComplete (String vmURI, String appURI, String performanceControllerURI) throws Exception;
+
+	void notifyAVMRemovalRefused(String appURI, String performanceControllerURI) throws Exception;
 }

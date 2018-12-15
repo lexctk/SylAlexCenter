@@ -3,6 +3,7 @@ package fr.sorbonne_u.sylalexcenter.requestdispatcher.ports;
 import fr.sorbonne_u.components.AbstractComponent;
 import fr.sorbonne_u.components.ComponentI;
 import fr.sorbonne_u.components.ports.AbstractInboundPort;
+import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
@@ -68,6 +69,20 @@ public class RequestDispatcherManagementInboundPort extends AbstractInboundPort 
 					@Override
 					public Void call() throws Exception {
 						rd.notifyDispatcherNewAVMDeployed(avmURI);
+						return null;
+					}
+				});
+	}
+
+	@Override
+	public void notifyDispatcherToRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+		final RequestDispatcher rd = (RequestDispatcher) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						rd.notifyDispatcherToRemoveAVM(appURI, performanceControllerURI);
 						return null;
 					}
 				});

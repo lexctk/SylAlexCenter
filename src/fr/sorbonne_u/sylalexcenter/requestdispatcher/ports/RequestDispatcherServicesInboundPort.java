@@ -45,4 +45,32 @@ public class RequestDispatcherServicesInboundPort extends AbstractInboundPort im
 					}
 				});
 	}
+
+	@Override
+	public void notifyAVMRemovalComplete(String vmURI, String appURI, String performanceControllerURI) throws Exception {
+		final RequestDispatcherServicesHandlerI requestDispatcherServicesHandlerI = (RequestDispatcherServicesHandlerI) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						requestDispatcherServicesHandlerI.acceptNotificationAVMRemovalComplete(vmURI, appURI, performanceControllerURI);
+						return null;
+					}
+				});
+	}
+
+	@Override
+	public void notifyAVMRemovalRefused(String appURI, String performanceControllerURI) throws Exception {
+		final RequestDispatcherServicesHandlerI requestDispatcherServicesHandlerI = (RequestDispatcherServicesHandlerI) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						requestDispatcherServicesHandlerI.acceptNotificationAVMRemovalRefused(appURI, performanceControllerURI);
+						return null;
+					}
+				});
+	}
 }

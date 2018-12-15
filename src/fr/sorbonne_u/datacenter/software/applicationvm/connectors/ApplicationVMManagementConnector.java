@@ -39,4 +39,9 @@ public class ApplicationVMManagementConnector extends AbstractConnector implemen
 	public void allocateCores(final AllocatedCore[] allocatedCores) throws Exception {
 		((ApplicationVMManagementI) this.offering).allocateCores(allocatedCores);
 	}
+
+	@Override
+	public void destroyComponent() throws Exception {
+		((ApplicationVMManagementI) this.offering).destroyComponent();
+	}
 }

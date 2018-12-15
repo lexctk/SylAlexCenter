@@ -26,4 +26,14 @@ public class RequestDispatcherServicesConnector extends AbstractConnector
 				requestDispatcherNotificationInboundPortURI);
 
 	}
+
+	@Override
+	public void notifyAVMRemovalComplete(String vmURI, String appURI, String performanceControllerURI) throws Exception {
+		((RequestDispatcherServicesI) this.offering).notifyAVMRemovalComplete(vmURI, appURI, performanceControllerURI);
+	}
+
+	@Override
+	public void notifyAVMRemovalRefused(String appURI, String performanceControllerURI) throws Exception {
+		((RequestDispatcherServicesI) this.offering).notifyAVMRemovalRefused(appURI, performanceControllerURI);
+	}
 }

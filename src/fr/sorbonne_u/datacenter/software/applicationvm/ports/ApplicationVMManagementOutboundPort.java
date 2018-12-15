@@ -53,4 +53,9 @@ public class ApplicationVMManagementOutboundPort extends AbstractOutboundPort im
 	public void allocateCores(final AllocatedCore[] allocatedCores) throws Exception {
 		((ApplicationVMManagementI) this.connector).allocateCores(allocatedCores);
 	}
+
+	@Override
+	public void destroyComponent() throws Exception {
+		((ApplicationVMManagementI) this.connector).destroyComponent();
+	}
 }

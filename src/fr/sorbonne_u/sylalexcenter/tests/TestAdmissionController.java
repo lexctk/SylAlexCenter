@@ -36,7 +36,7 @@ public class TestAdmissionController extends AbstractCVM {
 	private static final Integer numberOfApplications = 1;
 	
 	private static final Integer coresPerAVM = 2;
-	private static final Integer[] coresNeeded = new Integer[] {2};
+	private static final Integer[] coresNeeded = new Integer[] {8};
 
 	private static final long applicationTime = 500000L;
 

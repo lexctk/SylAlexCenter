@@ -66,7 +66,6 @@ public class AdmissionController extends AbstractComponent
 	private ArrayList<ComputerServicesOutboundPort> csopList;
 	private ArrayList<ComputerStaticStateDataOutboundPort> cssdopList;
 
-
 	private HashMap<String,String> applicationManagementInboundPortURIMap; // appURI -> applicationManagementInboundPortURI
 	private HashMap<String,String> applicationNotificationInboundPortURIMap; // appURI -> applicationNotificationInboundPortURI
 	
@@ -586,7 +585,19 @@ public class AdmissionController extends AbstractComponent
 			notifyDispatcherOfNewAVM(appURI, performanceControllerURI, allocatedCores);
 		} else {
 			this.logMessage("---> Not enough resources, refused new AVM for " + appURI);
-			this.pcmopMap.get(performanceControllerURI).notifyAVMRefused (appURI);
+			this.pcmopMap.get(performanceControllerURI).notifyAVMAddRefused (appURI);
+		}
+	}
+
+	@Override
+	public void acceptRequestRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+		this.logMessage("Admission controller received request to remove an AVM from " + appURI);
+
+		if (this.avmopMap.size() > 1) {
+			notifyDispatcherToRemoveAVM(appURI, performanceControllerURI);
+		} else {
+			this.logMessage("---> Not possible to remove any AVM from " + appURI);
+			this.pcmopMap.get(performanceControllerURI).notifyAVMRemoveRefused(appURI);
 		}
 	}
 
@@ -684,6 +695,12 @@ public class AdmissionController extends AbstractComponent
 			throw new Exception ("Error connecting new AVM to dispatcher for submission" + e);
 		}
 
+		try {
+			this.avmopMap.get(avmURI).allocateCores(allocatedMap.get(0).getAllocatedCores());
+		} catch (Exception e) {
+			throw new Exception ("Couldn't allocate cores to new AVM out port" + e);
+		}
+
 		// Send information to Performance Controller
 		try {
 			this.pcmopMap.get(performanceControllerURI).notifyAVMAdded(avmURI, allocatedMap.get(0));
@@ -691,16 +708,37 @@ public class AdmissionController extends AbstractComponent
 			throw new Exception ("Couldn't notify performance controller that new AVM was added" + e);
 		}
 
-		try {
-			this.avmopMap.get(avmURI).allocateCores(allocatedMap.get(0).getAllocatedCores());
-		} catch (Exception e) {
-			throw new Exception ("Couldn't allocate cores to new AVM out port" + e);
-		}
-
 		// Tell dispatcher it can start forwarding requests to new AVM
 		// --------------------------------------------------------------------
 		this.rdmopMap.get(this.rdURIMap.get(appUri)).notifyDispatcherNewAVMDeployed(avmURI);
 
+
+
 		this.logMessage("---> Finished deployment for new AVM for " + appUri);
+	}
+
+	@Override
+	public void acceptNotificationAVMRemovalComplete(String vmURI, String appURI, String performanceControllerURI) throws Exception {
+		this.avmopMap.get(vmURI).destroyComponent();
+		this.logMessage("---> AVM " + vmURI + " removed from " + appURI);
+		this.pcmopMap.get(performanceControllerURI).notifyAVMRemoveComplete(vmURI, appURI);
+	}
+
+	@Override
+	public void acceptNotificationAVMRemovalRefused(String appURI, String performanceControllerURI) throws Exception {
+		this.logMessage("---> Not possible to remove any AVM from " + appURI);
+		this.pcmopMap.get(performanceControllerURI).notifyAVMRemoveRefused(appURI);
+	}
+
+	private void notifyDispatcherToRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+
+		this.logMessage("---> Notifying dispatcher to remove an AVM from " + appURI);
+
+		// Tell dispatcher to remove AVM
+		// --------------------------------------------------------------------
+		this.rdmopMap.get(this.rdURIMap.get(appURI)).notifyDispatcherToRemoveAVM (
+				appURI,
+				performanceControllerURI
+		);
 	}
 }

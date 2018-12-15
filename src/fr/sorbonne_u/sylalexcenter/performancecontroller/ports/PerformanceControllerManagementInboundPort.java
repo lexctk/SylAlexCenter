@@ -68,14 +68,42 @@ public class PerformanceControllerManagementInboundPort extends AbstractInboundP
 	}
 
 	@Override
-	public void notifyAVMRefused(String appURI) throws Exception {
+	public void notifyAVMAddRefused(String appURI) throws Exception {
 		final PerformanceController performanceController = (PerformanceController) this.owner;
 
 		this.owner.handleRequestAsync(
 				new AbstractComponent.AbstractService<Void>() {
 					@Override
 					public Void call() throws Exception {
-						performanceController.notifyAVMRefused(appURI);
+						performanceController.notifyAVMAddRefused(appURI);
+						return null;
+					}
+				});
+	}
+
+	@Override
+	public void notifyAVMRemoveRefused(String appURI) throws Exception {
+		final PerformanceController performanceController = (PerformanceController) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						performanceController.notifyAVMRemoveRefused(appURI);
+						return null;
+					}
+				});
+	}
+
+	@Override
+	public void notifyAVMRemoveComplete(String vmURI, String appURI) throws Exception {
+		final PerformanceController performanceController = (PerformanceController) this.owner;
+
+		this.owner.handleRequestAsync(
+				new AbstractComponent.AbstractService<Void>() {
+					@Override
+					public Void call() throws Exception {
+						performanceController.notifyAVMRemoveComplete(vmURI, appURI);
 						return null;
 					}
 				});

@@ -31,16 +31,20 @@ public class PerformanceController extends AbstractComponent implements
 		RequestDispatcherStateDataConsumerI,
 		ComputerStateDataConsumerI {
 
+	// Setup
+	// -----------------------------------------------------------------
 	private final int numberOfCoresToChange = 2;
 
 	private static final int timer = 4000;
 
-	private static final int queueThresholdMax = 5;
-	private static final double executionTimeThresholdMax = 1E5;
+	private static final int queueThresholdMax = 50;
+	private static final double executionTimeThresholdMax = 12E10;
 
-	private static final int queueThresholdMin = 0;
-	private static final double executionTimeThresholdMin = 0;
+	private static final int queueThresholdMin = 30;
+	private static final double executionTimeThresholdMin = 10E10;
 
+	// Component info
+	// -----------------------------------------------------------------
 	private String requestDispatcherURI;
 	private String appURI;
 	private String performanceControllerURI;
@@ -48,17 +52,19 @@ public class PerformanceController extends AbstractComponent implements
 	private PerformanceControllerServicesOutboundPort pcsop;
 	private String performanceControllerServicesInboundPortURI;
 
+	private RequestDispatcherDynamicStateDataOutboundPort rddsdop;
+	private ArrayList<ComputerDynamicStateDataOutboundPort> cdsdopList;
+
+	// Statistics
+	// -----------------------------------------------------------------
 	private int availableAVMsCount;
 	private double exponentialAverageExecutionTime;
 	private int totalRequestSubmitted;
 	private int totalRequestTerminated;
 
-	// allocation map for the AVMs.
-	// for each avmURI -> we know (computerURI, csop, numberOfCoresPerAVM, allocatedCores)
+	// Allocation map for the AVMs.
+	// -----------------------------------------------------------------
 	private HashMap<String, AllocationMap> allocationMap;
-
-	private RequestDispatcherDynamicStateDataOutboundPort rddsdop;
-	private ArrayList<ComputerDynamicStateDataOutboundPort> cdsdopList;
 
 	public PerformanceController (
 			String performanceControllerURI,
@@ -167,14 +173,27 @@ public class PerformanceController extends AbstractComponent implements
 	}
 
 	@Override
-	public void notifyAVMAdded(String avmURI, AllocationMap allocationMap) throws Exception {
+	public void notifyAVMAdded(String avmURI, AllocationMap allocationMap) {
 		this.availableAVMsCount++;
 		this.allocationMap.put(avmURI, allocationMap);
+		this.logMessage("---> Success! New AVM added. ");
 	}
 
 	@Override
-	public void notifyAVMRefused(String appURI) throws Exception {
-		this.logMessage("---> Request to add a new AVM was refused ");
+	public void notifyAVMAddRefused(String appURI) {
+		this.logMessage("---> Request to add a new AVM was refused. ");
+	}
+
+	@Override
+	public void notifyAVMRemoveRefused(String appURI) {
+		this.logMessage("---> Request to remove an AVM was refused. ");
+	}
+
+	@Override
+	public void notifyAVMRemoveComplete(String vmURI, String appURI) {
+		this.availableAVMsCount--;
+		this.allocationMap.remove(vmURI);
+		this.logMessage("---> AVM " + vmURI + " was successfully removed. ");
 	}
 
 	@Override
@@ -246,23 +265,23 @@ public class PerformanceController extends AbstractComponent implements
 	private void applyUpgrades() throws Exception {
 		this.logMessage("Upgrading resources");
 
-//		// Frequency change
-//		this.logMessage("---> Trying to increase frequency ");
-//		int frequency = increaseFrequency();
-//		if (frequency > 0) {
-//			this.logMessage("---> Increased frequency of " + frequency + " cores");
-//			return;
-//		}
-//		this.logMessage("---> Couldn't increase frequency ");
-//
-//		// Core Change
-//		this.logMessage("---> Trying to add cores ");
-//		int cores = addCores();
-//		if (cores > 0) {
-//			this.logMessage("---> Added " + cores + " cores to AVM");
-//			return;
-//		}
-//		this.logMessage("---> Couldn't add cores to any AVM ");
+		// Frequency change
+		this.logMessage("---> Trying to increase frequency ");
+		int frequency = increaseFrequency();
+		if (frequency > 0) {
+			this.logMessage("---> Increased frequency of " + frequency + " cores");
+			return;
+		}
+		this.logMessage("---> Couldn't increase frequency ");
+
+		// Core Change
+		this.logMessage("---> Trying to add cores ");
+		int cores = addCores();
+		if (cores > 0) {
+			this.logMessage("---> Added " + cores + " cores to AVM");
+			return;
+		}
+		this.logMessage("---> Couldn't add cores to any AVM ");
 
 		// Add AVM
 		this.logMessage("---> Trying to add an AVM ");
@@ -272,23 +291,27 @@ public class PerformanceController extends AbstractComponent implements
 	private void applyDowngrades() throws Exception {
 		this.logMessage("Downgrading resources");
 
-		// Frequency change
-		this.logMessage("---> Trying to decrease frequency ");
-		int frequency = decreaseFrequency();
-		if (frequency > 0) {
-			this.logMessage("---> Decreased frequency of " + frequency + " cores");
-			return;
-		}
-		this.logMessage("---> Couldn't decrease frequency ");
+//		// Frequency change
+//		this.logMessage("---> Trying to decrease frequency ");
+//		int frequency = decreaseFrequency();
+//		if (frequency > 0) {
+//			this.logMessage("---> Decreased frequency of " + frequency + " cores");
+//			return;
+//		}
+//		this.logMessage("---> Couldn't decrease frequency ");
+//
+//		// Core Change
+//		this.logMessage("---> Trying to remove cores ");
+//		int cores = removeCores();
+//		if (cores > 0) {
+//			this.logMessage("---> Removed " + cores + " cores from AVM");
+//			return;
+//		}
+//		this.logMessage("---> Couldn't remove cores from any AVM ");
 
-		// Core Change
-		this.logMessage("---> Trying to remove cores ");
-		int cores = removeCores();
-		if (cores > 0) {
-			this.logMessage("---> Removed " + cores + " cores from AVM");
-			return;
-		}
-		this.logMessage("---> Couldn't remove cores from any AVM ");
+		// Remove AVM
+		this.logMessage("---> Trying to remove an AVM ");
+		removeAVM();
 	}
 
 	private int increaseFrequency() {
@@ -385,6 +408,14 @@ public class PerformanceController extends AbstractComponent implements
 
 	private void addAVM() throws Exception {
 		this.pcsop.requestAddAVM(this.appURI, this.performanceControllerURI);
+	}
+
+	private void removeAVM() throws Exception {
+		if (this.availableAVMsCount > 1) {
+			this.pcsop.requestRemoveAVM(this.appURI, this.performanceControllerURI);
+		} else {
+			this.logMessage("---> Can't remove any AVMs ");
+		}
 	}
 
 }

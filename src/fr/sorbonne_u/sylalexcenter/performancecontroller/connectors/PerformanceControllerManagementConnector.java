@@ -18,17 +18,27 @@ public class PerformanceControllerManagementConnector extends AbstractConnector 
 	@Override
 	public void doConnectionWithComputerForDynamicState(ArrayList<String> computerDynamicStateInboundPortUri) throws Exception {
 
-		((PerformanceControllerManagementI)this.offering).
+		((PerformanceControllerManagementI) this.offering).
 				doConnectionWithComputerForDynamicState(computerDynamicStateInboundPortUri);
 	}
 
 	@Override
 	public void notifyAVMAdded(String avmURI, AllocationMap allocationMap) throws Exception {
-		((PerformanceControllerManagementI)this.offering).notifyAVMAdded(avmURI, allocationMap);
+		((PerformanceControllerManagementI) this.offering).notifyAVMAdded(avmURI, allocationMap);
 	}
 
 	@Override
-	public void notifyAVMRefused(String appURI) throws Exception {
-		((PerformanceControllerManagementI)this.offering).notifyAVMRefused(appURI);
+	public void notifyAVMAddRefused(String appURI) throws Exception {
+		((PerformanceControllerManagementI) this.offering).notifyAVMAddRefused(appURI);
+	}
+
+	@Override
+	public void notifyAVMRemoveRefused(String appURI) throws Exception {
+		((PerformanceControllerManagementI) this.offering).notifyAVMRemoveRefused(appURI);
+	}
+
+	@Override
+	public void notifyAVMRemoveComplete(String vmURI, String appURI) throws Exception {
+		((PerformanceControllerManagementI) this.offering).notifyAVMRemoveComplete(vmURI, appURI);
 	}
 }

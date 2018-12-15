@@ -22,4 +22,9 @@ public class PerformanceControllerServicesConnector extends AbstractConnector im
 	public void requestAddAVM(String appURI, String performanceControllerURI) throws Exception {
 		((PerformanceControllerServicesI) this.offering).requestAddAVM(appURI, performanceControllerURI);
 	}
+
+	@Override
+	public void requestRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
+		((PerformanceControllerServicesI) this.offering).requestRemoveAVM(appURI, performanceControllerURI);
+	}
 }
