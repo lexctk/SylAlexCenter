@@ -19,7 +19,7 @@ public class RequestDispatcherDynamicStateDataInboundPort extends AbstractContro
 		final RequestDispatcher requestDispatcher = (RequestDispatcher) this.owner;
 		return requestDispatcher.handleRequestSync(new AbstractComponent.AbstractService<>() {
 			@Override
-			public DataOfferedI.DataI call() throws Exception {
+			public DataOfferedI.DataI call() {
 				return requestDispatcher.getDynamicState();
 			}
 		});

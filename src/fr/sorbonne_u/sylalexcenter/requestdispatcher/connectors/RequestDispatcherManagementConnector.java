@@ -1,7 +1,6 @@
 package fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors;
 
 import fr.sorbonne_u.components.connectors.AbstractConnector;
-import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherManagementI;
 

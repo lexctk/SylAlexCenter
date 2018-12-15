@@ -60,7 +60,7 @@ public class PerformanceControllerManagementInboundPort extends AbstractInboundP
 		this.owner.handleRequestAsync(
 				new AbstractComponent.AbstractService<Void>() {
 					@Override
-					public Void call() throws Exception {
+					public Void call() {
 						performanceController.notifyAVMAdded(avmURI, allocationMap);
 						return null;
 					}
@@ -74,7 +74,7 @@ public class PerformanceControllerManagementInboundPort extends AbstractInboundP
 		this.owner.handleRequestAsync(
 				new AbstractComponent.AbstractService<Void>() {
 					@Override
-					public Void call() throws Exception {
+					public Void call() {
 						performanceController.notifyAVMAddRefused(appURI);
 						return null;
 					}
@@ -88,7 +88,7 @@ public class PerformanceControllerManagementInboundPort extends AbstractInboundP
 		this.owner.handleRequestAsync(
 				new AbstractComponent.AbstractService<Void>() {
 					@Override
-					public Void call() throws Exception {
+					public Void call() {
 						performanceController.notifyAVMRemoveRefused(appURI);
 						return null;
 					}
@@ -102,7 +102,7 @@ public class PerformanceControllerManagementInboundPort extends AbstractInboundP
 		this.owner.handleRequestAsync(
 				new AbstractComponent.AbstractService<Void>() {
 					@Override
-					public Void call() throws Exception {
+					public Void call() {
 						performanceController.notifyAVMRemoveComplete(vmURI, appURI);
 						return null;
 					}

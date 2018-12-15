@@ -37,11 +37,11 @@ public class PerformanceController extends AbstractComponent implements
 
 	private static final int timer = 4000;
 
-	private static final int queueThresholdMax = 50;
-	private static final double executionTimeThresholdMax = 12E10;
+	private static final int queueThresholdMax = 20;
+	private static final double executionTimeThresholdMax = 1.7E10;
 
-	private static final int queueThresholdMin = 30;
-	private static final double executionTimeThresholdMin = 10E10;
+	private static final int queueThresholdMin = 5;
+	private static final double executionTimeThresholdMin = 2E9;
 
 	// Component info
 	// -----------------------------------------------------------------
@@ -245,7 +245,7 @@ public class PerformanceController extends AbstractComponent implements
 						}
 					}
 
-				}, timer*4, TimeUnit.MILLISECONDS);
+				}, timer*6, TimeUnit.MILLISECONDS);
 	}
 
 	private boolean isUsageHigh() {
@@ -291,23 +291,23 @@ public class PerformanceController extends AbstractComponent implements
 	private void applyDowngrades() throws Exception {
 		this.logMessage("Downgrading resources");
 
-//		// Frequency change
-//		this.logMessage("---> Trying to decrease frequency ");
-//		int frequency = decreaseFrequency();
-//		if (frequency > 0) {
-//			this.logMessage("---> Decreased frequency of " + frequency + " cores");
-//			return;
-//		}
-//		this.logMessage("---> Couldn't decrease frequency ");
-//
-//		// Core Change
-//		this.logMessage("---> Trying to remove cores ");
-//		int cores = removeCores();
-//		if (cores > 0) {
-//			this.logMessage("---> Removed " + cores + " cores from AVM");
-//			return;
-//		}
-//		this.logMessage("---> Couldn't remove cores from any AVM ");
+		// Frequency change
+		this.logMessage("---> Trying to decrease frequency ");
+		int frequency = decreaseFrequency();
+		if (frequency > 0) {
+			this.logMessage("---> Decreased frequency of " + frequency + " cores");
+			return;
+		}
+		this.logMessage("---> Couldn't decrease frequency ");
+
+		// Core Change
+		this.logMessage("---> Trying to remove cores ");
+		int cores = removeCores();
+		if (cores > 0) {
+			this.logMessage("---> Removed " + cores + " cores from AVM");
+			return;
+		}
+		this.logMessage("---> Couldn't remove cores from any AVM ");
 
 		// Remove AVM
 		this.logMessage("---> Trying to remove an AVM ");

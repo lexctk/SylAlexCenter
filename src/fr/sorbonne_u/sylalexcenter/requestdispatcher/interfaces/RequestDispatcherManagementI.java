@@ -1,6 +1,5 @@
 package fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces;
 
-import fr.sorbonne_u.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 
 import java.util.ArrayList;

@@ -597,7 +597,10 @@ public class ApplicationVM extends AbstractComponent implements ProcessorService
 
 	@Override
 	public void destroyComponent() throws Exception {
+		this.logMessage("Shutting down");
 		finalise();
 		shutdown();
+		this.tracer.toggleSuspend();
+		this.tracer.toggleVisible();
 	}
 }

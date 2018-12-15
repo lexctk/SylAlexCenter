@@ -67,7 +67,7 @@ public class RequestDispatcherManagementInboundPort extends AbstractInboundPort 
 		this.owner.handleRequestAsync(
 				new AbstractComponent.AbstractService<Void>() {
 					@Override
-					public Void call() throws Exception {
+					public Void call() {
 						rd.notifyDispatcherNewAVMDeployed(avmURI);
 						return null;
 					}

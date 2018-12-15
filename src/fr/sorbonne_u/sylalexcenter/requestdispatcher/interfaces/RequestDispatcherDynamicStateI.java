@@ -5,8 +5,6 @@ import fr.sorbonne_u.components.interfaces.DataRequiredI;
 
 public interface RequestDispatcherDynamicStateI extends DataOfferedI.DataI, DataRequiredI.DataI {
 
-	String getRequestDispatcherURI();
-
 	double getExponentialAverageExecutionTime();
 
 	int getAvailableAVMsCount();

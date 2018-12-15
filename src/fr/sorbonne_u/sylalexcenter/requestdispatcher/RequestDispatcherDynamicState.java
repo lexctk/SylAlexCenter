@@ -27,11 +27,6 @@ public class RequestDispatcherDynamicState implements RequestDispatcherDynamicSt
 	}
 
 	@Override
-	public String getRequestDispatcherURI() {
-		return this.rdURI;
-	}
-
-	@Override
 	public double getExponentialAverageExecutionTime() {
 		return this.exponentialAverageExecutionTime;
 	}
