@@ -2,6 +2,11 @@
 
 # Usage : ./start-dcvm jvmName
 
+if [ -z "$1" ]; then
+  echo usage: $0 jvmName
+  exit
+fi
+
 java -ea -cp 'jars/*' -Djava.security.manager \
-     -Djava.security.policy=dcvm.policy \
-     fr.sorbonne_u.sylalexcenter.tests.TestAdmissionControllerMultiJVM $1 config.xml
+	-Djava.security.policy=dcvm.policy \
+	fr.sorbonne_u.sylalexcenter.tests.TestAdmissionControllerMultiJVM $1 config.xml

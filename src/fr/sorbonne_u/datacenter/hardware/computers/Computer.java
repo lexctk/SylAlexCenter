@@ -135,7 +135,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 	public static class AllocatedCore implements Serializable {
 		private static final long serialVersionUID = 1L;
 		/** the number of the owning processor within its computer. */
-		final int processorNo;
+		public final int processorNo;
 		/** the URI of the owning processor within its computer. */
 		public final String processorURI;
 		/** the number of the core within its owning processor. */
@@ -1034,16 +1034,16 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		return sb.toString();
 	}
 
-	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
+	public boolean increaseFrequency(int coreNo, int processorNo) throws Exception {
 		printCurrentFrequencies ();
-		this.logMessage("Increasing frequency processor " + processorURI + " and core " + coreNo);
+		this.logMessage("Increasing frequency processor " + processorNo + " and core " + coreNo);
 
-		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
+		int currentFrequency = getCurrentFrequency(coreNo, processorNo);
 		if (currentFrequency == -1) return false;
 
 		for (Integer possibleFrequency : this.possibleFrequencies) {
 			if (possibleFrequency > currentFrequency) { //stop at the first one
-				boolean res = setCurrentFrequency(possibleFrequency, coreNo, processorURI);
+				boolean res = setCurrentFrequency(possibleFrequency, coreNo, processorNo);
 				printCurrentFrequencies();
 				return res;
 			}
@@ -1052,16 +1052,16 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		return false;
 	}
 
-	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
+	public boolean decreaseFrequency(int coreNo, int processorNo) throws Exception {
 		printCurrentFrequencies ();
-		this.logMessage("Decreasing frequency processor " + processorURI + " and core " + coreNo);
+		this.logMessage("Decreasing frequency processor " + processorNo + " and core " + coreNo);
 
-		int currentFrequency = getCurrentFrequency(coreNo, processorURI);
+		int currentFrequency = getCurrentFrequency(coreNo, processorNo);
 		if (currentFrequency == -1) return false;
 
 		for (int i = this.possibleFrequencies.size()-1; i >= 0; i--) {
 			if (this.possibleFrequencies.get(i) < currentFrequency) { //stop at the first one
-				boolean res =  setCurrentFrequency(possibleFrequencies.get(i), coreNo, processorURI);
+				boolean res =  setCurrentFrequency(possibleFrequencies.get(i), coreNo, processorNo);
 				printCurrentFrequencies ();
 				return res;
 			}
@@ -1070,15 +1070,7 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		return false;
 	}
 
-	private boolean setCurrentFrequency(int possibleFrequency, int coreNo, String processorURI) throws Exception {
-
-		int processorNo = -1;
-		for (Entry<Integer, String> entry : this.processorsURI.entrySet()) {
-			if (Objects.equals(entry.getValue(), processorURI)) {
-				processorNo = entry.getKey();
-				break;
-			}
-		}
+	private boolean setCurrentFrequency(int possibleFrequency, int coreNo, int processorNo) throws Exception {
 
 		if (this.processors[processorNo].isValidCoreNo(coreNo)) {
 			if (this.processors[processorNo].isAdmissibleFrequency(possibleFrequency) &&
@@ -1088,20 +1080,13 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 				this.coreFrequencies[processorNo][coreNo] = possibleFrequency;
 				return true;
 			}
-
 		}
 
 		return false;
 	}
 
-	private int getCurrentFrequency(int coreNo, String processorURI) {
-		for (Entry<Integer, String> entry : this.processorsURI.entrySet()) {
-			if (Objects.equals(entry.getValue(), processorURI)) {
-				int processorNo = entry.getKey();
-				return this.processors[processorNo].getCoreFrequency(coreNo);
-			}
-		}
-		return -1;
+	private int getCurrentFrequency(int coreNo, int processorNo) {
+		return this.processors[processorNo].getCoreFrequency(coreNo);
 	}
 
 

@@ -63,13 +63,13 @@ public class ComputerServicesOutboundPort extends AbstractOutboundPort implement
 	}
 
 	@Override
-	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception{
-		return ((ComputerServicesI) this.connector).increaseFrequency(coreNo, processorURI);
+	public boolean increaseFrequency(int coreNo, int processorNo) throws Exception{
+		return ((ComputerServicesI) this.connector).increaseFrequency(coreNo, processorNo);
 	}
 
 	@Override
-	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
-		return ((ComputerServicesI) this.connector).decreaseFrequency(coreNo, processorURI);
+	public boolean decreaseFrequency(int coreNo, int processorNo) throws Exception {
+		return ((ComputerServicesI) this.connector).decreaseFrequency(coreNo, processorNo);
 	}
 
 	@Override

@@ -30,13 +30,14 @@ public class TestAdmissionController extends AbstractCVM {
 
 	// Setup
 	// -----------------------------------------------------------------
-	private static final Integer numberOfComputers = 2;
+	private static final Integer numberOfComputers = 4;
 	private static final Integer numberOfProcessors = 2;
 	private static final Integer numberOfCores = 8;
 	private static final Integer numberOfApplications = 4;
-	
-	private static final Integer coresPerAVM = 2;
+
 	private static final Integer[] coresNeeded = new Integer[] {4, 8, 6, 2};
+	private static final Long[] meanNumberOfInstructions = new Long[] {12000000000L, 6000000000L, 8000000000L, 6000000000L};
+	private static final Integer coresPerAVM = 2;
 
 	private static final long applicationTime = 500000L;
 
@@ -126,7 +127,6 @@ public class TestAdmissionController extends AbstractCVM {
 		// Deploy Applications
 		// --------------------------------------------------------------------
 		Double meanInterArrivalTime = 1000.0;
-		Long meanNumberOfInstructions = 6000000000L;
 
 		ArrayList<String> applicationURIsList = new ArrayList<>();
 		applicationList = new ArrayList<>();
@@ -141,7 +141,7 @@ public class TestAdmissionController extends AbstractCVM {
 					appURI,
 					coresNeeded[i],
 					meanInterArrivalTime,
-					meanNumberOfInstructions,
+					meanNumberOfInstructions[i],
 					applicationTime,
 					applicationManagementInboundPortURI + "_" + i,
 					applicationServicesInboundPortURI + "_" + i,

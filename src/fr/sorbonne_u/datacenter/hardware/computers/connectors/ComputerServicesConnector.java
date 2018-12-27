@@ -36,13 +36,13 @@ public class ComputerServicesConnector extends AbstractConnector implements Comp
 	}
 
 	@Override
-	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
-		return ((ComputerServicesI) this.offering).increaseFrequency(coreNo, processorURI);
+	public boolean increaseFrequency(int coreNo, int processorNo) throws Exception {
+		return ((ComputerServicesI) this.offering).increaseFrequency(coreNo, processorNo);
 	}
 
 	@Override
-	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
-		return ((ComputerServicesI) this.offering).decreaseFrequency(coreNo, processorURI);
+	public boolean decreaseFrequency(int coreNo, int processorNo) throws Exception {
+		return ((ComputerServicesI) this.offering).decreaseFrequency(coreNo, processorNo);
 	}
 
 	@Override

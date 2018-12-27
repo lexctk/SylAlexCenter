@@ -38,10 +38,10 @@ public class PerformanceController extends AbstractComponent implements
 	private static final int timer = 4000;
 
 	private static final int queueThresholdMax = 20;
-	private static final double executionTimeThresholdMax = 1.7E10;
+	private static final double executionTimeThresholdMax = 3E10;
 
 	private static final int queueThresholdMin = 5;
-	private static final double executionTimeThresholdMin = 2E9;
+	private static final double executionTimeThresholdMin = 3E9;
 
 	// Component info
 	// -----------------------------------------------------------------
@@ -61,6 +61,9 @@ public class PerformanceController extends AbstractComponent implements
 	private double exponentialAverageExecutionTime;
 	private int totalRequestSubmitted;
 	private int totalRequestTerminated;
+
+	private boolean upgradeRequestInProgress;
+	private boolean downgradeRequestInProgress;
 
 	// Allocation map for the AVMs.
 	// -----------------------------------------------------------------
@@ -118,6 +121,9 @@ public class PerformanceController extends AbstractComponent implements
 
 		this.tracer.setTitle(performanceControllerURI);
 		this.tracer.setRelativePosition(2, 1);
+
+		this.upgradeRequestInProgress = false;
+		this.downgradeRequestInProgress = false;
 	}
 
 	@Override
@@ -263,6 +269,8 @@ public class PerformanceController extends AbstractComponent implements
 	}
 
 	private void applyUpgrades() throws Exception {
+		if (upgradeRequestInProgress) return;
+
 		this.logMessage("Upgrading resources");
 
 		// Frequency change
@@ -289,6 +297,8 @@ public class PerformanceController extends AbstractComponent implements
 	}
 
 	private void applyDowngrades() throws Exception {
+		if (downgradeRequestInProgress) return;
+
 		this.logMessage("Downgrading resources");
 
 		// Frequency change
@@ -325,11 +335,11 @@ public class PerformanceController extends AbstractComponent implements
 
 			for (AllocatedCore allocatedCore : allocatedCores) {
 				try {
-					if (value.getCsop().increaseFrequency(allocatedCore.coreNo, allocatedCore.processorURI)) {
+					if (value.getCsop().increaseFrequency(allocatedCore.coreNo, allocatedCore.processorNo)) {
 						num++;
 					}
 				} catch (Exception e) {
-					throw new RuntimeException("Couldn't increase frequency of " + allocatedCore.processorURI + " " + e);
+					throw new RuntimeException("Couldn't increase frequency of " + allocatedCore.processorNo + " " + e);
 				}
 			}
 		}
@@ -347,11 +357,11 @@ public class PerformanceController extends AbstractComponent implements
 
 			for (AllocatedCore allocatedCore : allocatedCores) {
 				try {
-					if (value.getCsop().decreaseFrequency(allocatedCore.coreNo, allocatedCore.processorURI)) {
+					if (value.getCsop().decreaseFrequency(allocatedCore.coreNo, allocatedCore.processorNo)) {
 						num++;
 					}
 				} catch (Exception e) {
-					throw new RuntimeException("Couldn't decrease frequency " + allocatedCore.processorURI + " " + e);
+					throw new RuntimeException("Couldn't decrease frequency " + allocatedCore.processorNo + " " + e);
 				}
 			}
 		}

@@ -79,28 +79,28 @@ public class ComputerServicesInboundPort extends AbstractInboundPort implements 
 	}
 
 	@Override
-	public boolean increaseFrequency(int coreNo, String processorURI) throws Exception {
+	public boolean increaseFrequency(int coreNo, int processorNo) throws Exception {
 		final Computer computer = (Computer) this.getOwner();
 
 		return this.getOwner().handleRequestSync(
 			new AbstractComponent.AbstractService<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
-					return computer.increaseFrequency(coreNo, processorURI);
+					return computer.increaseFrequency(coreNo, processorNo);
 				}
 			});
 
 	}
 
 	@Override
-	public boolean decreaseFrequency(int coreNo, String processorURI) throws Exception {
+	public boolean decreaseFrequency(int coreNo, int processorNo) throws Exception {
 		final Computer computer = (Computer) this.getOwner();
 
 		return this.getOwner().handleRequestSync(
 				new AbstractComponent.AbstractService<Boolean>() {
 					@Override
 					public Boolean call() throws Exception {
-						return computer.decreaseFrequency(coreNo, processorURI);
+						return computer.decreaseFrequency(coreNo, processorNo);
 					}
 				});
 
