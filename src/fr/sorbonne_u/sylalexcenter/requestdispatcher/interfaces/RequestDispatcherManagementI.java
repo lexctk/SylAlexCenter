@@ -5,11 +5,12 @@ import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 import java.util.ArrayList;
 
 /**
+ * The interface <code>RequestDispatcherManagementI</code> defines notification methods that allow
+ * the request dispatcher to receive notifications from admission controller to deploy new AVM or
+ * to remove an AVM
  *
- * Sorbonne University 2018-2019
  * @author Alexandra Tudor
  * @author Sylia Righi
- *
  */
 public interface RequestDispatcherManagementI {
 

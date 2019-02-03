@@ -1,11 +1,11 @@
 package fr.sorbonne_u.sylalexcenter.application.interfaces;
 
 /**
+ * The interface <code>ApplicationNotificationHandlerI</code> defines
+ * the notification service used by the application component to accept notifications.
  *
- * Sorbonne University 2018-2019
  * @author Alexandra Tudor
  * @author Sylia Righi
- *
  */
 public interface ApplicationNotificationHandlerI {
 	

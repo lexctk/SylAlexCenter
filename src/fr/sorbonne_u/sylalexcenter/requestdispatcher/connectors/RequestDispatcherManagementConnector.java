@@ -7,11 +7,13 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatche
 import java.util.ArrayList;
 
 /**
+ * The class <code>RequestDispatcherManagementConnector</code> defines a connector associated with
+ * the interface <code>RequestDispatcherManagementI</code>
  *
- * Sorbonne University 2018-2019
+ * Allows request dispatcher to communicate with admission controller when AVM are added or removed
+ *
  * @author Alexandra Tudor
  * @author Sylia Righi
- *
  */
 public class RequestDispatcherManagementConnector extends AbstractConnector implements RequestDispatcherManagementI {
 

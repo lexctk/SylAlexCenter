@@ -28,21 +28,20 @@ import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationServicesOutbound
 import fr.sorbonne_u.sylalexcenter.application.ports.ApplicationSubmissionOutboundPort;
 
 /**
- * The class <code>Application</code> implements a an application
- * component
+ * The class <code>Application</code> implements a an application component
  * 
  * <p>
  * <strong>Description</strong>
  * </p>
- * An application will send requests to the AdmissionController 
- * containing the application URI, number of cores the application needs, and two port 
- * URIs for its Request Generator. 
+ * An application will send requests to the AdmissionController containing the
+ * application URI and the number of cores the application needs.
  * 
  * The application deploys a RequestGenerator before each admission request, 
  * and if application is accepted, starts generating requests
- * 
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
  */
-
 public class Application extends AbstractComponent implements ApplicationManagementI, ApplicationServicesI, ApplicationNotificationHandlerI {
 	
 	private final String appURI;
@@ -149,7 +148,13 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		
 		assert this.appURI != null && this.appURI.length() > 0;
 	}
-	
+
+	/**
+	 * Connect submission and services outbound ports to inbound port URIs,
+	 * and create dynamic component creation outbound port for the dynamic deployment of
+	 * the request generator.
+	 *
+	 */
 	@Override
 	public void start() throws ComponentStartException {
 		
@@ -177,6 +182,10 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		super.start();
 	}
 
+	/**
+	 * Disconnect ports
+	 *
+	 */
 	@Override
 	public void finalise() throws Exception {
 
@@ -184,7 +193,11 @@ public class Application extends AbstractComponent implements ApplicationManagem
 
 		super.finalise();
 	}
-	
+
+	/**
+	 * Unpublish ports
+	 *
+	 */
 	@Override
 	public void shutdown() throws ComponentShutdownException {
 		try {
@@ -195,15 +208,25 @@ public class Application extends AbstractComponent implements ApplicationManagem
 			e.printStackTrace();
 		}
 		super.shutdown();
-	}	
+	}
 
-	
+	/**
+	 * Send request for execution via services ports
+	 *
+	 */
 	public void sendRequest() throws Exception {
 		this.asvop.sendRequestForApplicationExecution(coresNeeded);
 		
 		super.execute();
-	}	
-	
+	}
+
+	/**
+	 * Send request for execution via submission ports, to admission controller,
+	 * and deploy request generator (without starting request execution)
+	 *
+	 * @param coresToReserve number of cores needed
+	 *
+	 */
 	@Override
 	public void	sendRequestForApplicationExecution(int coresToReserve) throws Exception {
 		this.logMessage("Application " + this.appURI + " asking for execution permission.");
@@ -213,6 +236,11 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		this.asop.submitApplicationAndNotify (this.appURI, coresToReserve);
 	}
 
+	/**
+	 * Accept notification on whether application was approved by admission controller
+	 * @param isAccepted true if application was accepted by admission controller,
+	 *                   false otherwise
+	 */
 	@Override
 	public void acceptApplicationAdmissionNotification(boolean isAccepted) throws Exception {
 		this.logMessage("Application " + this.appURI + " is notified that admission request "
@@ -229,9 +257,8 @@ public class Application extends AbstractComponent implements ApplicationManagem
 	/**
 	 * (see Javadoc fr.sorbonne_u.components.pre.dcc)
 	 * 
-	 * Application will create a Request Generator: 
-	 * call the service createComponent with the appropriate parameters on the 
-	 * DynamicComponentCreationOutboundPort
+	 * Application dynamically deploys a request generator, by calling the service createComponent
+	 * with the appropriate parameters on the DynamicComponentCreationOutboundPort
 	 */
 	private void deployGenerator () throws Exception {
 
@@ -259,8 +286,13 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		}
 		
 		this.logMessage("Application " + this.appURI + " deployed request generator " + this.rgURI + ".");
-	}	
-	
+	}
+
+	/**
+	 * Launch request generation.
+	 *
+	 * Prerequisite: application was accepted by admission controller
+	 */
 	private void launch() throws Exception {
 
 		RequestGeneratorManagementOutboundPort rgmop = new RequestGeneratorManagementOutboundPort(this);
@@ -278,8 +310,11 @@ public class Application extends AbstractComponent implements ApplicationManagem
 		// then stop the generation.
 		 rgmop.stopGeneration();
 	}
-	
-	// Connect to Dispatcher
+
+	/**
+	 * Connect to request dispatcher for submissions
+	 * @param requestDispatcherSubmissionInboundPortUri submission inbound port URI of the request dispatcher
+	 */
 	@Override
 	public void doConnectionWithDispatcherForSubmission (String requestDispatcherSubmissionInboundPortUri) throws Exception {
 		
@@ -292,7 +327,12 @@ public class Application extends AbstractComponent implements ApplicationManagem
 			throw new Exception("Exception connecting Request Generator with Dispatcher for Submission " + e);
 		}
 	}
-	
+
+	/**
+	 * Connect to request dispatcher for notifications
+	 * @param ropDispatcher reflection outbound port
+	 * @param requestDispatcherNotificationInboundPortURI notification inbound port URI of the request dispatcher
+	 */
 	@Override
 	public void doConnectionWithDispatcherForNotification (ReflectionOutboundPort ropDispatcher, String requestDispatcherNotificationInboundPortURI) throws Exception {			
 		try {

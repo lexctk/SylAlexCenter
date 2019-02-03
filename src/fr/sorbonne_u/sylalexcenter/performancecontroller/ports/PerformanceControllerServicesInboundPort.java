@@ -7,6 +7,14 @@ import fr.sorbonne_u.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerServicesHandlerI;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerServicesI;
 
+/**
+ * The class <code>PerformanceControllerServicesInboundPort</code> defines
+ * an inbound port that allows the performance controller component to connect
+ * to admission controller.
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class PerformanceControllerServicesInboundPort extends AbstractInboundPort implements PerformanceControllerServicesI {
 
 	public PerformanceControllerServicesInboundPort(String uri, ComponentI owner) throws Exception {

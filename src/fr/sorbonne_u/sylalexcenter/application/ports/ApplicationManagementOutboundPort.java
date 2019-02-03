@@ -6,6 +6,14 @@ import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.Application;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
 
+/**
+ * The class <code>ApplicationManagementOutboundPort</code> defines
+ * an outbound port that allows the application component to connect
+ * to the request dispatcher component
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class ApplicationManagementOutboundPort extends AbstractOutboundPort implements ApplicationManagementI {
 
 	private static final long serialVersionUID = 1L;

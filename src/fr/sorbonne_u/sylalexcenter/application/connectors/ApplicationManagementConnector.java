@@ -4,6 +4,13 @@ import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.components.reflection.ports.ReflectionOutboundPort;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationManagementI;
 
+/**
+ * The class <code>ApplicationManagementConnector</code> defines a connector associated with
+ * the interface <code>ApplicationManagementI</code>
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class ApplicationManagementConnector extends AbstractConnector implements ApplicationManagementI {
 
 	@Override

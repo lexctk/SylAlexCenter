@@ -43,10 +43,37 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.connectors.RequestDispatche
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherServicesHandlerI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherServicesInboundPort;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.RingNetwork;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.connectors.RingNetworkConnector;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.ports.RingNetworkInboundPort;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.ports.RingNetworkOutboundPort;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.utils.AvmInformation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
+/**
+ *
+ * The admission controller receives all application admission requests, and if enough resources are
+ * available, deploys request generator for the application, deploys required number of AVM, a request
+ * dispatcher and a performance controller for the application.
+ *
+ * Admission controller uses dynamic deployment for all components, and reflection port for dynamic
+ * port connections between components.
+ *
+ * Admission controller also handles requests involving AVMs from the performance controllers
+ * (adding new AVM and removing AVM), and is notified when performance controllers add or remove cores in order
+ * to update its own allocation map information
+ *
+ * Admission controller maintains hash maps for each application:
+ * Application URI -> ApplicationManagementInboundPortURI, ApplicationManagementOutboundPort
+ *                 -> ApplicationNotificationInboundPortURI, ApplicationNotificationOutboundPort
+ *                 -> Request Dispatcher URI
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class AdmissionController extends AbstractComponent 
 	implements ApplicationSubmissionHandlerI, PerformanceControllerServicesHandlerI, RequestDispatcherServicesHandlerI {
 	
@@ -58,6 +85,9 @@ public class AdmissionController extends AbstractComponent
 	private final int numberOfApps;
 	private final int numberOfCoresPerAVM;
 
+	/**
+	 * Array Lists of URIs for all computers available (both multi JVM and mono JVM)
+	 */
 	private ArrayList<String> computersURIList;
 	private ArrayList<String> computerServicesInboundPortURIList;
 	private ArrayList<String> computerStaticStateDataInboundPortURIList;
@@ -66,22 +96,74 @@ public class AdmissionController extends AbstractComponent
 	private ArrayList<ComputerServicesOutboundPort> csopList;
 	private ArrayList<ComputerStaticStateDataOutboundPort> cssdopList;
 
-	private HashMap<String,String> applicationManagementInboundPortURIMap; // appURI -> applicationManagementInboundPortURI
-	private HashMap<String,String> applicationNotificationInboundPortURIMap; // appURI -> applicationNotificationInboundPortURI
-	
-	private HashMap<String,ApplicationManagementOutboundPort> amopMap; // appURI -> amop
-	private HashMap<String,ApplicationNotificationOutboundPort> anopMap; // appURI -> anop
+	/**
+	 * Application URI -> Application Management Inbound Port URI
+	 */
+	private HashMap<String,String> applicationManagementInboundPortURIMap;
 
-	private HashMap<String, PerformanceControllerManagementOutboundPort> pcmopMap; // performanceControllerURI -> pcmop
-	private HashMap<String, RequestDispatcherManagementOutboundPort> rdmopMap; // rdURI -> rdmop
-	private HashMap<String, ApplicationVMManagementOutboundPort> avmopMap; // avmURI -> avmop
+	/**
+	 * Application URI -> Application Notification Inbound Port URI
+	 */
+	private HashMap<String,String> applicationNotificationInboundPortURIMap;
 
-	private HashMap<String, String> rdURIMap; // appURI -> rdURI
+	/**
+	 * Application URI -> Application Management Outbound Port
+	 */
+	private HashMap<String,ApplicationManagementOutboundPort> amopMap;
+
+	/**
+	 * Application URI -> Application Notification Outbound Port
+	 */
+	private HashMap<String,ApplicationNotificationOutboundPort> anopMap;
+
+	/**
+	 * All information/requests sent to Performance Controller are sent via the management outbound port
+	 *
+	 * Performance Controller URI -> Performance Controller Management Outbound Port
+	 */
+	private HashMap<String, PerformanceControllerManagementOutboundPort> pcmopMap;
+
+	/**
+	 * Request Dispatcher URI -> Request Dispatcher Management Outbound Port
+	 */
+	private HashMap<String, RequestDispatcherManagementOutboundPort> rdmopMap;
+
+	/**
+	 * VM URI -> Application VM Management Outbound Port
+	 */
+	private HashMap<String, ApplicationVMManagementOutboundPort> avmopMap;
+
+	/**
+	 * Each application has its own request dispatcher
+	 *
+	 * Application URI -> Request Dispatcher URU
+	 */
+	private HashMap<String, String> rdURIMap;
 
 	private DynamicComponentCreationOutboundPort dccop;
 
 	private ReflectionOutboundPort rop;
-		
+
+	private RingNetwork ringNetwork;
+	private RingNetworkInboundPort ringNetworkInboundPort;
+	private RingNetworkOutboundPort ringNetworkOutboundPort;
+
+	private int ringNetworkSize;
+	private ArrayList<AvmInformation> ringNetworkAVM;
+	private double ringNetworkMessageTime;
+
+	/**
+	 *
+	 * @param computersURIList all computer URIs
+	 * @param computerServicesInboundPortURIList all computer services inbound ports
+	 * @param computerStaticStateDataInboundPortURIList all computer static state data inbound ports
+	 * @param computerDynamicStateDataInboundPortURIList all computer dynamic state data inbound ports
+	 * @param appsURIList list of all application URIs
+	 * @param applicationManagementInboundPortURIList application management inbound ports
+	 * @param applicationSubmissionInboundPortURIList application submission inbound ports
+	 * @param applicationNotificationInboundPortURIList application notification inbound ports
+	 * @param numberOfCoresPerAVM number of cores to remove/add per AVM
+	 */
 	public AdmissionController(
 			ArrayList<String> computersURIList,
 			ArrayList<String> computerServicesInboundPortURIList,
@@ -191,22 +273,30 @@ public class AdmissionController extends AbstractComponent
 		this.tracer.setTitle("Admission Controller");
 		this.tracer.setRelativePosition(2, 0);
 
+		// Ring Network
+		this.ringNetworkInboundPort = new RingNetworkInboundPort("ac-ringnip", this);
+		this.addPort(this.ringNetworkInboundPort);
+		this.ringNetworkInboundPort.publishPort();
+
+		this.ringNetworkOutboundPort = new RingNetworkOutboundPort("ac-ringnop", this);
+		this.addPort(this.ringNetworkOutboundPort);
+		this.ringNetworkOutboundPort.publishPort();
+
+		this.ringNetwork = new RingNetwork();
+		this.ringNetwork.setRingInboundPortURI("ac-ringnip");
+		this.ringNetwork.setRingOutboundPortURI("ac-ringnop");
+		this.ringNetworkAVM = new ArrayList<>();
+		this.ringNetworkSize = 0;
+
 		assert this.csopList !=null;
 		assert this.cssdopList !=null;
 		assert this.anopMap != null;
 	}
 	
 	/**
-	 * Connect computer outbound ports to inbound URIs
-	 * 
-	 * Connect application notification outbound port to application notification inbound URI
-	 * 
-	 * Connect dynamic component creator outbound port to inbound URI
-	 * (see Javadoc fr.sorbonne_u.components.pre.dcc)
-	 * A component that wants to create another component on a remote JVM has to 
-	 * create an outbound port DynamicComponentCreationOutboundPort and connect it 
-	 * to the inbound port of the dynamic component creator running on the 
-	 * remote virtual machine. Create port on start()
+	 * Connect computer outbound ports to inbound URIs.
+	 * Connect application outbound ports to application inbound URI.
+	 * Connect dynamic component creator outbound port to inbound URI.
 	 */
 	@Override
 	public void start() throws ComponentStartException {
@@ -244,7 +334,10 @@ public class AdmissionController extends AbstractComponent
 		this.logMessage("Admission Controller starting with " + this.numberOfApps + " apps.");
 		super.start();
 	}
-	
+
+	/**
+	 * Disconnect ports
+	 */
 	@Override
 	public void finalise() throws Exception {
 		
@@ -259,7 +352,10 @@ public class AdmissionController extends AbstractComponent
 
 		super.finalise();
 	}
-	
+
+	/**
+	 * Unpublish ports
+	 */
 	@Override
 	public void shutdown() throws ComponentShutdownException {
 		
@@ -273,7 +369,7 @@ public class AdmissionController extends AbstractComponent
 	}
 
 	/**
-	 * Check if a number of cores is available, and allocate them if found.
+	 * Check if enough cores are available, and allocate them if found.
 	 * @param numberOfAVMs: number of AVMs needed to allocate
 	 * @return an array of AllocatedCore[] containing the data for each requested core, or null if no core is available
 	 * @throws Exception: exception
@@ -314,7 +410,16 @@ public class AdmissionController extends AbstractComponent
 
 		return null;
 	}
-	
+
+	/**
+	 * Calculate the number of AVM needed by application, based on the number of cores required and
+	 * numberOfCoresPerAVM parameter.
+	 *
+	 * Accept or reject application based on resources
+	 *
+	 * @param appUri application URI
+	 * @param mustHaveCores number of cores required by application
+	 */
 	@Override
 	public void acceptApplicationSubmissionAndNotify (String appUri, int mustHaveCores) throws Exception {
 		
@@ -325,7 +430,6 @@ public class AdmissionController extends AbstractComponent
 				+ appUri + " with " + mustHaveCores + " cores and " + numberOfAVMs + " AVMs.");
 						
 		synchronized (this) {
-			
 			// Wait timer for multiple applications running simultaneously, and computer state information
 			wait(timer);
 
@@ -343,9 +447,8 @@ public class AdmissionController extends AbstractComponent
 		}					
 	}
 
-
 	/**
-	 *
+	 * Accept application: log event and call deploy components
 	 * @param appUri: application URI
 	 * @param numberOfAVMs: number of AVMs needed
 	 * @param allocatedCores: number of cores allocated
@@ -357,10 +460,9 @@ public class AdmissionController extends AbstractComponent
 			
 		deployComponents(appUri, numberOfAVMs, allocatedCores);
 	}
-	
-	
+
 	/**
-	 * Reject application - log event and do nothing
+	 * Reject application: log event and do nothing
 	 * 
 	 * @param appUri: application uri
 	 */
@@ -369,8 +471,8 @@ public class AdmissionController extends AbstractComponent
 	}
 
 	/**
-	 * If an application was accepted, deploy Request Dispatcher and the required
-	 * number of AVM
+	 * Deploy Request Dispatcher, the required number of AVM and a Performance Controller
+	 *
 	 * @param appUri: application uri
 	 * @param applicationVMCount: number of AVM that need to be deployed
 	 * @param allocatedMap: number of cores that need to be allocated
@@ -512,6 +614,9 @@ public class AdmissionController extends AbstractComponent
 		String performanceControllerManagementInboundPortURI = appUri + "-pcmip";
 		String performanceControllerServicesInboundPortURI = appUri + "-pcsip";
 
+		String performanceControllerRingNetworkInboundPortURI = appUri + "-ringnip";
+		String performanceControllerRingNetworkOutboundPortURI = appUri + "-ringnop";
+
 		PerformanceControllerServicesInboundPort pcsip = new PerformanceControllerServicesInboundPort(performanceControllerServicesInboundPortURI, this);
 		this.addPort(pcsip);
 		pcsip.publishPort();
@@ -524,7 +629,9 @@ public class AdmissionController extends AbstractComponent
 					appUri,
 					rdURI,
 					computersURIList,
-					allocationMap
+					allocationMap,
+					performanceControllerRingNetworkInboundPortURI,
+					performanceControllerRingNetworkOutboundPortURI
 			});
 		} catch (Exception e) {
 			throw new Exception("Error creating Performance Controller " + e);
@@ -559,9 +666,128 @@ public class AdmissionController extends AbstractComponent
 				throw new ComponentStartException("Couldn't allocate cores to AVM out port" + e);
 			}
 		}
+
+		addToRingNetwork(
+				performanceControllerRingNetworkInboundPortURI,
+				performanceControllerRingNetworkOutboundPortURI,
+				performanceControllerURI
+		);
 		this.logMessage("Admission controller deployed components for " + appUri + ".");
 	}
 
+	/**
+	 * Connect to Ring Network:
+	 *
+	 * Ring Network Outbound Port -> connect to Performance Controller Ring Network Inbound Port
+	 *
+	 * Performance Controller Ring Network Outbound Port -> connect to Ring Network Inbound Port
+	 *
+	 * @param performanceControllerRingNetworkInboundPortURI Performance Controller Ring Network Inbound Port URI
+	 * @param performanceControllerRingNetworkOutboundPortURI Performance Controller Ring Network Outbound Port
+	 * @param performanceControllerURI Performance Controller URI
+	 */
+	private void addToRingNetwork (String performanceControllerRingNetworkInboundPortURI,
+	                               String performanceControllerRingNetworkOutboundPortURI,
+	                               String performanceControllerURI) throws Exception{
+
+		if (this.ringNetworkSize == 0) {
+			// there are no performance controllers on network
+			try {
+				this.ringNetworkOutboundPort.doConnection(performanceControllerRingNetworkInboundPortURI,
+						RingNetworkConnector.class.getCanonicalName());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				this.rop.doConnection(this.ringNetwork.getPerformanceControllerURI(), ReflectionConnector.class.getCanonicalName());
+				this.rop.doPortConnection(
+						this.ringNetwork.getRingOutboundPortURI(),
+						performanceControllerRingNetworkInboundPortURI,
+						RingNetworkConnector.class.getCanonicalName()
+				);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		try {
+			this.rop.doConnection(performanceControllerURI, ReflectionConnector.class.getCanonicalName());
+
+			this.rop.doPortConnection(
+					performanceControllerRingNetworkOutboundPortURI,
+					this.ringNetwork.getRingInboundPortURI(),
+					RingNetworkConnector.class.getCanonicalName()
+			);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		this.ringNetwork.setRingOutboundPortURI(performanceControllerRingNetworkOutboundPortURI);
+		this.ringNetwork.setPerformanceControllerURI(performanceControllerURI);
+
+		if (this.ringNetworkSize == 1) {
+			this.ringNetworkMessageTime = System.nanoTime();
+			checkRingNetwork();
+			this.ringNetworkOutboundPort.receiveAVMBuffer(this.ringNetworkAVM);
+		}
+	}
+
+
+	private void checkRingNetwork() {
+		this.scheduleTask(
+			new AbstractComponent.AbstractTask() {
+
+				@Override
+				public void run() {
+					try {
+						if (bufferUsed()) addAVMToBuffer();
+						if (bufferNotUsed()) removeAVMFromBuffer();
+
+						checkRingNetwork();
+					} catch (Exception e) {
+						throw new RuntimeException (e);
+					}
+				}
+
+			}, timer*6, TimeUnit.MILLISECONDS);
+	}
+
+	private boolean bufferUsed() {
+		for (AvmInformation avmInformation : this.ringNetworkAVM) {
+			if (avmInformation.isFree()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private boolean bufferNotUsed() {
+		for (AvmInformation avmInformation : this.ringNetworkAVM) {
+			if (!avmInformation.isFree()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	//TODO : add an AVM to buffer
+	private void addAVMToBuffer () {
+
+	}
+
+	//TODO : remove an AVM from buffer
+	private void removeAVMFromBuffer () {
+
+	}
+
+	/**
+	 * Accept a request from performance controller to add cores for an
+	 * application, and update allocation map
+	 *
+	 * @param appUri application URI
+	 * @param allocatedCore number of cores added
+	 */
 	@Override
 	public void acceptRequestAddCores(String appUri, AllocatedCore[] allocatedCore) throws Exception {
 		this.avmopMap.get(appUri).allocateCores(allocatedCore);
@@ -569,12 +795,30 @@ public class AdmissionController extends AbstractComponent
 		this.logMessage("Admission controller added " + allocatedCore.length + " cores for " + appUri);
 	}
 
+	/**
+	 * Accept a request from performance controller to remove cores from an
+	 * application -> log message
+	 * @param appUri application URI
+	 * @param removeCores number of cores removed from application
+	 */
 	@Override
 	public void acceptRequestRemoveCores(String appUri, AllocatedCore[] removeCores) {
 
 		this.logMessage("Admission controller removed " + removeCores.length + " cores for " + appUri);
 	}
 
+	/**
+	 * Receive a request from performance controller to add an AVM to an
+	 * application.
+	 *
+	 * If enough resources, allocate and notify request dispatcher of the
+	 * new allocation map.
+	 *
+	 * Otherwise reject the request and notify performance controller
+	 *
+	 * @param appURI application URI
+	 * @param performanceControllerURI Performance Controller URI
+	 */
 	@Override
 	public void acceptRequestAddAVM(String appURI, String performanceControllerURI) throws Exception {
 		this.logMessage("Admission controller received request to add AVM for " + appURI);
@@ -589,6 +833,16 @@ public class AdmissionController extends AbstractComponent
 		}
 	}
 
+	/**
+	 * Receive a request from performance controller to remove an AVM from an application
+	 *
+	 * If it's possible to remove (if the application has more than one AVM), notify request
+	 * dispatcher that an AVM needs to be removed.
+	 *
+	 * Otherwise notify performance controller that removal is not possible.
+	 * @param appURI application URI
+	 * @param performanceControllerURI Performance Controller URI
+	 */
 	@Override
 	public void acceptRequestRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
 		this.logMessage("Admission controller received request to remove an AVM from " + appURI);
@@ -601,6 +855,15 @@ public class AdmissionController extends AbstractComponent
 		}
 	}
 
+	/**
+	 * Notify the request dispatcher of an application there's a new AVM available.
+	 *
+	 * Dispatcher will need to create new ports to connect to the new AVM. Until then, do nothing else.
+	 *
+	 * @param appUri application URI
+	 * @param performanceControllerURI Performance Controller URI
+	 * @param allocatedMap core allocation map for the new AVM
+	 */
 	private void notifyDispatcherOfNewAVM (String appUri, String performanceControllerURI, ArrayList<AllocationMap> allocatedMap) throws Exception {
 
 		this.logMessage("---> Notifying dispatcher of new AVM for " + appUri);
@@ -623,6 +886,20 @@ public class AdmissionController extends AbstractComponent
 		);
 	}
 
+	/**
+	 * Receive notification from request dispatcher that new ports requested
+	 * by notifyDispatcherOfNewAVM method are ready
+	 *
+	 * Deploy the new AVM, connect it to the new request dispatcher ports and inform
+	 * both Performance Controller and Request Dispatcher that the AVM was added.
+	 *
+	 * @param appUri application URI
+	 * @param performanceControllerURI Performance Controller URI
+	 * @param allocatedMap core allocation map for the new AVM
+	 * @param avmURI new avm URI
+	 * @param requestDispatcherSubmissionOutboundPortURI new request dispatcher submission outbound port
+	 * @param requestDispatcherNotificationInboundPortURI new request dispatcher notification inbound port
+	 */
 	@Override
 	public void acceptNotificationNewAVMPortsReady(
 			String appUri,
@@ -712,11 +989,19 @@ public class AdmissionController extends AbstractComponent
 		// --------------------------------------------------------------------
 		this.rdmopMap.get(this.rdURIMap.get(appUri)).notifyDispatcherNewAVMDeployed(avmURI);
 
-
-
 		this.logMessage("---> Finished deployment for new AVM for " + appUri);
 	}
 
+	/**
+	 * Receive notification from request dispatcher that an AVM is ready to be removed (it has no more
+	 * requests in queue, and request dispatcher is no longer forwarding new requests to it).
+	 *
+	 * Log event and notify performance controller that AVM removal is complete.
+	 *
+	 * @param vmURI avm URI
+	 * @param appURI application URI
+	 * @param performanceControllerURI performance controller URI
+	 */
 	@Override
 	public void acceptNotificationAVMRemovalComplete(String vmURI, String appURI, String performanceControllerURI) throws Exception {
 		this.avmopMap.get(vmURI).destroyComponent();
@@ -724,14 +1009,31 @@ public class AdmissionController extends AbstractComponent
 		this.pcmopMap.get(performanceControllerURI).notifyAVMRemoveComplete(vmURI, appURI);
 	}
 
+	/**
+	 * Receive notification from request dispatcher that it's not possible to remove another AVM
+	 * from an application. At this stage, this only occurs when there is another removal request
+	 * pending (only the dispatcher has that information)
+	 *
+	 * @param appURI application URI
+	 * @param performanceControllerURI performance controller URI
+	 */
 	@Override
 	public void acceptNotificationAVMRemovalRefused(String appURI, String performanceControllerURI) throws Exception {
 		this.logMessage("---> Not possible to remove any AVM from " + appURI);
 		this.pcmopMap.get(performanceControllerURI).notifyAVMRemoveRefused(appURI);
 	}
 
+	/**
+	 * Notify the request dispatcher of an application that it needs to remove an AVM.
+	 *
+	 * Request Dispatcher will need to check which AVM it should remove (based on usage),
+	 * stop forwarding requests to that AVM, and wait for the AVM to finish its request
+	 * queue before removal is possible
+	 *
+	 * @param appURI application URI
+	 * @param performanceControllerURI performance controller URI
+	 */
 	private void notifyDispatcherToRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
-
 		this.logMessage("---> Notifying dispatcher to remove an AVM from " + appURI);
 
 		// Tell dispatcher to remove AVM

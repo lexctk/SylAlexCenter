@@ -9,6 +9,14 @@ import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceC
 
 import java.util.ArrayList;
 
+/**
+ * The class <code>PerformanceControllerManagementInboundPort</code> defines
+ * an inbound port that allows the performance controller component to connect
+ * to request dispatcher, admission controller and computer components.
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class PerformanceControllerManagementInboundPort extends AbstractInboundPort implements PerformanceControllerManagementI {
 
 	public PerformanceControllerManagementInboundPort(ComponentI owner) throws Exception {

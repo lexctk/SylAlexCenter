@@ -20,12 +20,42 @@ import fr.sorbonne_u.sylalexcenter.performancecontroller.ports.PerformanceContro
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherDynamicStateI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatcherStateDataConsumerI;
 import fr.sorbonne_u.sylalexcenter.requestdispatcher.ports.RequestDispatcherDynamicStateDataOutboundPort;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.ports.RingNetworkInboundPort;
+import fr.sorbonne_u.sylalexcenter.ringnetwork.ports.RingNetworkOutboundPort;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * The class <code>PerformanceController</code> implements a performance controller component
+ *
+ * <p>
+ * <strong>Description</strong>
+ * </p>
+ * Each application approved by the admission controller has its own performance controller
+ * component that periodically checks the application usage information (using a scheduled task every 24s)
+ *
+ * Usage is compared to pre-defined min and max thresholds, and based on the the difference, different upgrade or
+ * downgrade scenarios are applied. The higher/lower the difference, the higher/lower the usage level
+ *
+ * There are 3 levels:
+ * - Level 0: increase or decrease frequency (request is made directly to computer component)
+ * - Level 1: add or remove cores (request is made directly to computer component)
+ * - Level 2: add or remove AVM (request is made to admission controller)
+ *
+ * Should upgrades or downgrades fail for Levels 0 and 1, the next level upgrade or downgrade is attempted.
+ *
+ * Should upgrade or downgrade fail for Level 2, no further action is taken, as there is no other way to
+ * upgrade or downgrade resources
+ *
+ * Performance Controllers are a part of a Ring Network, along with the Admission Controller
+ * in order to coordinate upgrade and downgrades
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class PerformanceController extends AbstractComponent implements
 		PerformanceControllerManagementI,
 		RequestDispatcherStateDataConsumerI,
@@ -33,15 +63,18 @@ public class PerformanceController extends AbstractComponent implements
 
 	// Setup
 	// -----------------------------------------------------------------
-	private final int numberOfCoresToChange = 2;
+	private final int numberOfCoresToChange = 1;
 
 	private static final int timer = 4000;
 
-	private static final int queueThresholdMax = 20;
-	private static final double executionTimeThresholdMax = 3E10;
+	private static final double executionTimeThresholdMinFreq = 5E9;
+	private static final double executionTimeThresholdMinCore = 3E9;
+	private static final double executionTimeThresholdMinAVM = 1E9;
 
-	private static final int queueThresholdMin = 5;
-	private static final double executionTimeThresholdMin = 3E9;
+
+	private static final double executionTimeThresholdMaxFreq = 1E10;
+	private static final double executionTimeThresholdMaxCore = 3E10;
+	private static final double executionTimeThresholdMaxAVM = 5E10;
 
 	// Component info
 	// -----------------------------------------------------------------
@@ -69,6 +102,22 @@ public class PerformanceController extends AbstractComponent implements
 	// -----------------------------------------------------------------
 	private HashMap<String, AllocationMap> allocationMap;
 
+	private RingNetworkInboundPort ringNetworkInboundPort;
+	private RingNetworkOutboundPort ringNetworkOutboundPort;
+
+	/**
+	 * Constructor. Set up ports and interfaces
+	 *
+	 * @param performanceControllerURI performance controller URI
+	 * @param performanceControllerManagementInboundPortURI performance controller management inbound port URI
+	 * @param performanceControllerServicesInboundPortURI performance controller services inbound port URI
+	 * @param appURI application URI
+	 * @param requestDispatcherURI request dispatcher URI
+	 * @param computersURIList list of all computer URI available
+	 * @param allocationMap allocation map for avm for this application
+	 * @param ringNetworkInboundPortURI inbound port for ring network
+	 * @param ringNetworkOutboundPortURI outbound port for ring network
+	 */
 	public PerformanceController (
 			String performanceControllerURI,
 			String performanceControllerManagementInboundPortURI,
@@ -76,7 +125,9 @@ public class PerformanceController extends AbstractComponent implements
 			String appURI,
 			String requestDispatcherURI,
 			ArrayList<String> computersURIList,
-			HashMap<String, AllocationMap> allocationMap
+			HashMap<String, AllocationMap> allocationMap,
+			String ringNetworkInboundPortURI,
+			String ringNetworkOutboundPortURI
 	) throws Exception {
 		super(performanceControllerURI, 1, 1);
 
@@ -124,8 +175,22 @@ public class PerformanceController extends AbstractComponent implements
 
 		this.upgradeRequestInProgress = false;
 		this.downgradeRequestInProgress = false;
+
+		// Ring Network
+		this.ringNetworkInboundPort = new RingNetworkInboundPort(ringNetworkInboundPortURI, this);
+		this.addPort(this.ringNetworkInboundPort);
+		this.ringNetworkInboundPort.publishPort();
+
+		this.ringNetworkOutboundPort = new RingNetworkOutboundPort(ringNetworkOutboundPortURI, this);
+		this.addPort(this.ringNetworkOutboundPort);
+		this.ringNetworkOutboundPort.publishPort();
 	}
 
+	/**
+	 * Connect service in/out ports
+	 *
+	 * @throws ComponentStartException if error connecting ports or starting check usage scheduled task
+	 */
 	@Override
 	public void start() throws ComponentStartException {
 		this.toggleTracing();
@@ -147,6 +212,10 @@ public class PerformanceController extends AbstractComponent implements
 		super.start();
 	}
 
+	/**
+	 * Connect with request dispatcher in order to receive its dynamic state
+	 * @param requestDispatcherDynamicStateInboundPortUri request dispatcher dynamic state inbound port URI
+	 */
 	@Override
 	public void doConnectionWithRequestDispatcherForDynamicState (String requestDispatcherDynamicStateInboundPortUri) throws Exception {
 		this.doPortConnection(
@@ -161,6 +230,10 @@ public class PerformanceController extends AbstractComponent implements
 		}
 	}
 
+	/**
+	 * Connect with computer in order to receive its dynamic state
+	 * @param computerDynamicStateDataInboundPortURIList computer dynamic state data inbound port URI
+	 */
 	@Override
 	public void doConnectionWithComputerForDynamicState (ArrayList<String> computerDynamicStateDataInboundPortURIList) throws Exception {
 
@@ -178,6 +251,11 @@ public class PerformanceController extends AbstractComponent implements
 		}
 	}
 
+	/**
+	 * Receive notification that an AVM was added
+	 * @param avmURI new AVM URI
+	 * @param allocationMap allocation map for the new AVM
+	 */
 	@Override
 	public void notifyAVMAdded(String avmURI, AllocationMap allocationMap) {
 		this.availableAVMsCount++;
@@ -185,16 +263,31 @@ public class PerformanceController extends AbstractComponent implements
 		this.logMessage("---> Success! New AVM added. ");
 	}
 
+	/**
+	 * Receive notification that the request to add a new AVM was refused
+	 * @param appURI application URI
+	 */
 	@Override
 	public void notifyAVMAddRefused(String appURI) {
 		this.logMessage("---> Request to add a new AVM was refused. ");
 	}
 
+	/**
+	 * Receive notification that the request to remove an AVM was refused
+	 * @param appURI application URI
+	 */
 	@Override
 	public void notifyAVMRemoveRefused(String appURI) {
 		this.logMessage("---> Request to remove an AVM was refused. ");
 	}
 
+	/**
+	 * Receive notification that the request to remove an AVM was completed.
+	 *
+	 * Remove the old AVM from the allocation map.
+	 * @param vmURI URI of removed AVM
+	 * @param appURI application URI
+	 */
 	@Override
 	public void notifyAVMRemoveComplete(String vmURI, String appURI) {
 		this.availableAVMsCount--;
@@ -202,6 +295,16 @@ public class PerformanceController extends AbstractComponent implements
 		this.logMessage("---> AVM " + vmURI + " was successfully removed. ");
 	}
 
+	/**
+	 * Accept dynamic data from the request dispatcher.
+	 *
+	 * Every 1s, the request dispatcher pushes information on average request execution time,
+	 * total number of requests submitted and total number of requests terminated
+	 *
+	 * Calculate the next exponential moving average based on the values.
+	 * @param requestDispatcherURI URI of the request dispatcher
+	 * @param currentDynamicState request dispatcher dynamic state
+	 */
 	@Override
 	public synchronized void acceptRequestDispatcherDynamicData (String requestDispatcherURI, RequestDispatcherDynamicStateI currentDynamicState) {
 		if (!requestDispatcherURI.equals(this.requestDispatcherURI)) return;
@@ -224,106 +327,171 @@ public class PerformanceController extends AbstractComponent implements
 				+ " queue size " + queue);
 	}
 
+	/**
+	 * Accept static data from computer
+	 *
+	 * @param computerURI URI of the computer sending the data.
+	 * @param staticState static state of this computer.
+	 */
 	@Override
 	public void acceptComputerStaticData(String computerURI, ComputerStaticStateI staticState) {
 		//numberOfProcessors = staticState.getNumberOfProcessors();
 		//numberOfCores = staticState.getNumberOfCoresPerProcessor();
 	}
 
+	/**
+	 * Accept dynamic data from computer
+	 *
+	 * @param computerURI URI of the computer sending the data.
+	 * @param currentDynamicState current dynamic state of this computer.
+	 */
 	@Override
 	public void acceptComputerDynamicData(String computerURI, ComputerDynamicStateI currentDynamicState) {
 		//currentDynamicState.getCurrentCoreFrequencies();
 	}
 
+	/**
+	 * Check application usage
+	 *
+	 * Scheduled task runs every 24s in order to compare application usage to defined thresholds.
+	 * If usage is low, apply one of the downgrade scenarios, if usage is high, apply one of the
+	 * upgrade scenarios.
+	 *
+	 */
 	private void checkUsage() {
 		this.scheduleTask(
-				new AbstractComponent.AbstractTask() {
+			new AbstractComponent.AbstractTask() {
 
-					@Override
-					public void run() {
-						try {
-							if (isUsageHigh()) applyUpgrades();
-							if (isUsageLow()) applyDowngrades();
+				@Override
+				public void run() {
+					try {
+						int usageHigh = isUsageHigh();
+						if (usageHigh >= 0) applyUpgrades(usageHigh);
 
-							checkUsage();
-						} catch (Exception e) {
-							throw new RuntimeException (e);
-						}
+						int usageLow = isUsageLow();
+						if (usageLow >= 0) applyDowngrades(usageLow);
+
+						checkUsage();
+					} catch (Exception e) {
+						throw new RuntimeException (e);
 					}
+				}
 
-				}, timer*6, TimeUnit.MILLISECONDS);
+			}, timer*6, TimeUnit.MILLISECONDS);
 	}
 
-	private boolean isUsageHigh() {
-		int queue = this.totalRequestSubmitted - this.totalRequestTerminated;
+	/**
+	 * Check usage level
+	 * @return -1: usage is not high
+	 *          0: usage is moderately high, apply scenario level 0 (increase frequency)
+	 *          1: usage is very high, apply scenario level 1 (add cores)
+	 *          2: usage is extremely high, apply scenario level 2 (add AVM)
+	 */
+	private int isUsageHigh() {
+		if (this.exponentialAverageExecutionTime > executionTimeThresholdMaxAVM) return 2;
+		if (this.exponentialAverageExecutionTime > executionTimeThresholdMaxCore) return 1;
+		if (this.exponentialAverageExecutionTime > executionTimeThresholdMaxFreq) return 0;
 
-		return (this.exponentialAverageExecutionTime > executionTimeThresholdMax) &&
-				(queue > queueThresholdMax);
+		return -1;
 	}
 
-	private boolean isUsageLow() {
-		int queue = this.totalRequestSubmitted - this.totalRequestTerminated;
+	/**
+	 * Check usage level
+	 * @return -1: usage is not low
+	 *          0: usage is moderately low, apply scenario level 0 (increase frequency)
+	 *          1: usage is very low, apply scenario level 1 (add cores)
+	 *          2: usage is extremely low, apply scenario level 2 (add AVM)
+	 */
+	private int isUsageLow() {
+		if (this.exponentialAverageExecutionTime < executionTimeThresholdMinAVM) return 2;
+		if (this.exponentialAverageExecutionTime < executionTimeThresholdMinCore) return 1;
+		if (this.exponentialAverageExecutionTime < executionTimeThresholdMinFreq) return 0;
 
-		return (this.exponentialAverageExecutionTime < executionTimeThresholdMin) &&
-				(queue < queueThresholdMin);
+		return -1;
 	}
 
-	private void applyUpgrades() throws Exception {
-		if (upgradeRequestInProgress) return;
+	/**
+	 * Apply different upgrade scenarios based on usage:
+	 *           level 0, increase frequency
+	 *           level 1, add cores
+	 *           level 2, add AVM
+	 *
+	 * @param usage usage level
+	 */
+	private void applyUpgrades(int usage) throws Exception {
+		if (upgradeRequestInProgress || downgradeRequestInProgress) return;
 
 		this.logMessage("Upgrading resources");
 
-		// Frequency change
-		this.logMessage("---> Trying to increase frequency ");
-		int frequency = increaseFrequency();
-		if (frequency > 0) {
-			this.logMessage("---> Increased frequency of " + frequency + " cores");
-			return;
+		switch (usage) {
+			case 0:
+				// Frequency change
+				this.logMessage("---> Trying to increase frequency ");
+				int frequency = increaseFrequency();
+				if (frequency > 0) {
+					this.logMessage("---> Increased frequency of " + frequency + " cores");
+					return;
+				}
+				this.logMessage("---> Couldn't increase frequency ");
+			case 1:
+				// Core Change
+				this.logMessage("---> Trying to add cores ");
+				int cores = addCores();
+				if (cores > 0) {
+					this.logMessage("---> Added " + cores + " cores to AVM");
+					return;
+				}
+				this.logMessage("---> Couldn't add cores to any AVM ");
+			case 2:
+				// Add AVM
+				this.logMessage("---> Trying to add an AVM ");
+				addAVM();
 		}
-		this.logMessage("---> Couldn't increase frequency ");
-
-		// Core Change
-		this.logMessage("---> Trying to add cores ");
-		int cores = addCores();
-		if (cores > 0) {
-			this.logMessage("---> Added " + cores + " cores to AVM");
-			return;
-		}
-		this.logMessage("---> Couldn't add cores to any AVM ");
-
-		// Add AVM
-		this.logMessage("---> Trying to add an AVM ");
-		addAVM();
 	}
 
-	private void applyDowngrades() throws Exception {
-		if (downgradeRequestInProgress) return;
+	/**
+	 * Apply different downgrade scenarios based on usage:
+	 *           level 0, decrease frequency
+	 *           level 1, remove cores
+	 *           level 2, remove AVM
+	 *
+	 * @param usage usage level
+	 */
+	private void applyDowngrades(int usage) throws Exception {
+		if (upgradeRequestInProgress || downgradeRequestInProgress) return;
 
 		this.logMessage("Downgrading resources");
 
-		// Frequency change
-		this.logMessage("---> Trying to decrease frequency ");
-		int frequency = decreaseFrequency();
-		if (frequency > 0) {
-			this.logMessage("---> Decreased frequency of " + frequency + " cores");
-			return;
+		switch (usage) {
+			case 0:
+				// Frequency change
+				this.logMessage("---> Trying to decrease frequency ");
+				int frequency = decreaseFrequency();
+				if (frequency > 0) {
+					this.logMessage("---> Decreased frequency of " + frequency + " cores");
+					return;
+				}
+				this.logMessage("---> Couldn't decrease frequency ");
+			case 1:
+				// Core Change
+				this.logMessage("---> Trying to remove cores ");
+				int cores = removeCores();
+				if (cores > 0) {
+					this.logMessage("---> Removed " + cores + " cores from AVM");
+					return;
+				}
+				this.logMessage("---> Couldn't remove cores from any AVM ");
+			case 2:
+				// Remove AVM
+				this.logMessage("---> Trying to remove an AVM ");
+				removeAVM();
 		}
-		this.logMessage("---> Couldn't decrease frequency ");
-
-		// Core Change
-		this.logMessage("---> Trying to remove cores ");
-		int cores = removeCores();
-		if (cores > 0) {
-			this.logMessage("---> Removed " + cores + " cores from AVM");
-			return;
-		}
-		this.logMessage("---> Couldn't remove cores from any AVM ");
-
-		// Remove AVM
-		this.logMessage("---> Trying to remove an AVM ");
-		removeAVM();
 	}
 
+	/**
+	 * increase frequency
+	 * @return 0 if not possible to increase, number of cores for which we increased frequency otherwise
+	 */
 	private int increaseFrequency() {
 		int num = 0;
 
@@ -346,6 +514,10 @@ public class PerformanceController extends AbstractComponent implements
 		return num;
 	}
 
+	/**
+	 * decrease frequency
+	 * @return 0 if not possible to decrease, number of cores for which we decreased frequency otherwise
+	 */
 	private int decreaseFrequency() {
 		int num = 0;
 
@@ -368,6 +540,10 @@ public class PerformanceController extends AbstractComponent implements
 		return num;
 	}
 
+	/**
+	 * Add cores
+	 * @return 0 if not possible to add, number of cores added otherwise
+	 */
 	private int addCores() throws Exception {
 		int num = 0;
 
@@ -388,6 +564,10 @@ public class PerformanceController extends AbstractComponent implements
 		return num;
 	}
 
+	/**
+	 * Remove cores
+	 * @return 0 if not possible to remove, number of cores removed otherwise
+	 */
 	private int removeCores() throws Exception {
 
 		for (Map.Entry<String, AllocationMap> entry : allocationMap.entrySet()) {
@@ -416,10 +596,17 @@ public class PerformanceController extends AbstractComponent implements
 		return 0;
 	}
 
+	/**
+	 * Send request to admission controller to add a new AVM
+	 */
 	private void addAVM() throws Exception {
 		this.pcsop.requestAddAVM(this.appURI, this.performanceControllerURI);
 	}
 
+	/**
+	 * Send request to admission controller to remove an AVM, if there are more than 1 available, or
+	 * refuse AVM remove request otherwise.
+	 */
 	private void removeAVM() throws Exception {
 		if (this.availableAVMsCount > 1) {
 			this.pcsop.requestRemoveAVM(this.appURI, this.performanceControllerURI);

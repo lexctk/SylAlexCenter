@@ -6,6 +6,13 @@ import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceC
 
 import java.util.ArrayList;
 
+/**
+ * The class <code>PerformanceControllerManagementConnector</code> defines a connector associated with
+ * the interface <code>PerformanceControllerManagementI</code>
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class PerformanceControllerManagementConnector extends AbstractConnector implements PerformanceControllerManagementI {
 
 	@Override

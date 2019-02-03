@@ -1034,6 +1034,9 @@ public class Computer extends AbstractComponent implements ProcessorStateDataCon
 		return sb.toString();
 	}
 
+	// ----------------- SylAlexCenter Part
+
+
 	public boolean increaseFrequency(int coreNo, int processorNo) throws Exception {
 		printCurrentFrequencies ();
 		this.logMessage("Increasing frequency processor " + processorNo + " and core " + coreNo);

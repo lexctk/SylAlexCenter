@@ -48,10 +48,8 @@ import static java.util.Comparator.comparingInt;
  * 
  * When the request dispatcher receives a request, it goes through the list of
  * available application virtual machines (AVMs) and submits the request to the 
- * least recently used AVM.
+ * least used AVM (min number of requests in queue)
  *
- *
- * Sorbonne University 2018-2019
  * @author Alexandra Tudor
  * @author Sylia Righi
  *
@@ -94,8 +92,18 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	// Data Pushing
 	private ScheduledFuture<?> pushingFuture;
 
-	// Constructor
-	// -------------------------------------------------------------------------
+	/**
+	 *
+	 * @param rdURI request dispatcher URI
+	 * @param vmURIList list of avm URIs available for the request dispatcher
+	 * @param requestDispatcherManagementInboundPortURI request dispatcher management inbound port URI
+	 * @param requestDispatcherServicesInboundPortURI request dispatcher services inbound port URI
+	 * @param requestDispatcherSubmissionInboundPortURI request dispatcher submission inbound port URI
+	 * @param requestDispatcherSubmissionOutboundPortURIList list of request dispatcher submission outbound port URIs
+	 * @param requestDispatcherNotificationInboundPortURIList list of request dispatcher notification inbound port URIs
+	 * @param requestDispatcherNotificationOutboundPortURI request dispatcher notification outbound port URI
+	 * @param requestDispatcherDynamicStateDataInboundPortURI request dispatcher dynamic state data inbound port URI
+	 */
 	public RequestDispatcher (
 			String rdURI,
 			ArrayList<String> vmURIList,
@@ -184,6 +192,11 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 	// Component life-cycle
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Connect service in/out ports
+	 * @throws ComponentStartException error connecting ports
+	 */
 	@Override
 	public void start() throws ComponentStartException {
 		this.toggleTracing();
@@ -199,6 +212,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		super.start();
 	}
 
+	/**
+	 * Disconnect service in/out ports, notification in/out ports and dynamic state in/out ports
+	 * @throws Exception
+	 */
 	@Override
 	public void finalise() throws Exception {
 		for (String vmURI : this.vmURIList) {
@@ -209,7 +226,11 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 		super.finalise();
 	}
-	
+
+	/**
+	 * Unpublish management, services, submission, notification and dynamic state ports
+	 * @throws ComponentShutdownException error unpublishing ports
+	 */
 	@Override
 	public void shutdown() throws ComponentShutdownException {
 
@@ -232,8 +253,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 
 	// Component internal services
 	// -------------------------------------------------------------------------
+
 	/**
-	 * accept a request submission from request generator and send it to
+	 * Accept a request submission from request generator and send it to
 	 * least recently used AVM
 	 *
 	 * @param r request that just terminated.
@@ -244,7 +266,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	}
 
 	/**
-	 * accept a request submission from request generator, send it to the
+	 * Accept a request submission from request generator, send it to the
 	 * least recently used AVM and and require notifications of request execution progress.
 	 *
 	 * @param r request that just terminated.
@@ -274,7 +296,7 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	}
 
 	/**
-	 * notify request generator that a request was terminated
+	 * Notify request generator that a request was terminated
 	 *
 	 * @param r request that just terminated.
 	 */
@@ -314,6 +336,11 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 	// Component dynamic state services
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Request dispatcher dynamic data contains request dispatcher URI, current exponential moving average
+	 * total requests submitted, total requests terminated, and number of AVMs available
+	 * @return dynamic data
+	 */
 	public RequestDispatcherDynamicStateI getDynamicState() {
 		return new RequestDispatcherDynamicState(
 				this.rdURI,
@@ -323,12 +350,18 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 				this.totalRequestTerminated);
 	}
 
+	/**
+	 * Send dynamic state via dynamic state inbound port.
+	 */
 	private void sendDynamicState() throws Exception {
 		if (this.rddsdip.connected()) {
 			this.rddsdip.send(this.getDynamicState());
 		}
 	}
 
+	/**
+	 * Send dynamic state information
+	 */
 	private void sendDynamicState(final int interval, int numberOfRemainingPushes) throws Exception {
 		this.sendDynamicState();
 		final int fNumberOfRemainingPushes = numberOfRemainingPushes - 1;
@@ -350,6 +383,10 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		}
 	}
 
+	/**
+	 * Start unlimited pushing of dynamic state data
+	 * @param interval delay between pushes (in milliseconds).
+	 */
 	@Override
 	public void startUnlimitedPushing(int interval) throws RuntimeException {
 		final RequestDispatcher rd = this;
@@ -370,6 +407,11 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			TimeUnit.MILLISECONDS);
 	}
 
+	/**
+	 * Start limited pushing of dynamic state data
+	 * @param interval delay between pushes (in milliseconds).
+	 * @param n        total number of pushes to be done, unless stopped.
+	 */
 	@Override
 	public void startLimitedPushing(int interval, int n) throws RuntimeException {
 		assert n > 0;
@@ -392,6 +434,9 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 			TimeUnit.MILLISECONDS);
 	}
 
+	/**
+	 * Stop pushing dynamic state data
+	 */
 	@Override
 	public void stopPushing() throws Exception {
 		try {
@@ -403,6 +448,18 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		}
 	}
 
+	/**
+	 * Receive notification that resources have been allocated for a new AVM.
+	 *
+	 * Create ports for the new AVM and notify admission controller that ports are ready.
+	 *
+	 * @param appURI application URI
+	 * @param performanceControllerURI performance controller URI
+	 * @param allocatedMap allocation map for new AVM
+	 * @param avmURI new AVM URI
+	 * @param requestDispatcherSubmissionOutboundPortURI request dispatcher submission outbound port URI to use for the new AVM
+	 * @param requestDispatcherNotificationInboundPortURI request dispatcher notification inbound port URI to use for the new AVM
+	 */
 	@Override
 	public void notifyDispatcherOfNewAVM (
 			String appURI,
@@ -435,12 +492,25 @@ public class RequestDispatcher extends AbstractComponent implements RequestDispa
 		this.logMessage("---> Created ports for new AVM");
 	}
 
+	/**
+	 * Receive notification that a new AVM was deployed
+	 * @param avmURI new AVM URI
+	 */
 	@Override
 	public void notifyDispatcherNewAVMDeployed(String avmURI) {
 		this.vmURIList.add(avmURI);
 		this.vmPriority.put(avmURI, 0);
 	}
 
+	/**
+	 * Receive notification that an AVM should be removed.
+	 *
+	 * The request dispatcher decides which AVM to remove, by choosing the least used one
+	 * (min request queue size)
+	 *
+	 * Mark the AVM for removal
+	 * @param appURI application URI
+	 */
 	@Override
 	public void notifyDispatcherToRemoveAVM(String appURI, String performanceControllerURI) throws Exception {
 		if (this.markedForRemoval == null) {

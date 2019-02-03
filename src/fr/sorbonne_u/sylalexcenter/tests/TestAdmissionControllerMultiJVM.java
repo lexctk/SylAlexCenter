@@ -218,6 +218,7 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 		TestAdmissionControllerMultiJVM testAdmissionControllerMultiJVM;
 
 		try {
+			System.out.println(args[0] + args[1]);
 			testAdmissionControllerMultiJVM = new TestAdmissionControllerMultiJVM(args, 2, 5);
 
 			testAdmissionControllerMultiJVM.startStandardLifeCycle(applicationTime*10);
@@ -229,5 +230,4 @@ public class TestAdmissionControllerMultiJVM extends AbstractDistributedCVM {
 			e2.printStackTrace();
 		}
 	}
-
 }

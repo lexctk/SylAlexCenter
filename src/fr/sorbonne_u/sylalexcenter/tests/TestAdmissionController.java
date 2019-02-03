@@ -19,27 +19,37 @@ import fr.sorbonne_u.sylalexcenter.application.Application;
  * and runs a test.
  * 
  * <p><strong>Description</strong></p>
- * TestAdmissionController deploys: computers, applications, admission controller
- * and a dynamic component creator that overrides BCM, to be used by 
- * admission controller when deploying components. 
- * 
- * The dynamic component creator delays start() until everything is deployed. 
+ * TestAdmissionController deploys: computers, applications and admission controller
  *
  */
 public class TestAdmissionController extends AbstractCVM {
 
-	// Setup
+	// Setup Scenario 1
 	// -----------------------------------------------------------------
 	private static final Integer numberOfComputers = 4;
 	private static final Integer numberOfProcessors = 2;
 	private static final Integer numberOfCores = 8;
 	private static final Integer numberOfApplications = 4;
 
-	private static final Integer[] coresNeeded = new Integer[] {4, 8, 6, 2};
-	private static final Long[] meanNumberOfInstructions = new Long[] {12000000000L, 6000000000L, 8000000000L, 6000000000L};
+	private static final Integer[] coresNeeded = new Integer[] {8, 2, 2, 2};
+	private static final Long[] meanNumberOfInstructions = new Long[] {6000000000L, 6000000000L, 12000000000L, 6000000000L};
+	private static final Double[] meanInterArrivalTime = new Double[] {1000.0, 1000.0, 1000.0, 1000.0};
 	private static final Integer coresPerAVM = 2;
-
 	private static final long applicationTime = 500000L;
+
+
+//	// Setup Scenario 2
+//	// -----------------------------------------------------------------
+//	private static final Integer numberOfComputers = 4;
+//	private static final Integer numberOfProcessors = 2;
+//	private static final Integer numberOfCores = 8;
+//	private static final Integer numberOfApplications = 1;
+//
+//	private static final Integer[] coresNeeded = new Integer[] {12};
+//	private static final Long[] meanNumberOfInstructions = new Long[] {6000000000L};
+//	private static final Double[] meanInterArrivalTime = new Double[] {1000.0};
+//	private static final Integer coresPerAVM = 2;
+//	private static final long applicationTime = 500000L;
 
 	// Port URIs
 	// -----------------------------------------------------------------
@@ -126,8 +136,6 @@ public class TestAdmissionController extends AbstractCVM {
 		
 		// Deploy Applications
 		// --------------------------------------------------------------------
-		Double meanInterArrivalTime = 1000.0;
-
 		ArrayList<String> applicationURIsList = new ArrayList<>();
 		applicationList = new ArrayList<>();
 		ArrayList<String> applicationManagementInboundPortURIList = new ArrayList<>();
@@ -140,7 +148,7 @@ public class TestAdmissionController extends AbstractCVM {
 			Application application = new Application (
 					appURI,
 					coresNeeded[i],
-					meanInterArrivalTime,
+					meanInterArrivalTime[i],
 					meanNumberOfInstructions[i],
 					applicationTime,
 					applicationManagementInboundPortURI + "_" + i,

@@ -4,6 +4,13 @@ import fr.sorbonne_u.sylalexcenter.admissioncontroller.utils.AllocationMap;
 
 import java.util.ArrayList;
 
+/**
+ * The interface <code>RequestDispatcherServicesHandlerI</code> defines notification services that allow
+ * the request dispatcher to send notifications to admission controller when AVM removal is complete or refused
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public interface RequestDispatcherServicesHandlerI {
 
 	void acceptNotificationNewAVMPortsReady (

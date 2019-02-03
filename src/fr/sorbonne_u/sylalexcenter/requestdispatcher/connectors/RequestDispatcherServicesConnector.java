@@ -6,6 +6,15 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.interfaces.RequestDispatche
 
 import java.util.ArrayList;
 
+/**
+ * The class <code>RequestDispatcherServicesConnector</code> defines a connector associated with
+ * the interface <code>RequestDispatcherServicesI</code>
+ *
+ * Allows request dispatcher to notify admission controller when AVM removal is complete or refused
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class RequestDispatcherServicesConnector extends AbstractConnector
 		implements RequestDispatcherServicesI {
 

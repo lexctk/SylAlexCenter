@@ -17,10 +17,8 @@ import fr.sorbonne_u.sylalexcenter.requestdispatcher.RequestDispatcher;
 
 /**
  * The class <code>TestRequestDispatcher</code> deploys a single AVM, with a 
- * single application and tests the request dispatcher.
- * 
- * <p><strong>Description</strong></p>
- * 
+ * single application and tests only the request dispatcher.
+ *
  * Sorbonne University 2018-2019
  * @author Alexandra Tudor
  * @author Sylia Righi

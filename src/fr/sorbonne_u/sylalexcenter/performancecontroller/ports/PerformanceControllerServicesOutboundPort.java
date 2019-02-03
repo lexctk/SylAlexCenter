@@ -5,6 +5,15 @@ import fr.sorbonne_u.components.ports.AbstractOutboundPort;
 import fr.sorbonne_u.datacenter.hardware.computers.Computer;
 import fr.sorbonne_u.sylalexcenter.performancecontroller.interfaces.PerformanceControllerServicesI;
 
+
+/**
+ * The class <code>PerformanceControllerServicesOutboundPort</code> defines
+ * an outbound port that allows the performance controller component to connect
+ * to admission controller.
+ *
+ * @author Alexandra Tudor
+ * @author Sylia Righi
+ */
 public class PerformanceControllerServicesOutboundPort extends AbstractOutboundPort implements PerformanceControllerServicesI {
 
 

@@ -5,11 +5,11 @@ import fr.sorbonne_u.components.connectors.AbstractConnector;
 import fr.sorbonne_u.sylalexcenter.application.interfaces.ApplicationNotificationI;
 
 /**
+ * The class <code>ApplicationNotificationConnector</code> defines a connector associated with
+ * the interface <code>ApplicationNotificationI</code>
  *
- * Sorbonne University 2018-2019
  * @author Alexandra Tudor
  * @author Sylia Righi
- *
  */
 public class ApplicationNotificationConnector extends AbstractConnector implements ApplicationNotificationI {
 
